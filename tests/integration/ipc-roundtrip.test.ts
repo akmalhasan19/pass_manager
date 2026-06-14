@@ -145,6 +145,7 @@ describe('IPC Round-Trip Integration', () => {
   it('should build hierarchical tree and update folders', () => {
     const root = folderRepo.create(null, 'Root', '🏠');
     const child1 = folderRepo.create(root.id, 'Finance', '💰');
+    folderRepo.create(root.id, 'Social', '👥');
     folderRepo.create(child1.id, 'Bank Accounts', '🏦');
 
     const tree = folderRepo.getTree();
