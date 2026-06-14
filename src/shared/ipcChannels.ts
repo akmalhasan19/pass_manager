@@ -41,4 +41,9 @@ export const IPC_CHANNELS = {
   TRASH_PERMANENT_DELETE: 'trash:permanentDelete',
   TRASH_EMPTY: 'trash:empty',
   TRASH_PURGE: 'trash:purge',
+
+  WINDOW_MINIMIZE: 'window:minimize',
+  WINDOW_MAXIMIZE: 'window:maximize',
+  WINDOW_CLOSE: 'window:close',
+  WINDOW_IS_MAXIMIZED: 'window:isMaximized',
 } as const;

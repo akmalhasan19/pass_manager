@@ -418,134 +418,134 @@ CREATE TABLE auth_metadata (
   - [x] 2.1.5 `window.electron.files` — attach, download, delete.
   - [x] 2.1.6 `window.electron.search` — search.
   - [x] 2.1.7 `window.electron.settings` — get/set settings.
-- [ ] 2.2 Implement `src/main/ipc/authHandlers.ts`:
-  - [ ] 2.2.1 `auth:init` — validate password strength, create salt, derive key, create DB, store metadata.
-  - [ ] 2.2.2 `auth:unlock` — derive key, attempt DB open, return success/failure.
-  - [ ] 2.2.3 `auth:lock` — clear memory keys, emit lock event.
-  - [ ] 2.2.4 `auth:change-password` — re-encrypt all data with new key, update metadata.
-  - [ ] 2.2.5 `auth:check` — verify if DB exists and is initialized.
-- [ ] 2.3 Implement `src/main/ipc/folderHandlers.ts`:
-  - [ ] 2.3.1 `folder:getTree` — return tree structure.
-  - [ ] 2.3.2 `folder:create` — create, return new folder.
-  - [ ] 2.3.3 `folder:update` — update, return updated.
-  - [ ] 2.3.4 `folder:move` — validate move, update DB, return updated tree.
-  - [ ] 2.3.5 `folder:delete` — move to trash.
-  - [ ] 2.3.6 `folder:restore` — restore from trash.
-- [ ] 2.4 Implement `src/main/ipc/itemHandlers.ts`:
-  - [ ] 2.4.1 `item:getByFolder` — list items.
-  - [ ] 2.4.2 `item:getById` — single item.
-  - [ ] 2.4.3 `item:create` — create, encrypt fields.
-  - [ ] 2.4.4 `item:update` — update, encrypt changed fields.
-  - [ ] 2.4.5 `item:delete` — move to trash.
-  - [ ] 2.4.6 `item:restore` — restore from trash.
-  - [ ] 2.4.7 `item:toggleFavorite` — toggle favorite status.
-- [ ] 2.5 Implement `src/main/ipc/searchHandlers.ts`:
-  - [ ] 2.5.1 `item:search` — full-text search, fuzzy matching, return results.
-  - [ ] 2.5.2 `item:searchByTag` — filter by tag.
-- [ ] 2.6 Implement `src/main/ipc/fileHandlers.ts`:
-  - [ ] 2.6.1 `file:attach` — read file, encrypt, store to filesystem, save metadata.
-  - [ ] 2.6.2 `file:download` — decrypt file, return temp path.
-  - [ ] 2.6.3 `file:delete` — remove file and metadata.
-- [ ] 2.7 Implement `src/main/ipc/settingsHandlers.ts`:
-  - [ ] 2.7.1 `settings:get` — read from DB.
-  - [ ] 2.7.2 `settings:set` — write to DB.
-  - [ ] 2.7.3 `settings:getAll` — bulk read.
-- [ ] 2.8 Implement `src/main/file-system/storageManager.ts`:
-  - [ ] 2.8.1 `getStoragePath()` — determine app data directory (Electron `app.getPath('userData')`).
-  - [ ] 2.8.2 `encryptAndStoreFile(filePath, key)` — read, encrypt, write to storage dir.
-  - [ ] 2.8.3 `decryptAndRetrieveFile(storagePath, key)` — read, decrypt, write to temp, return path.
-  - [ ] 2.8.4 `deleteStoredFile(storagePath)` — secure delete (overwrite + unlink).
-  - [ ] 2.8.5 Handle large files with streaming encryption to avoid memory issues.
-- [ ] 2.9 Implement `src/main/index.ts` (main process entry):
-  - [ ] 2.9.1 Create `BrowserWindow` with security settings (contextIsolation: true, nodeIntegration: false, webSecurity: true).
-  - [ ] 2.9.2 Load Vite dev server in development, or `index.html` in production.
-  - [ ] 2.9.3 Register all IPC handlers.
-  - [ ] 2.9.4 Handle app lifecycle events (ready, activate, before-quit).
-  - [ ] 2.9.5 Implement single-instance lock.
-  - [ ] 2.9.6 Implement secure CSP headers.
+- [x] 2.2 Implement `src/main/ipc/authHandlers.ts`:
+  - [x] 2.2.1 `auth:init` — validate password strength, create salt, derive key, create DB, store metadata.
+  - [x] 2.2.2 `auth:unlock` — derive key, attempt DB open, return success/failure.
+  - [x] 2.2.3 `auth:lock` — clear memory keys, emit lock event.
+  - [x] 2.2.4 `auth:change-password` — re-encrypt all data with new key, update metadata.
+  - [x] 2.2.5 `auth:check` — verify if DB exists and is initialized.
+- [x] 2.3 Implement `src/main/ipc/folderHandlers.ts`:
+  - [x] 2.3.1 `folder:getTree` — return tree structure.
+  - [x] 2.3.2 `folder:create` — create, return new folder.
+  - [x] 2.3.3 `folder:update` — update, return updated.
+  - [x] 2.3.4 `folder:move` — validate move, update DB, return updated tree.
+  - [x] 2.3.5 `folder:delete` — move to trash.
+  - [x] 2.3.6 `folder:restore` — restore from trash.
+- [x] 2.4 Implement `src/main/ipc/itemHandlers.ts`:
+  - [x] 2.4.1 `item:getByFolder` — list items.
+  - [x] 2.4.2 `item:getById` — single item.
+  - [x] 2.4.3 `item:create` — create, encrypt fields.
+  - [x] 2.4.4 `item:update` — update, encrypt changed fields.
+  - [x] 2.4.5 `item:delete` — move to trash.
+  - [x] 2.4.6 `item:restore` — restore from trash.
+  - [x] 2.4.7 `item:toggleFavorite` — toggle favorite status.
+- [x] 2.5 Implement `src/main/ipc/searchHandlers.ts`:
+  - [x] 2.5.1 `item:search` — full-text search, fuzzy matching, return results.
+  - [x] 2.5.2 `item:searchByTag` — filter by tag.
+- [x] 2.6 Implement `src/main/ipc/fileHandlers.ts`:
+  - [x] 2.6.1 `file:attach` — read file, encrypt, store to filesystem, save metadata.
+  - [x] 2.6.2 `file:download` — decrypt file, return temp path.
+  - [x] 2.6.3 `file:delete` — remove file and metadata.
+- [x] 2.7 Implement `src/main/ipc/settingsHandlers.ts`:
+  - [x] 2.7.1 `settings:get` — read from DB.
+  - [x] 2.7.2 `settings:set` — write to DB.
+  - [x] 2.7.3 `settings:getAll` — bulk read.
+- [x] 2.8 Implement `src/main/file-system/storageManager.ts`:
+  - [x] 2.8.1 `getStoragePath()` — determine app data directory (Electron `app.getPath('userData')`).
+  - [x] 2.8.2 `encryptAndStoreFile(filePath, key)` — read, encrypt, write to storage dir.
+  - [x] 2.8.3 `decryptAndRetrieveFile(storagePath, key)` — read, decrypt, write to temp, return path.
+  - [x] 2.8.4 `deleteStoredFile(storagePath)` — secure delete (overwrite + unlink).
+  - [x] 2.8.5 Handle large files with streaming encryption to avoid memory issues.
+- [x] 2.9 Implement `src/main/index.ts` (main process entry):
+  - [x] 2.9.1 Create `BrowserWindow` with security settings (contextIsolation: true, nodeIntegration: false, webSecurity: true).
+  - [x] 2.9.2 Load Vite dev server in development, or `index.html` in production.
+  - [x] 2.9.3 Register all IPC handlers.
+  - [x] 2.9.4 Handle app lifecycle events (ready, activate, before-quit).
+  - [x] 2.9.5 Implement single-instance lock.
+  - [x] 2.9.6 Implement secure CSP headers.
 
 ### **PHASE 3: Frontend Foundation (React + Tailwind)**
-- [ ] 3.1 Implement `src/renderer/index.tsx` — React root, StrictMode, error boundary.
-- [ ] 3.2 Implement `src/renderer/pages/App.tsx` — root component, routing logic (LockScreen vs MainApp).
-- [ ] 3.3 Implement `src/renderer/pages/LockScreenPage.tsx`:
-  - [ ] 3.3.1 Full-screen centered layout.
-  - [ ] 3.3.2 Master password input (password field, visibility toggle).
-  - [ ] 3.3.3 "Unlock" button with loading state.
-  - [ ] 3.3.4 "First time setup" flow (create master password, confirm password, strength indicator).
-  - [ ] 3.3.5 Error handling (wrong password, DB not found).
-  - [ ] 3.3.6 Logo and branding.
-- [ ] 3.4 Implement `src/renderer/pages/MainAppPage.tsx` — base layout with Sidebar + MainPanel.
-- [ ] 3.5 Implement `src/renderer/stores/authStore.ts` (Zustand):
-  - [ ] 3.5.1 `isAuthenticated`, `isLoading`, `error` states.
-  - [ ] 3.5.2 `initApp(password)` action.
-  - [ ] 3.5.3 `unlock(password)` action.
-  - [ ] 3.5.4 `lock()` action.
-  - [ ] 3.5.5 `changePassword(old, new)` action.
-- [ ] 3.6 Implement `src/renderer/stores/folderStore.ts` (Zustand + Immer):
-  - [ ] 3.6.1 `folders` state as normalized tree structure.
-  - [ ] 3.6.2 `selectedFolderId` state.
-  - [ ] 3.6.3 `loadTree()` action — fetch from main.
-  - [ ] 3.6.4 `createFolder(parentId, name, emoji)` action.
-  - [ ] 3.6.5 `updateFolder(id, fields)` action.
-  - [ ] 3.6.6 `moveFolder(id, newParentId)` action.
-  - [ ] 3.6.7 `deleteFolder(id)` action.
-  - [ ] 3.6.8 `setSelectedFolder(id)` action.
-  - [ ] 3.6.9 `expandFolder(id)` / `collapseFolder(id)` UI state.
-- [ ] 3.7 Implement `src/renderer/stores/itemStore.ts` (Zustand + Immer):
-  - [ ] 3.7.1 `items` state as normalized map.
-  - [ ] 3.7.2 `selectedItemId` state.
-  - [ ] 3.7.3 `loadItems(folderId)` action.
-  - [ ] 3.7.4 `createItem(folderId, fields)` action.
-  - [ ] 3.7.5 `updateItem(id, fields)` action.
-  - [ ] 3.7.6 `deleteItem(id)` action.
-  - [ ] 3.7.7 `setSelectedItem(id)` action.
-  - [ ] 3.7.8 `searchItems(query)` action.
-- [ ] 3.8 Implement `src/renderer/stores/uiStore.ts` (Zustand):
-  - [ ] 3.8.1 `sidebarOpen` state.
-  - [ ] 3.8.2 `darkMode` state.
-  - [ ] 3.8.3 `quickFindOpen` state.
-  - [ ] 3.8.4 `activeView` state ('folder', 'item', 'health', 'trash', 'settings').
-  - [ ] 3.8.5 `toggleSidebar()`, `toggleDarkMode()`, `toggleQuickFind()`, `setActiveView()` actions.
-- [ ] 3.9 Implement `src/renderer/stores/settingsStore.ts` (Zustand):
-  - [ ] 3.9.1 `settings` object (autoLockTime, theme, defaultPasswordLength, etc.).
-  - [ ] 3.9.2 `loadSettings()` action.
-  - [ ] 3.9.3 `updateSetting(key, value)` action.
+- [x] 3.1 Implement `src/renderer/index.tsx` — React root, StrictMode, error boundary.
+- [x] 3.2 Implement `src/renderer/pages/App.tsx` — root component, routing logic (LockScreen vs MainApp).
+- [x] 3.3 Implement `src/renderer/pages/LockScreenPage.tsx`:
+  - [x] 3.3.1 Full-screen centered layout.
+  - [x] 3.3.2 Master password input (password field, visibility toggle).
+  - [x] 3.3.3 "Unlock" button with loading state.
+  - [x] 3.3.4 "First time setup" flow (create master password, confirm password, strength indicator).
+  - [x] 3.3.5 Error handling (wrong password, DB not found).
+  - [x] 3.3.6 Logo and branding.
+- [x] 3.4 Implement `src/renderer/pages/MainAppPage.tsx` — base layout with Sidebar + MainPanel.
+- [x] 3.5 Implement `src/renderer/stores/authStore.ts` (Zustand):
+  - [x] 3.5.1 `isAuthenticated`, `isLoading`, `error` states.
+  - [x] 3.5.2 `initApp(password)` action.
+  - [x] 3.5.3 `unlock(password)` action.
+  - [x] 3.5.4 `lock()` action.
+  - [x] 3.5.5 `changePassword(old, new)` action.
+- [x] 3.6 Implement `src/renderer/stores/folderStore.ts` (Zustand + Immer):
+  - [x] 3.6.1 `folders` state as normalized tree structure.
+  - [x] 3.6.2 `selectedFolderId` state.
+  - [x] 3.6.3 `loadTree()` action — fetch from main.
+  - [x] 3.6.4 `createFolder(parentId, name, emoji)` action.
+  - [x] 3.6.5 `updateFolder(id, fields)` action.
+  - [x] 3.6.6 `moveFolder(id, newParentId)` action.
+  - [x] 3.6.7 `deleteFolder(id)` action.
+  - [x] 3.6.8 `setSelectedFolder(id)` action.
+  - [x] 3.6.9 `expandFolder(id)` / `collapseFolder(id)` UI state.
+- [x] 3.7 Implement `src/renderer/stores/itemStore.ts` (Zustand + Immer):
+  - [x] 3.7.1 `items` state as normalized map.
+  - [x] 3.7.2 `selectedItemId` state.
+  - [x] 3.7.3 `loadItems(folderId)` action.
+  - [x] 3.7.4 `createItem(folderId, fields)` action.
+  - [x] 3.7.5 `updateItem(id, fields)` action.
+  - [x] 3.7.6 `deleteItem(id)` action.
+  - [x] 3.7.7 `setSelectedItem(id)` action.
+  - [x] 3.7.8 `searchItems(query)` action.
+- [x] 3.8 Implement `src/renderer/stores/uiStore.ts` (Zustand):
+  - [x] 3.8.1 `sidebarOpen` state.
+  - [x] 3.8.2 `darkMode` state.
+  - [x] 3.8.3 `quickFindOpen` state.
+  - [x] 3.8.4 `activeView` state ('folder', 'item', 'health', 'trash', 'settings').
+  - [x] 3.8.5 `toggleSidebar()`, `toggleDarkMode()`, `toggleQuickFind()`, `setActiveView()` actions.
+- [x] 3.9 Implement `src/renderer/stores/settingsStore.ts` (Zustand):
+  - [x] 3.9.1 `settings` object (autoLockTime, theme, defaultPasswordLength, etc.).
+  - [x] 3.9.2 `loadSettings()` action.
+  - [x] 3.9.3 `updateSetting(key, value)` action.
 
 ### **PHASE 4: Core UI Components (Sidebar & Navigation)**
-- [ ] 4.1 Implement `src/renderer/components/layout/Sidebar.tsx`:
-  - [ ] 4.1.1 Collapsible container with smooth width transition.
-  - [ ] 4.1.2 Fixed header with "New Folder" button and Quick Find trigger.
-  - [ ] 4.1.3 Tree view rendering using recursive `TreeNode` component.
-  - [ ] 4.1.4 Favorites section (pinned items).
-  - [ ] 4.1.5 Trash bin link at bottom.
-  - [ ] 4.1.6 Settings/Profile link at bottom.
-  - [ ] 4.1.7 Drag-and-drop handles on each node.
-  - [ ] 4.1.8 Context menu (right-click) for rename, delete, new subfolder.
-- [ ] 4.2 Implement `src/renderer/components/ui/TreeNode.tsx`:
-  - [ ] 4.2.1 Display emoji + name.
-  - [ ] 4.2.2 Expand/collapse chevron for folders with children.
-  - [ ] 4.2.3 Indentation based on depth level.
-  - [ ] 4.2.4 Selected state highlight.
-  - [ ] 4.2.5 Hover state with drag handle and context menu trigger.
-  - [ ] 4.2.6 Inline rename (double-click or context menu).
-  - [ ] 4.2.7 DnD source and target (using HTML5 DnD or dnd-kit).
-- [ ] 4.3 Implement `src/renderer/components/layout/MainPanel.tsx`:
-  - [ ] 4.3.1 Breadcrumb navigation showing current path (Home > Folder > Subfolder).
-  - [ ] 4.3.2 Toolbar with "New Item", "New Folder", "Sort" controls.
-  - [ ] 4.3.3 Content area that switches views based on `uiStore.activeView`.
-  - [ ] 4.3.4 Empty state illustration when no items/folders.
-- [ ] 4.4 Implement `src/renderer/components/layout/QuickFind.tsx`:
-  - [ ] 4.4.1 CMD+K modal (or Ctrl+K) overlay.
-  - [ ] 4.4.2 Search input with focus on open.
-  - [ ] 4.4.3 Real-time search results list (folders + items + tags).
-  - [ ] 4.4.4 Keyboard navigation (arrow keys, Enter to select, Escape to close).
-  - [ ] 4.4.5 Fuzzy matching highlight.
-  - [ ] 4.4.6 Sectioned results: Folders, Items, Tags.
-- [ ] 4.5 Implement `src/renderer/components/layout/TitleBar.tsx`:
-  - [ ] 4.5.1 Custom title bar (frameless window) with drag region.
-  - [ ] 4.5.2 Window controls (minimize, maximize, close) for Windows/Linux.
-  - [ ] 4.5.3 macOS traffic lights integration (leave native or custom).
-  - [ ] 4.5.4 App logo and name.
+- [x] 4.1 Implement `src/renderer/components/layout/Sidebar.tsx`:
+  - [x] 4.1.1 Collapsible container with smooth width transition.
+  - [x] 4.1.2 Fixed header with "New Folder" button and Quick Find trigger.
+  - [x] 4.1.3 Tree view rendering using recursive `TreeNode` component.
+  - [x] 4.1.4 Favorites section (pinned items).
+  - [x] 4.1.5 Trash bin link at bottom.
+  - [x] 4.1.6 Settings/Profile link at bottom.
+  - [x] 4.1.7 Drag-and-drop handles on each node.
+  - [x] 4.1.8 Context menu (right-click) for rename, delete, new subfolder.
+- [x] 4.2 Implement `src/renderer/components/ui/TreeNode.tsx`:
+  - [x] 4.2.1 Display emoji + name.
+  - [x] 4.2.2 Expand/collapse chevron for folders with children.
+  - [x] 4.2.3 Indentation based on depth level.
+  - [x] 4.2.4 Selected state highlight.
+  - [x] 4.2.5 Hover state with drag handle and context menu trigger.
+  - [x] 4.2.6 Inline rename (double-click or context menu).
+  - [x] 4.2.7 DnD source and target (using HTML5 DnD or dnd-kit).
+- [x] 4.3 Implement `src/renderer/components/layout/MainPanel.tsx`:
+  - [x] 4.3.1 Breadcrumb navigation showing current path (Home > Folder > Subfolder).
+  - [x] 4.3.2 Toolbar with "New Item", "New Folder", "Sort" controls.
+  - [x] 4.3.3 Content area that switches views based on `uiStore.activeView`.
+  - [x] 4.3.4 Empty state illustration when no items/folders.
+- [x] 4.4 Implement `src/renderer/components/layout/QuickFind.tsx`:
+  - [x] 4.4.1 CMD+K modal (or Ctrl+K) overlay.
+  - [x] 4.4.2 Search input with focus on open.
+  - [x] 4.4.3 Real-time search results list (folders + items + tags).
+  - [x] 4.4.4 Keyboard navigation (arrow keys, Enter to select, Escape to close).
+  - [x] 4.4.5 Fuzzy matching highlight.
+  - [x] 4.4.6 Sectioned results: Folders, Items, Tags.
+- [x] 4.5 Implement `src/renderer/components/layout/TitleBar.tsx`:
+  - [x] 4.5.1 Custom title bar (frameless window) with drag region.
+  - [x] 4.5.2 Window controls (minimize, maximize, close) for Windows/Linux.
+  - [x] 4.5.3 macOS traffic lights integration (leave native or custom).
+  - [x] 4.5.4 App logo and name.
 
 ### **PHASE 5: Item & Folder Views**
 - [ ] 5.1 Implement `src/renderer/components/views/FolderView.tsx`:

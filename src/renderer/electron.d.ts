@@ -97,6 +97,13 @@ export interface ElectronTrashAPI {
   purge(): Promise<void>;
 }
 
+export interface ElectronWindowAPI {
+  minimize(): Promise<void>;
+  maximize(): Promise<void>;
+  close(): Promise<void>;
+  isMaximized(): Promise<boolean>;
+}
+
 export interface ElectronAPI {
   auth: ElectronAuthAPI;
   folders: ElectronFoldersAPI;
@@ -106,6 +113,7 @@ export interface ElectronAPI {
   search: ElectronSearchAPI;
   settings: ElectronSettingsAPI;
   trash: ElectronTrashAPI;
+  window: ElectronWindowAPI;
 }
 
 declare global {

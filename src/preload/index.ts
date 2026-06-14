@@ -117,6 +117,17 @@ const api = {
     purge: () =>
       ipcRenderer.invoke(IPC_CHANNELS.TRASH_PURGE),
   },
+
+  window: {
+    minimize: () =>
+      ipcRenderer.invoke(IPC_CHANNELS.WINDOW_MINIMIZE),
+    maximize: () =>
+      ipcRenderer.invoke(IPC_CHANNELS.WINDOW_MAXIMIZE),
+    close: () =>
+      ipcRenderer.invoke(IPC_CHANNELS.WINDOW_CLOSE),
+    isMaximized: () =>
+      ipcRenderer.invoke(IPC_CHANNELS.WINDOW_IS_MAXIMIZED),
+  },
 };
 
 contextBridge.exposeInMainWorld('electron', api);
