@@ -143,8 +143,6 @@ export function analyzeHealth(
   let score: HealthReport['score'] = 'A';
   const weakRatio = total > 0 ? weakCount / total : 0;
   const reusedRatio = total > 0 ? reused / total : 0;
-  const oldRatio = total > 0 ? oldPasswords.length / total : 0;
-
   if (weakRatio > 0.5 || reusedRatio > 0.5) {
     score = 'F';
   } else if (weakRatio > 0.3 || reusedRatio > 0.3) {

@@ -133,7 +133,7 @@ export default function SlashCommandMenu({
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [isOpen, filtered, activeIndex, editor, onClose]);
+  }, [isOpen, filtered, activeIndex, editor, onClose, onExecute]);
 
   useEffect(() => {
     if (!isOpen) return;

@@ -158,7 +158,7 @@ export default function MainPanel(): React.ReactElement {
 
   const handleItemUpdate = useCallback(
     async (id: string, fields: Record<string, unknown>) => {
-      await updateItem(id, fields as any);
+      await updateItem(id, fields);
     },
     [updateItem],
   );
@@ -212,7 +212,7 @@ export default function MainPanel(): React.ReactElement {
       const file = input.files?.[0];
       if (!file) return;
       try {
-        await window.electron.files.attach(itemId, (file as any).path);
+        await window.electron.files.attach(itemId, (file as File & { path: string }).path);
       } catch (err) {
         console.error('Failed to attach file:', err);
       }

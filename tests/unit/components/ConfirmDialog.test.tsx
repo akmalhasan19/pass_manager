@@ -7,6 +7,7 @@ import ConfirmDialog from '../../../src/renderer/components/ui/ConfirmDialog';
 vi.mock('framer-motion', () => ({
   motion: {
     div: React.forwardRef((props: Record<string, unknown>, ref: React.Ref<HTMLDivElement>) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { initial, animate, exit, transition, variants, layout, ...rest } = props;
       return <div ref={ref} {...rest} />;
     }),

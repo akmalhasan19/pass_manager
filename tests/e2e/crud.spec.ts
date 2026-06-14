@@ -3,7 +3,6 @@ import {
   launchApp,
   closeApp,
   waitForLockScreen,
-  fillMasterPassword,
   waitForMainApp,
   clickSidebarFolder,
   clickButton,
@@ -199,7 +198,6 @@ test.describe('Folder & Item CRUD E2E', () => {
     await ctx.page.waitForTimeout(500);
 
     // Trash should contain the deleted item
-    const trashItem = ctx.page.locator('text=Disposable Item');
     // The item may or may not be visible in trash depending on UI
     // At minimum, we verified the delete action didn't crash
     await expect(ctx.page.locator('body')).toBeVisible();

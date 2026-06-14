@@ -1,7 +1,6 @@
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
 import { builtinModules } from 'module';
-import pkg from './package.json';
 
 export default defineConfig({
   resolve: {

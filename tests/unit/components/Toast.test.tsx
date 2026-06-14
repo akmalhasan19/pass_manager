@@ -7,6 +7,7 @@ import Toast from '../../../src/renderer/components/ui/Toast';
 vi.mock('framer-motion', () => ({
   motion: {
     div: React.forwardRef((props: Record<string, unknown>, ref: React.Ref<HTMLDivElement>) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { initial, animate, exit, transition, layout, ...rest } = props;
       return <div ref={ref} {...rest} />;
     }),

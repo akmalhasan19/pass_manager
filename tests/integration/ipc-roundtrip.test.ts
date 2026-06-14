@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
-import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { FolderRepository } from '@main/database/repositories/FolderRepository';
 import { ItemRepository } from '@main/database/repositories/ItemRepository';
@@ -145,7 +145,6 @@ describe('IPC Round-Trip Integration', () => {
   it('should build hierarchical tree and update folders', () => {
     const root = folderRepo.create(null, 'Root', '🏠');
     const child1 = folderRepo.create(root.id, 'Finance', '💰');
-    const child2 = folderRepo.create(root.id, 'Social', '👥');
     folderRepo.create(child1.id, 'Bank Accounts', '🏦');
 
     const tree = folderRepo.getTree();

@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -13,35 +12,6 @@ import { evaluateStrength } from '@main/crypto/passwordGenerator';
 
 const testDataDir = join(process.cwd(), 'test-data');
 const authPath = join(testDataDir, 'auth.json');
-const FTS5_RELATED = /items_fts|fts5/i;
-
-async function createDb(): Promise<SqlJsDatabase> {
-  const SQL = await initSqlJs();
-  const db = new SQL.Database();
-  db.run('PRAGMA foreign_keys = ON');
-  db.run('PRAGMA journal_mode = MEMORY');
-
-  const schemaPath = join(__dirname, '..', '..', 'src', 'main', 'database', 'schema.sql');
-  const schema = readFileSync(schemaPath, 'utf-8');
-  const noComments = schema
-    .split('\n')
-    .filter((l) => !l.trim().startsWith('--'))
-    .join('\n');
-  const statements = noComments
-    .split(';')
-    .map((s) => s.trim() + ';')
-    .filter((s) => s.length > 1);
-
-  for (const stmt of statements) {
-    if (FTS5_RELATED.test(stmt)) continue;
-    try {
-      db.run(stmt);
-    } catch {
-      /* skip */
-    }
-  }
-  return db;
-}
 
 describe('Auth Flow Integration', () => {
   beforeEach(() => {

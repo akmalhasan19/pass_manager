@@ -106,7 +106,7 @@ export default function PasswordGenerator({
 
   useEffect(() => {
     regenerate();
-  }, []);
+  }, [regenerate]);
 
   const handleCopy = useCallback(async () => {
     if (!currentPassword) return;

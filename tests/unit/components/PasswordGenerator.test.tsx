@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import PasswordGenerator from '../../../src/renderer/components/widgets/PasswordGenerator';
 
 vi.mock('framer-motion', () => ({
   motion: {
     div: React.forwardRef((props: Record<string, unknown>, ref: React.Ref<HTMLDivElement>) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { initial, animate, exit, transition, variants, layout, ...rest } = props;
       return <div ref={ref} {...rest} />;
     }),
@@ -53,9 +54,6 @@ describe('PasswordGenerator', () => {
 
   it('should regenerate password when regenerate button is clicked', () => {
     render(<PasswordGenerator onUsePassword={vi.fn()} onClose={vi.fn()} />);
-
-    const passwordEls = document.querySelectorAll('.select-all');
-    const firstPassword = passwordEls[0].textContent;
 
     fireEvent.click(screen.getByLabelText('Regenerate'));
 

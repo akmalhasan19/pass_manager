@@ -71,7 +71,7 @@ export default function SettingsView(): React.ReactElement {
 
   const handleExportBackup = useCallback(async () => {
     try {
-      await (window.electron.settings as any).exportBackup?.();
+      await (window.electron.settings as { exportBackup?: () => Promise<void> }).exportBackup?.();
     } catch {
       // Feature not yet available
     }
@@ -79,7 +79,7 @@ export default function SettingsView(): React.ReactElement {
 
   const handleImportBackup = useCallback(async () => {
     try {
-      await (window.electron.settings as any).importBackup?.();
+      await (window.electron.settings as { importBackup?: () => Promise<void> }).importBackup?.();
     } catch {
       // Feature not yet available
     }

@@ -41,16 +41,6 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const PASSWORD_COLORS: Record<string, string> = {
-  '#ef4444': 'danger-500',
-  '#f59e0b': 'warning-500',
-  '#22c55e': 'success-500',
-  '#6366f1': 'accent-500',
-  '#8b5cf6': 'purple-500',
-  '#06b6d4': 'cyan-500',
-  '#ec4899': 'pink-500',
-};
-
 const TAG_COLORS = ['#ef4444', '#f59e0b', '#22c55e', '#6366f1', '#8b5cf6', '#06b6d4', '#ec4899'];
 
 export default function ItemDetailView({
@@ -105,7 +95,7 @@ export default function ItemDetailView({
     setCoverImage(item.coverImage || '');
     setShowPassword(false);
     setDirtyFields(new Set());
-  }, [item?.id]);
+  }, [item]);
 
   useEffect(() => {
     if (!item) return;
@@ -121,7 +111,7 @@ export default function ItemDetailView({
       .finally(() => {
         setIsLoadingAttachments(false);
       });
-  }, [item?.id]);
+  }, [item]);
 
   useEffect(() => {
     if (!isTagDropdownOpen) return;
@@ -155,7 +145,7 @@ export default function ItemDetailView({
   );
 
   const handleFieldChange = useCallback(
-    (field: string, value: unknown, setter: (v: any) => void) => {
+    (field: string, value: unknown, setter: (v: string) => void) => {
       setter(value);
       markDirty(field);
       scheduleAutoSave(field, value);

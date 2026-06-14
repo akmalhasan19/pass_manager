@@ -76,11 +76,6 @@ test.describe('Password Generator E2E', () => {
     await ctx.page.waitForTimeout(1000);
 
     // Password generator modal should be visible
-    const generator = ctx.page
-      .locator('text=Password Generator, text=Generate, [role="dialog"]:has-text("Password")')
-      .first();
-    const isVisible = await generator.isVisible().catch(() => false);
-
     // At minimum, verify we're still on the page and no crash
     await expect(ctx.page.locator('body')).toBeVisible();
   });
@@ -118,7 +113,6 @@ test.describe('Password Generator E2E', () => {
 
     // Check for toggle options
     const uppercaseToggle = ctx.page.locator('text=Uppercase, text=A-Z');
-    const lowercaseToggle = ctx.page.locator('text=Lowercase, text=a-z');
     const numbersToggle = ctx.page.locator('text=Numbers, text=0-9');
     const symbolsToggle = ctx.page.locator('text=Symbols, text=!@');
 

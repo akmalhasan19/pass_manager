@@ -1,5 +1,5 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { app } from 'electron';
 import { runMany } from './connection';
 

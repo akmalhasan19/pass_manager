@@ -3,17 +3,8 @@ import React from 'react';
 const mockMotionComponent = (tag: string) => {
   const Component = React.forwardRef(
     (props: Record<string, unknown>, ref: React.Ref<HTMLElement>) => {
-      const {
-        initial,
-        animate,
-        exit,
-        transition,
-        variants,
-        layout,
-        whileHover,
-        whileTap,
-        ...rest
-      } = props;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { initial, animate, exit, transition, variants, layout, whileHover, whileTap, ...rest } = props;
       return React.createElement(tag, { ...rest, ref });
     },
   );
@@ -23,8 +14,8 @@ const mockMotionComponent = (tag: string) => {
 
 const motion = new Proxy(
   (props: Record<string, unknown>) => {
-    const { initial, animate, exit, transition, variants, layout, whileHover, whileTap, ...rest } =
-      props;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { initial, animate, exit, transition, variants, layout, whileHover, whileTap, ...rest } = props;
     return React.createElement('div', rest);
   },
   {

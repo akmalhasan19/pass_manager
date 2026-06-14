@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { launchApp, closeApp, waitForLockScreen, waitForMainApp, clickButton } from './helpers';
+import { launchApp, closeApp, waitForLockScreen, waitForMainApp } from './helpers';
 import type { E2EContext } from './helpers';
 
 const MASTER_PASSWORD = 'E2ESettings!P@ss2024';
@@ -168,10 +168,6 @@ test.describe('Settings E2E', () => {
     }
 
     // Look for about/version info
-    const aboutSection = ctx.page
-      .locator('text=About, text=Version, text=SecurePass, text=0.1.0')
-      .first();
-
     await ctx.page.waitForTimeout(500);
     await expect(ctx.page.locator('body')).toBeVisible();
   });

@@ -22,7 +22,7 @@ function deriveFlags(status: AuthStatus): { isAuthenticated: boolean; isLoading:
   };
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   status: 'idle',
   error: null,
   ...deriveFlags('idle'),
@@ -66,7 +66,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   lock: async () => {
-    const prev = get().status;
     set({ status: 'checking', ...deriveFlags('checking') });
     try {
       await window.electron.auth.lock();

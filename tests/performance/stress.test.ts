@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
-import { readFileSync, writeFileSync, unlinkSync, mkdirSync, statSync } from 'node:fs';
+import { readFileSync, mkdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { FolderRepository } from '@main/database/repositories/FolderRepository';
 import { ItemRepository } from '@main/database/repositories/ItemRepository';
@@ -424,11 +424,6 @@ describe('9.5.3 — Large File Streaming Encryption', () => {
 describe('9.5.4 — Bundle Size Analysis', () => {
   it('should have JS bundle under 2 MB', () => {
     const distDir = resolve(join(__dirname, '..', '..', 'dist'));
-    try {
-      const files = readFileSync(distDir, { encoding: 'utf-8' } as never);
-    } catch {
-      // dist/assets/index-*.js
-    }
 
     const assetsDir = join(distDir, 'assets');
     const stat = statSync(assetsDir);
@@ -470,7 +465,7 @@ describe('9.5.4 — Bundle Size Analysis', () => {
       const mainKB = Math.round(mainStats.size / 1024);
       console.log(`  → Main process bundle: ${mainKB} KB`);
       expect(mainStats.size).toBeLessThan(1024 * 1024); // Under 1 MB
-    } catch (e) {
+    } catch {
       console.log('  → Main process bundle not found (may need build)');
     }
   });

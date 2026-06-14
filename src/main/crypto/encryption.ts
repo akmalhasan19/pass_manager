@@ -2,7 +2,6 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_BYTES = 12;
-const TAG_BYTES = 16;
 const KEY_BYTES = 32;
 
 export interface EncryptedData {

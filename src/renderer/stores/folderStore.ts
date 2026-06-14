@@ -46,17 +46,6 @@ function removeNode(nodes: Folder[], id: string): Folder[] {
     .map((n) => (n.children ? { ...n, children: removeNode(n.children, id) } : n));
 }
 
-function findParentId(nodes: Folder[], id: string, parentId: string | null = null): string | null {
-  for (const node of nodes) {
-    if (node.id === id) return parentId;
-    if (node.children) {
-      const found = findParentId(node.children, id, node.id);
-      if (found !== null) return found;
-    }
-  }
-  return null;
-}
-
 function containsNode(nodes: Folder[], id: string): boolean {
   for (const node of nodes) {
     if (node.id === id) return true;
