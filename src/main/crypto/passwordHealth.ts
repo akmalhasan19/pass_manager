@@ -11,10 +11,22 @@ const DEFAULT_OPTIONS: PasswordHealthOptions = {
   oldDays: 90,
 };
 
+/**
+ * Hashes a password using SHA-256 for reuse detection.
+ * Used to compare passwords without exposing plaintext.
+ * @param password - The plaintext password to hash
+ * @returns Hex-encoded SHA-256 hash
+ */
 function hashPassword(password: string): string {
   return createHash('sha256').update(password).digest('hex');
 }
 
+/**
+ * Evaluates a single password for weakness based on length,
+ * character variety, and common pattern checks.
+ * @param password - The password to evaluate
+ * @returns Object with `isWeak` flag and optional `reason` string
+ */
 function evaluatePasswordStrength(password: string): { isWeak: boolean; reason?: string } {
   if (password.length < 8) {
     return { isWeak: true, reason: 'Shorter than 8 characters' };
@@ -30,7 +42,18 @@ function evaluatePasswordStrength(password: string): { isWeak: boolean; reason?:
   if (variety < 3) {
     return { isWeak: true, reason: 'Lacks character variety' };
   }
-  const common = ['password', '123456', 'qwerty', 'admin', 'letmein', 'welcome', 'monkey', 'dragon', 'master', 'passw0rd'];
+  const common = [
+    'password',
+    '123456',
+    'qwerty',
+    'admin',
+    'letmein',
+    'welcome',
+    'monkey',
+    'dragon',
+    'master',
+    'passw0rd',
+  ];
   const lower = password.toLowerCase();
   for (const word of common) {
     if (lower.includes(word)) {
@@ -40,6 +63,21 @@ function evaluatePasswordStrength(password: string): { isWeak: boolean; reason?:
   return { isWeak: false };
 }
 
+/**
+ * Analyzes the health of all passwords in the vault.
+ *
+ * Checks for:
+ * - **Weak passwords**: Shorter than 12 chars or fewer than 3 character types
+ * - **Reused passwords**: Identical passwords used across multiple items (SHA-256 hash comparison)
+ * - **Old passwords**: Passwords not updated in >90 days (configurable)
+ *
+ * Returns an overall score (A-F) based on the ratio of weak/reused passwords.
+ *
+ * @param items - Array of all items in the vault
+ * @param passwords - Map of item ID to decrypted plaintext password
+ * @param options - Optional thresholds for oldDays and scoring
+ * @returns HealthReport with total counts, score, and detailed lists
+ */
 export function analyzeHealth(
   items: Item[],
   passwords: Map<string, string>,

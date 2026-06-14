@@ -21,13 +21,9 @@ function decryptItem(item: Item, key: Buffer): ItemDecrypted {
     folderId: item.folderId,
     title: item.title,
     username: item.username,
-    password: item.passwordEncrypted
-      ? decryptString(Buffer.from(item.passwordEncrypted), key)
-      : '',
+    password: item.passwordEncrypted ? decryptString(Buffer.from(item.passwordEncrypted), key) : '',
     url: item.url,
-    notes: item.notesEncrypted
-      ? decryptString(Buffer.from(item.notesEncrypted), key)
-      : null,
+    notes: item.notesEncrypted ? decryptString(Buffer.from(item.notesEncrypted), key) : null,
     emoji: item.emoji,
     coverImage: item.coverImage,
     createdAt: item.createdAt,
@@ -67,36 +63,31 @@ function deserializeItemFromTrash(json: string) {
     passwordEncrypted: parsed.passwordEncrypted
       ? Buffer.from(parsed.passwordEncrypted, 'base64')
       : null,
-    notesEncrypted: parsed.notesEncrypted
-      ? Buffer.from(parsed.notesEncrypted, 'base64')
-      : null,
+    notesEncrypted: parsed.notesEncrypted ? Buffer.from(parsed.notesEncrypted, 'base64') : null,
   };
 }
 
 export function registerItemHandlers(): void {
-  ipcMain.handle(
-    IPC_CHANNELS.ITEM_GET_BY_FOLDER,
-    (_event, { folderId }: { folderId: string }) => {
-      try {
-        if (!isDatabaseOpen()) {
-          return { success: false, error: 'Database is not open.' };
-        }
-
-        const data = itemRepo.getByFolder(folderId);
-        const itemsWithTags = data.map((item) => {
-          const tags = tagRepo.getByItem(item.id);
-          return { ...item, tags: tags.length > 0 ? tags : undefined };
-        });
-
-        return { success: true, data: itemsWithTags };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
+  ipcMain.handle(IPC_CHANNELS.ITEM_GET_BY_FOLDER, (_event, { folderId }: { folderId: string }) => {
+    try {
+      if (!isDatabaseOpen()) {
+        return { success: false, error: 'Database is not open.' };
       }
-    },
-  );
+
+      const data = itemRepo.getByFolder(folderId);
+      const itemsWithTags = data.map((item) => {
+        const tags = tagRepo.getByItem(item.id);
+        return { ...item, tags: tags.length > 0 ? tags : undefined };
+      });
+
+      return { success: true, data: itemsWithTags };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
 
   ipcMain.handle(IPC_CHANNELS.ITEM_GET_BY_ID, (_event, { id }: { id: string }) => {
     try {
@@ -311,9 +302,7 @@ export function registerItemHandlers(): void {
       }
 
       const allTrash = trashRepo.getAll();
-      const entry = allTrash.find(
-        (e) => e.originalType === 'item' && e.originalId === id,
-      );
+      const entry = allTrash.find((e) => e.originalType === 'item' && e.originalId === id);
 
       if (!entry) {
         return { success: false, error: 'Item not found in trash.' };
@@ -374,55 +363,49 @@ export function registerItemHandlers(): void {
     }
   });
 
-  ipcMain.handle(
-    IPC_CHANNELS.ITEM_TOGGLE_FAVORITE,
-    (_event, { id }: { id: string }) => {
-      try {
-        if (!isDatabaseOpen()) {
-          return { success: false, error: 'Database is not open.' };
-        }
-
-        const item = itemRepo.getById(id);
-        if (!item) {
-          return { success: false, error: 'Item not found.' };
-        }
-
-        const updatedItem = itemRepo.update(id, {
-          isFavorite: !item.isFavorite,
-        });
-
-        const tags = tagRepo.getByItem(id);
-        const data = { ...updatedItem, tags: tags.length > 0 ? tags : undefined };
-
-        return { success: true, data };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
+  ipcMain.handle(IPC_CHANNELS.ITEM_TOGGLE_FAVORITE, (_event, { id }: { id: string }) => {
+    try {
+      if (!isDatabaseOpen()) {
+        return { success: false, error: 'Database is not open.' };
       }
-    },
-  );
 
-  ipcMain.handle(
-    IPC_CHANNELS.ITEM_GET_ALL,
-    () => {
-      try {
-        if (!isDatabaseOpen()) {
-          return { success: false, error: 'Database is not open.' };
-        }
-        const data = itemRepo.getAll();
-        const itemsWithTags = data.map((item) => {
-          const tags = tagRepo.getByItem(item.id);
-          return { ...item, tags: tags.length > 0 ? tags : undefined };
-        });
-        return { success: true, data: itemsWithTags };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
+      const item = itemRepo.getById(id);
+      if (!item) {
+        return { success: false, error: 'Item not found.' };
       }
-    },
-  );
+
+      const updatedItem = itemRepo.update(id, {
+        isFavorite: !item.isFavorite,
+      });
+
+      const tags = tagRepo.getByItem(id);
+      const data = { ...updatedItem, tags: tags.length > 0 ? tags : undefined };
+
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.ITEM_GET_ALL, () => {
+    try {
+      if (!isDatabaseOpen()) {
+        return { success: false, error: 'Database is not open.' };
+      }
+      const data = itemRepo.getAll();
+      const itemsWithTags = data.map((item) => {
+        const tags = tagRepo.getByItem(item.id);
+        return { ...item, tags: tags.length > 0 ? tags : undefined };
+      });
+      return { success: true, data: itemsWithTags };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
 }

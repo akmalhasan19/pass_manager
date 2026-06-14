@@ -47,9 +47,7 @@ export function runSchema(): void {
 
 function getCurrentSchemaVersion(): number {
   try {
-    const result = runQuery('SELECT value FROM settings WHERE key = ?', [
-      'schema_version',
-    ]);
+    const result = runQuery('SELECT value FROM settings WHERE key = ?', ['schema_version']);
     return parseInt(result as string, 10) || 0;
   } catch {
     return 0;
@@ -87,10 +85,10 @@ export function runMigrations(): void {
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
-    db.run(
-      'UPDATE settings SET value = ? WHERE key = ?',
-      [String(CURRENT_VERSION), 'schema_version'],
-    );
+    db.run('UPDATE settings SET value = ? WHERE key = ?', [
+      String(CURRENT_VERSION),
+      'schema_version',
+    ]);
   }
 }
 

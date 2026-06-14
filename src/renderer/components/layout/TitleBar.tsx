@@ -41,45 +41,74 @@ export default function TitleBar(): React.ReactElement {
 
   return (
     <div
-      className={`h-10 flex items-center shrink-0 select-none ${
+      className={`flex h-10 shrink-0 select-none items-center ${
         isMacOS ? 'justify-center' : 'justify-between'
-      } bg-white dark:bg-surface-850 border-b border-surface-200 dark:border-surface-700`}
+      } border-b border-surface-200 bg-white dark:border-surface-700 dark:bg-surface-850`}
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       {/* macOS traffic lights */}
       {isMacOS && (
         <div
-          className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2 z-10"
+          className="absolute left-3 top-1/2 z-10 flex -translate-y-1/2 items-center gap-2"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <button
-            className="w-3 h-3 rounded-full bg-[#ff5f57] hover:bg-[#ff4040] transition-colors flex items-center justify-center group"
+            className="group flex h-3 w-3 items-center justify-center rounded-full bg-[#ff5f57] transition-colors hover:bg-[#ff4040]"
             onClick={handleClose}
             aria-label="Close"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-[#4a0000] opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-2 w-2 text-[#4a0000] opacity-0 transition-opacity group-hover:opacity-100"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={3}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
           <button
-            className="w-3 h-3 rounded-full bg-[#febc2e] hover:bg-[#ffa500] transition-colors flex items-center justify-center group"
+            className="group flex h-3 w-3 items-center justify-center rounded-full bg-[#febc2e] transition-colors hover:bg-[#ffa500]"
             onClick={handleMinimize}
             aria-label="Minimize"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-[#5a3e00] opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-2 w-2 text-[#5a3e00] opacity-0 transition-opacity group-hover:opacity-100"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={3}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
             </svg>
           </button>
           <button
-            className="w-3 h-3 rounded-full bg-[#28c840] hover:bg-[#20a834] transition-colors flex items-center justify-center group"
+            className="group flex h-3 w-3 items-center justify-center rounded-full bg-[#28c840] transition-colors hover:bg-[#20a834]"
             onClick={handleMaximize}
             aria-label={isMaximized ? 'Restore' : 'Maximize'}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-[#0a4a00] opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-2 w-2 text-[#0a4a00] opacity-0 transition-opacity group-hover:opacity-100"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={3}
+            >
               {isMaximized ? (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
+                />
               ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 15v4.5M15 15H4.5M15 15l-5.25 5.25" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 15v4.5M15 15H4.5M15 15l-5.25 5.25"
+                />
               )}
             </svg>
           </button>
@@ -97,37 +126,62 @@ export default function TitleBar(): React.ReactElement {
       {/* Windows/Linux window controls */}
       {!isMacOS && (
         <div
-          className="flex items-center h-full"
+          className="flex h-full items-center"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <button
-            className="h-full px-3 text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+            className="h-full px-3 text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
             onClick={handleMinimize}
             aria-label="Minimize"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
             </svg>
           </button>
           <button
-            className="h-full px-3 text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+            className="h-full px-3 text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
             onClick={handleMaximize}
             aria-label={isMaximized ? 'Restore' : 'Maximize'}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               {isMaximized ? (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
+                />
               ) : (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4h16v16H4z" />
               )}
             </svg>
           </button>
           <button
-            className="h-full px-3 text-surface-500 hover:bg-danger-500 hover:text-white transition-colors"
+            className="h-full px-3 text-surface-500 transition-colors hover:bg-danger-500 hover:text-white"
             onClick={handleClose}
             aria-label="Close"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

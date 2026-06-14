@@ -26,6 +26,11 @@ let db: SqlJsDatabase | null = null;
 let dbPath: string | null = null;
 let SQL: Awaited<ReturnType<typeof initSqlJs>> | null = null;
 
+/**
+ * Initializes the sql.js WASM module. Must be called before any database operations.
+ * Safe to call multiple times — subsequent calls are no-ops.
+ * @throws {DatabaseError} If the WASM binary cannot be loaded or sql.js fails to initialize
+ */
 export async function initializeSqlJs(): Promise<void> {
   if (SQL) return;
 
@@ -44,6 +49,12 @@ export async function initializeSqlJs(): Promise<void> {
   }
 }
 
+/**
+ * Returns the path to the database file in the app's user data directory.
+ * Creates the directory if it doesn't exist.
+ * @returns Absolute path to securepass.db
+ * @throws {DatabaseIOError} If the user data directory cannot be created
+ */
 export function getDbPath(): string {
   if (dbPath) return dbPath;
   const userDataPath = app?.getPath?.('userData') ?? join(process.cwd(), 'data');
@@ -69,6 +80,17 @@ export function createDatabase(): SqlJsDatabase {
   return new SQL.Database();
 }
 
+/**
+ * Opens or creates the SQLite database at the given path.
+ * If the file exists and is valid, loads it. If empty/corrupted, creates a new in-memory database.
+ * If no path is provided, uses the default app data path.
+ *
+ * @param filePath - Optional explicit path to the database file
+ * @returns The opened sql.js Database instance
+ * @throws {DatabaseNotInitializedError} If sql.js is not initialized
+ * @throws {DatabaseIOError} If the file cannot be read (permission, not found)
+ * @throws {DatabaseCorruptedError} If the file exists but cannot be parsed as SQLite
+ */
 export function openDatabase(filePath?: string): SqlJsDatabase {
   const path = filePath ?? getDbPath();
 
@@ -80,6 +102,7 @@ export function openDatabase(filePath?: string): SqlJsDatabase {
     try {
       closeDatabase();
     } catch {
+      // Ignore close errors when reopening
       db = null;
     }
   }
@@ -117,6 +140,14 @@ export function openDatabase(filePath?: string): SqlJsDatabase {
   return db;
 }
 
+/**
+ * Saves the in-memory database to disk by exporting the SQLite binary and writing it.
+ * Must be called periodically to persist changes, and before closing the database.
+ *
+ * @throws {DatabaseNotOpenError} If no database is open or dbPath is not set
+ * @throws {DatabaseError} If the database cannot be exported
+ * @throws {DatabaseIOError} If the file cannot be written (permission, disk full, locked)
+ */
 export function saveDatabase(): void {
   if (!db) {
     throw new DatabaseNotOpenError();
@@ -132,11 +163,9 @@ export function saveDatabase(): void {
     const exported = db.export();
     data = Buffer.from(exported);
   } catch (cause) {
-    throw new DatabaseError(
-      'Failed to export database',
-      'DB_EXPORT_ERROR',
-      { cause: cause instanceof Error ? cause.message : String(cause) },
-    );
+    throw new DatabaseError('Failed to export database', 'DB_EXPORT_ERROR', {
+      cause: cause instanceof Error ? cause.message : String(cause),
+    });
   }
 
   const dir = dirname(path);
@@ -161,6 +190,13 @@ export function saveDatabase(): void {
   }
 }
 
+/**
+ * Saves and closes the database, releasing the sql.js handle.
+ * Safe to call when no database is open.
+ *
+ * @throws {DatabaseIOError} If the database cannot be saved before closing
+ * @throws {DatabaseError} If the database handle cannot be closed
+ */
 export function closeDatabase(): void {
   if (!db) return;
   try {
@@ -174,19 +210,23 @@ export function closeDatabase(): void {
     db.close();
   } catch (cause) {
     db = null;
-    throw new DatabaseError(
-      'Failed to close database',
-      'DB_CLOSE_ERROR',
-      { cause: cause instanceof Error ? cause.message : String(cause) },
-    );
+    throw new DatabaseError('Failed to close database', 'DB_CLOSE_ERROR', {
+      cause: cause instanceof Error ? cause.message : String(cause),
+    });
   }
   db = null;
 }
 
+/**
+ * Returns the current database instance, or null if not open.
+ */
 export function getDatabase(): SqlJsDatabase | null {
   return db;
 }
 
+/**
+ * Returns true if a database is currently open and has an associated file path.
+ */
 export function isDatabaseOpen(): boolean {
   return db !== null && dbPath !== null;
 }
@@ -196,15 +236,11 @@ export function runQuery(sql: string, params: unknown[] = []): void {
   try {
     db.run(sql, params);
   } catch (cause) {
-    throw new DatabaseError(
-      `Query execution failed: ${sql.slice(0, 120)}`,
-      'DB_QUERY_ERROR',
-      {
-        sql: sql.slice(0, 120),
-        params,
-        cause: cause instanceof Error ? cause.message : String(cause),
-      },
-    );
+    throw new DatabaseError(`Query execution failed: ${sql.slice(0, 120)}`, 'DB_QUERY_ERROR', {
+      sql: sql.slice(0, 120),
+      params,
+      cause: cause instanceof Error ? cause.message : String(cause),
+    });
   }
 }
 
@@ -214,15 +250,11 @@ export function runMany(queries: string[]): void {
     try {
       db.run(queries[i]);
     } catch (cause) {
-      throw new DatabaseError(
-        `Batch query failed at index ${i}`,
-        'DB_BATCH_QUERY_ERROR',
-        {
-          index: i,
-          sql: queries[i].slice(0, 120),
-          cause: cause instanceof Error ? cause.message : String(cause),
-        },
-      );
+      throw new DatabaseError(`Batch query failed at index ${i}`, 'DB_BATCH_QUERY_ERROR', {
+        index: i,
+        sql: queries[i].slice(0, 120),
+        cause: cause instanceof Error ? cause.message : String(cause),
+      });
     }
   }
 }
@@ -253,8 +285,7 @@ export function tryRepairDatabase(path: string): boolean {
     if (db) {
       try {
         db.close();
-      } catch {
-      }
+      } catch {}
       db = null;
     }
     dbPath = null;
@@ -267,11 +298,15 @@ export function tryRepairDatabase(path: string): boolean {
     return true;
   } catch {
     if (db) {
-      try { db.close(); } catch {}
+      try {
+        db.close();
+      } catch {}
       db = null;
     }
     dbPath = null;
-    try { unlinkSync(path); } catch {}
+    try {
+      unlinkSync(path);
+    } catch {}
     return false;
   }
 }
@@ -280,8 +315,7 @@ export async function destroyDatabase(path?: string): Promise<void> {
   if (db) {
     try {
       db.close();
-    } catch {
-    }
+    } catch {}
     db = null;
   }
   const targetPath = path ?? dbPath;

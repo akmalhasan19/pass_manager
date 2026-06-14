@@ -96,28 +96,55 @@ export default function SettingsView(): React.ReactElement {
   }, []);
 
   const sections = [
-    { id: 'general', label: 'General', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
-    { id: 'security', label: 'Security', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' },
-    { id: 'passwordDefaults', label: 'Password Defaults', icon: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z' },
-    { id: 'data', label: 'Data', icon: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4' },
-    { id: 'about', label: 'About', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+    {
+      id: 'general',
+      label: 'General',
+      icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
+    },
+    {
+      id: 'security',
+      label: 'Security',
+      icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
+    },
+    {
+      id: 'passwordDefaults',
+      label: 'Password Defaults',
+      icon: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z',
+    },
+    {
+      id: 'data',
+      label: 'Data',
+      icon: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4',
+    },
+    {
+      id: 'about',
+      label: 'About',
+      icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+    },
   ];
 
   return (
-    <div className="h-full flex">
+    <div className="flex h-full">
       {/* Settings sidebar */}
-      <nav className="w-48 shrink-0 border-r border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-850 p-2 space-y-0.5">
+      <nav className="w-48 shrink-0 space-y-0.5 border-r border-surface-200 bg-white p-2 dark:border-surface-700 dark:bg-surface-850">
         {sections.map((section) => (
           <button
             key={section.id}
             onClick={() => setActiveSection(section.id)}
-            className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               activeSection === section.id
-                ? 'bg-accent-100 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300'
-                : 'text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800'
+                ? 'bg-accent-100 text-accent-700 dark:bg-accent-900/30 dark:text-accent-300'
+                : 'text-surface-600 hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800'
             }`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d={section.icon} />
             </svg>
             {section.label}
@@ -126,40 +153,77 @@ export default function SettingsView(): React.ReactElement {
       </nav>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto notion-scrollbar">
-        <div className="max-w-2xl mx-auto px-8 py-8 space-y-8">
+      <div className="notion-scrollbar flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-2xl space-y-8 px-8 py-8">
           {/* General */}
           {activeSection === 'general' && (
             <section>
-              <h2 className="text-lg font-semibold text-surface-900 dark:text-surface-50 mb-6">General</h2>
+              <h2 className="mb-6 text-lg font-semibold text-surface-900 dark:text-surface-50">
+                General
+              </h2>
 
               {/* Theme */}
               <div className="space-y-3">
-                <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Theme</label>
+                <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
+                  Theme
+                </label>
                 <div className="flex gap-2">
                   {(['light', 'dark', 'system'] as ThemeOption[]).map((theme) => (
                     <button
                       key={theme}
                       onClick={() => handleThemeChange(theme)}
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                      className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all ${
                         settings.theme === theme
-                          ? 'border-accent-400 bg-accent-50 dark:bg-accent-900/20 text-accent-700 dark:text-accent-300 ring-1 ring-accent-400'
-                          : 'border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-400 hover:border-surface-300 dark:hover:border-surface-600'
+                          ? 'border-accent-400 bg-accent-50 text-accent-700 ring-1 ring-accent-400 dark:bg-accent-900/20 dark:text-accent-300'
+                          : 'border-surface-200 text-surface-600 hover:border-surface-300 dark:border-surface-700 dark:text-surface-400 dark:hover:border-surface-600'
                       }`}
                     >
                       {theme === 'light' && (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                          />
                         </svg>
                       )}
                       {theme === 'dark' && (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                          />
                         </svg>
                       )}
                       {theme === 'system' && (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                          />
                         </svg>
                       )}
                       <span className="capitalize">{theme}</span>
@@ -169,17 +233,19 @@ export default function SettingsView(): React.ReactElement {
               </div>
 
               {/* Auto-lock timer */}
-              <div className="space-y-3 mt-6">
-                <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Auto-lock timer</label>
+              <div className="mt-6 space-y-3">
+                <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
+                  Auto-lock timer
+                </label>
                 <div className="flex flex-wrap gap-2">
                   {AUTO_LOCK_OPTIONS.map((option) => (
                     <button
                       key={option.value}
                       onClick={() => updateSetting('autoLockTime', option.value)}
-                      className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                      className={`rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
                         settings.autoLockTime === option.value
-                          ? 'border-accent-400 bg-accent-50 dark:bg-accent-900/20 text-accent-700 dark:text-accent-300 ring-1 ring-accent-400'
-                          : 'border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-400 hover:border-surface-300 dark:hover:border-surface-600'
+                          ? 'border-accent-400 bg-accent-50 text-accent-700 ring-1 ring-accent-400 dark:bg-accent-900/20 dark:text-accent-300'
+                          : 'border-surface-200 text-surface-600 hover:border-surface-300 dark:border-surface-700 dark:text-surface-400 dark:hover:border-surface-600'
                       }`}
                     >
                       {option.label}
@@ -193,12 +259,16 @@ export default function SettingsView(): React.ReactElement {
           {/* Security */}
           {activeSection === 'security' && (
             <section>
-              <h2 className="text-lg font-semibold text-surface-900 dark:text-surface-50 mb-6">Security</h2>
+              <h2 className="mb-6 text-lg font-semibold text-surface-900 dark:text-surface-50">
+                Security
+              </h2>
 
               {/* Change master password */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Master Password</label>
+                  <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
+                    Master Password
+                  </label>
                   <button
                     className="notion-button-ghost h-8 text-xs"
                     onClick={() => {
@@ -215,7 +285,7 @@ export default function SettingsView(): React.ReactElement {
                 </div>
 
                 {changePasswordOpen && (
-                  <div className="rounded-lg border border-surface-200 dark:border-surface-700 p-4 space-y-3 bg-white dark:bg-surface-850">
+                  <div className="space-y-3 rounded-lg border border-surface-200 bg-white p-4 dark:border-surface-700 dark:bg-surface-850">
                     <div>
                       <input
                         className="notion-input h-9"
@@ -243,9 +313,7 @@ export default function SettingsView(): React.ReactElement {
                         onChange={(e) => setConfirmPassword(e.target.value)}
                       />
                     </div>
-                    {passwordError && (
-                      <p className="text-xs text-danger-500">{passwordError}</p>
-                    )}
+                    {passwordError && <p className="text-xs text-danger-500">{passwordError}</p>}
                     {passwordSuccess && (
                       <p className="text-xs text-success-500">{passwordSuccess}</p>
                     )}
@@ -260,13 +328,16 @@ export default function SettingsView(): React.ReactElement {
                 )}
 
                 <p className="text-xs text-surface-400 dark:text-surface-500">
-                  Changing your master password will re-encrypt your entire database. This may take a moment.
+                  Changing your master password will re-encrypt your entire database. This may take
+                  a moment.
                 </p>
               </div>
 
               {/* Trash auto-purge */}
-              <div className="space-y-3 mt-6">
-                <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Auto-purge trash after</label>
+              <div className="mt-6 space-y-3">
+                <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
+                  Auto-purge trash after
+                </label>
                 <select
                   className="notion-input h-9 w-48"
                   value={settings.trashAutoPurgeDays}
@@ -281,12 +352,13 @@ export default function SettingsView(): React.ReactElement {
               </div>
 
               {/* Password health: old password threshold */}
-              <div className="space-y-3 mt-6">
+              <div className="mt-6 space-y-3">
                 <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
                   Flag passwords as outdated after
                 </label>
                 <p className="text-xs text-surface-400 dark:text-surface-500">
-                  Passwords not changed within this period will appear in the outdated list on the Health view.
+                  Passwords not changed within this period will appear in the outdated list on the
+                  Health view.
                 </p>
                 <select
                   className="notion-input h-9 w-48"
@@ -306,14 +378,20 @@ export default function SettingsView(): React.ReactElement {
           {/* Password Defaults */}
           {activeSection === 'passwordDefaults' && (
             <section>
-              <h2 className="text-lg font-semibold text-surface-900 dark:text-surface-50 mb-6">Password Generator Defaults</h2>
+              <h2 className="mb-6 text-lg font-semibold text-surface-900 dark:text-surface-50">
+                Password Generator Defaults
+              </h2>
 
               <div className="space-y-5">
                 {/* Length */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Length</label>
-                    <span className="text-sm text-surface-500 dark:text-surface-400">{settings.defaultPasswordLength}</span>
+                    <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
+                      Length
+                    </label>
+                    <span className="text-sm text-surface-500 dark:text-surface-400">
+                      {settings.defaultPasswordLength}
+                    </span>
                   </div>
                   <input
                     type="range"
@@ -321,7 +399,7 @@ export default function SettingsView(): React.ReactElement {
                     max={128}
                     value={settings.defaultPasswordLength}
                     onChange={(e) => updateSetting('defaultPasswordLength', Number(e.target.value))}
-                    className="w-full h-2 rounded-full appearance-none bg-surface-200 dark:bg-surface-700 accent-accent-500 cursor-pointer"
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-200 accent-accent-500 dark:bg-surface-700"
                   />
                   <div className="flex justify-between text-xs text-surface-400">
                     <span>4</span>
@@ -331,29 +409,41 @@ export default function SettingsView(): React.ReactElement {
 
                 {/* Character sets */}
                 <div className="space-y-3">
-                  {([
+                  {[
                     { key: 'defaultPasswordUppercase' as const, label: 'A-Z (Uppercase)' },
                     { key: 'defaultPasswordLowercase' as const, label: 'a-z (Lowercase)' },
                     { key: 'defaultPasswordNumbers' as const, label: '0-9 (Numbers)' },
                     { key: 'defaultPasswordSymbols' as const, label: '!@#$% (Symbols)' },
-                    { key: 'defaultPasswordExcludeAmbiguous' as const, label: 'Exclude ambiguous (0, O, l, 1)' },
-                  ]).map(({ key, label }) => (
-                    <label key={key} className="flex items-center gap-3 cursor-pointer">
+                    {
+                      key: 'defaultPasswordExcludeAmbiguous' as const,
+                      label: 'Exclude ambiguous (0, O, l, 1)',
+                    },
+                  ].map(({ key, label }) => (
+                    <label key={key} className="flex cursor-pointer items-center gap-3">
                       <div
-                        className={`flex items-center justify-center h-5 w-5 rounded border-2 transition-colors ${
+                        className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-colors ${
                           settings[key]
-                            ? 'bg-accent-500 border-accent-500'
+                            ? 'border-accent-500 bg-accent-500'
                             : 'border-surface-300 dark:border-surface-600'
                         }`}
                         onClick={() => updateSetting(key, !settings[key])}
                       >
                         {settings[key] && (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-3.5 w-3.5 text-white"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={3}
+                          >
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         )}
                       </div>
-                      <span className="text-sm text-surface-700 dark:text-surface-300 select-none">{label}</span>
+                      <span className="select-none text-sm text-surface-700 dark:text-surface-300">
+                        {label}
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -364,37 +454,84 @@ export default function SettingsView(): React.ReactElement {
           {/* Data */}
           {activeSection === 'data' && (
             <section>
-              <h2 className="text-lg font-semibold text-surface-900 dark:text-surface-50 mb-6">Data Management</h2>
+              <h2 className="mb-6 text-lg font-semibold text-surface-900 dark:text-surface-50">
+                Data Management
+              </h2>
 
               <div className="space-y-4">
-                <div className="rounded-lg border border-surface-200 dark:border-surface-700 p-4">
-                  <h3 className="text-sm font-medium text-surface-800 dark:text-surface-200 mb-1">Export Backup</h3>
-                  <p className="text-xs text-surface-400 mb-3">Download an encrypted copy of your entire database.</p>
+                <div className="rounded-lg border border-surface-200 p-4 dark:border-surface-700">
+                  <h3 className="mb-1 text-sm font-medium text-surface-800 dark:text-surface-200">
+                    Export Backup
+                  </h3>
+                  <p className="mb-3 text-xs text-surface-400">
+                    Download an encrypted copy of your entire database.
+                  </p>
                   <button className="notion-button-ghost h-8 text-xs" onClick={handleExportBackup}>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
                     </svg>
                     Export Database
                   </button>
                 </div>
 
-                <div className="rounded-lg border border-surface-200 dark:border-surface-700 p-4">
-                  <h3 className="text-sm font-medium text-surface-800 dark:text-surface-200 mb-1">Import Backup</h3>
-                  <p className="text-xs text-surface-400 mb-3">Restore from a previously exported backup file.</p>
+                <div className="rounded-lg border border-surface-200 p-4 dark:border-surface-700">
+                  <h3 className="mb-1 text-sm font-medium text-surface-800 dark:text-surface-200">
+                    Import Backup
+                  </h3>
+                  <p className="mb-3 text-xs text-surface-400">
+                    Restore from a previously exported backup file.
+                  </p>
                   <button className="notion-button-ghost h-8 text-xs" onClick={handleImportBackup}>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v-4a1 1 0 011-1h4m6 0h4a1 1 0 011 1v4m-5-5l-3-3m0 0l3-3m-3 3h12" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4 16v-4a1 1 0 011-1h4m6 0h4a1 1 0 011 1v4m-5-5l-3-3m0 0l3-3m-3 3h12"
+                      />
                     </svg>
                     Import Database
                   </button>
                 </div>
 
-                <div className="rounded-lg border border-surface-200 dark:border-surface-700 p-4">
-                  <h3 className="text-sm font-medium text-surface-800 dark:text-surface-200 mb-1">Purge Trash</h3>
-                  <p className="text-xs text-surface-400 mb-3">Permanently delete all items currently in the trash.</p>
+                <div className="rounded-lg border border-surface-200 p-4 dark:border-surface-700">
+                  <h3 className="mb-1 text-sm font-medium text-surface-800 dark:text-surface-200">
+                    Purge Trash
+                  </h3>
+                  <p className="mb-3 text-xs text-surface-400">
+                    Permanently delete all items currently in the trash.
+                  </p>
                   <button className="notion-button-danger h-8 text-xs" onClick={handlePurgeTrash}>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
                     </svg>
                     Purge Trash
                   </button>
@@ -406,46 +543,66 @@ export default function SettingsView(): React.ReactElement {
           {/* About */}
           {activeSection === 'about' && (
             <section>
-              <h2 className="text-lg font-semibold text-surface-900 dark:text-surface-50 mb-6">About</h2>
+              <h2 className="mb-6 text-lg font-semibold text-surface-900 dark:text-surface-50">
+                About
+              </h2>
 
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center justify-center h-16 w-16 rounded-xl bg-accent-500 text-white text-2xl font-bold">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-accent-500 text-2xl font-bold text-white">
                     SP
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-surface-900 dark:text-surface-50">{APP_NAME}</h3>
+                    <h3 className="text-xl font-bold text-surface-900 dark:text-surface-50">
+                      {APP_NAME}
+                    </h3>
                     <p className="text-sm text-surface-500">Version {APP_VERSION}</p>
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-surface-200 dark:border-surface-700 divide-y divide-surface-200 dark:divide-surface-700">
-                  <div className="px-4 py-3 flex justify-between">
-                    <span className="text-sm text-surface-600 dark:text-surface-400">Application</span>
-                    <span className="text-sm font-medium text-surface-800 dark:text-surface-200">{APP_NAME}</span>
+                <div className="divide-y divide-surface-200 rounded-lg border border-surface-200 dark:divide-surface-700 dark:border-surface-700">
+                  <div className="flex justify-between px-4 py-3">
+                    <span className="text-sm text-surface-600 dark:text-surface-400">
+                      Application
+                    </span>
+                    <span className="text-sm font-medium text-surface-800 dark:text-surface-200">
+                      {APP_NAME}
+                    </span>
                   </div>
-                  <div className="px-4 py-3 flex justify-between">
+                  <div className="flex justify-between px-4 py-3">
                     <span className="text-sm text-surface-600 dark:text-surface-400">Version</span>
-                    <span className="text-sm font-medium text-surface-800 dark:text-surface-200">{APP_VERSION}</span>
+                    <span className="text-sm font-medium text-surface-800 dark:text-surface-200">
+                      {APP_VERSION}
+                    </span>
                   </div>
-                  <div className="px-4 py-3 flex justify-between">
-                    <span className="text-sm text-surface-600 dark:text-surface-400">Architecture</span>
-                    <span className="text-sm font-medium text-surface-800 dark:text-surface-200">Zero-Knowledge, Local-First</span>
+                  <div className="flex justify-between px-4 py-3">
+                    <span className="text-sm text-surface-600 dark:text-surface-400">
+                      Architecture
+                    </span>
+                    <span className="text-sm font-medium text-surface-800 dark:text-surface-200">
+                      Zero-Knowledge, Local-First
+                    </span>
                   </div>
-                  <div className="px-4 py-3 flex justify-between">
-                    <span className="text-sm text-surface-600 dark:text-surface-400">Encryption</span>
-                    <span className="text-sm font-medium text-surface-800 dark:text-surface-200">AES-256-GCM + SQLCipher</span>
+                  <div className="flex justify-between px-4 py-3">
+                    <span className="text-sm text-surface-600 dark:text-surface-400">
+                      Encryption
+                    </span>
+                    <span className="text-sm font-medium text-surface-800 dark:text-surface-200">
+                      AES-256-GCM + SQLCipher
+                    </span>
                   </div>
-                  <div className="px-4 py-3 flex justify-between">
+                  <div className="flex justify-between px-4 py-3">
                     <span className="text-sm text-surface-600 dark:text-surface-400">License</span>
-                    <span className="text-sm font-medium text-surface-800 dark:text-surface-200">MIT</span>
+                    <span className="text-sm font-medium text-surface-800 dark:text-surface-200">
+                      MIT
+                    </span>
                   </div>
                 </div>
 
-                <p className="text-xs text-surface-400 dark:text-surface-500 leading-relaxed">
-                  SecurePass Manager is a zero-knowledge, local-first password manager.
-                  Your master password never leaves your device. All data is encrypted before
-                  being written to disk.
+                <p className="text-xs leading-relaxed text-surface-400 dark:text-surface-500">
+                  SecurePass Manager is a zero-knowledge, local-first password manager. Your master
+                  password never leaves your device. All data is encrypted before being written to
+                  disk.
                 </p>
               </div>
             </section>

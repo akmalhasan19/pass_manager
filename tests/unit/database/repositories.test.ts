@@ -14,7 +14,9 @@ const { getTestDb, setTestDb } = vi.hoisted(() => {
   let db: SqlJsDatabase | null = null;
   return {
     getTestDb: () => db,
-    setTestDb: (d: SqlJsDatabase | null) => { db = d; },
+    setTestDb: (d: SqlJsDatabase | null) => {
+      db = d;
+    },
   };
 });
 
@@ -682,7 +684,14 @@ describe('Repository integration tests', () => {
     it('should get attachment by id', () => {
       const folder = folderRepo.create(null, 'F');
       const item = itemRepo.create(folder.id, { title: 'T' });
-      const created = attachmentRepo.create(item.id, null, 'f.txt', 'text/plain', 1, '/store/f.txt');
+      const created = attachmentRepo.create(
+        item.id,
+        null,
+        'f.txt',
+        'text/plain',
+        1,
+        '/store/f.txt',
+      );
       const found = attachmentRepo.getById(created.id);
       expect(found).not.toBeNull();
       expect(found!.id).toBe(created.id);
@@ -711,7 +720,14 @@ describe('Repository integration tests', () => {
     it('should delete attachment and return its data', () => {
       const folder = folderRepo.create(null, 'F');
       const item = itemRepo.create(folder.id, { title: 'T' });
-      const created = attachmentRepo.create(item.id, null, 'del.txt', 'text/plain', 1, '/store/del.txt');
+      const created = attachmentRepo.create(
+        item.id,
+        null,
+        'del.txt',
+        'text/plain',
+        1,
+        '/store/del.txt',
+      );
       const deleted = attachmentRepo.delete(created.id);
       expect(deleted).not.toBeNull();
       expect(deleted!.id).toBe(created.id);

@@ -70,7 +70,13 @@ function evaluateStrength(password: string): { score: number; label: string; ent
   return { score, label: labels[score], entropy: Math.round(entropy) };
 }
 
-const STRENGTH_COLORS = ['bg-danger-500', 'bg-warning-500', 'bg-warning-400', 'bg-success-400', 'bg-success-500'];
+const STRENGTH_COLORS = [
+  'bg-danger-500',
+  'bg-warning-500',
+  'bg-warning-400',
+  'bg-success-400',
+  'bg-success-500',
+];
 
 export default function PasswordGenerator({
   onUsePassword,
@@ -119,7 +125,8 @@ export default function PasswordGenerator({
   }, [currentPassword, onUsePassword, onClose]);
 
   const strength = useMemo(
-    () => (currentPassword ? evaluateStrength(currentPassword) : { score: 0, label: '', entropy: 0 }),
+    () =>
+      currentPassword ? evaluateStrength(currentPassword) : { score: 0, label: '', entropy: 0 },
     [currentPassword],
   );
 
@@ -132,50 +139,73 @@ export default function PasswordGenerator({
       ariaLabel="Password Generator"
     >
       <div>
-        <div className="px-5 py-4 border-b border-surface-200 dark:border-surface-700 flex items-center justify-between">
+        <div className="flex items-center justify-between border-b border-surface-200 px-5 py-4 dark:border-surface-700">
           <h2 className="text-sm font-semibold text-surface-900 dark:text-surface-50">
             Password Generator
           </h2>
-          <button
-            className="notion-button-ghost h-7 w-7 p-0"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <button className="notion-button-ghost h-7 w-7 p-0" onClick={onClose} aria-label="Close">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="px-5 py-4 space-y-5">
+        <div className="space-y-5 px-5 py-4">
           {/* Generated password */}
-          <div className="rounded-lg border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-800 p-3">
+          <div className="rounded-lg border border-surface-200 bg-surface-50 p-3 dark:border-surface-700 dark:bg-surface-800">
             <div className="flex items-center gap-2">
-              <span className="flex-1 font-mono text-sm text-surface-900 dark:text-surface-50 break-all select-all">
+              <span className="flex-1 select-all break-all font-mono text-sm text-surface-900 dark:text-surface-50">
                 {currentPassword}
               </span>
               <button
-                className="notion-button-ghost h-8 w-8 p-0 shrink-0"
+                className="notion-button-ghost h-8 w-8 shrink-0 p-0"
                 onClick={regenerate}
                 aria-label="Regenerate"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
                 </svg>
               </button>
               <button
-                className="notion-button-ghost h-8 w-8 p-0 shrink-0"
+                className="notion-button-ghost h-8 w-8 shrink-0 p-0"
                 onClick={handleCopy}
                 aria-label="Copy"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
                 </svg>
               </button>
             </div>
-            {copyFeedback && (
-              <p className="text-xs text-success-500 mt-1">{copyFeedback}</p>
-            )}
+            {copyFeedback && <p className="mt-1 text-xs text-success-500">{copyFeedback}</p>}
           </div>
 
           {/* Strength + Entropy */}
@@ -188,9 +218,15 @@ export default function PasswordGenerator({
                 />
               </div>
               <div className="flex justify-between text-xs">
-                <span className={`font-medium ${
-                  strength.score < 2 ? 'text-danger-500' : strength.score < 3 ? 'text-warning-500' : 'text-success-500'
-                }`}>
+                <span
+                  className={`font-medium ${
+                    strength.score < 2
+                      ? 'text-danger-500'
+                      : strength.score < 3
+                        ? 'text-warning-500'
+                        : 'text-success-500'
+                  }`}
+                >
                   {strength.label}
                 </span>
                 <span className="text-surface-400">{strength.entropy} bits</span>
@@ -201,7 +237,9 @@ export default function PasswordGenerator({
           {/* Length slider */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Length</label>
+              <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
+                Length
+              </label>
               <span className="text-sm text-surface-500 dark:text-surface-400">{length}</span>
             </div>
             <input
@@ -210,7 +248,7 @@ export default function PasswordGenerator({
               max={128}
               value={length}
               onChange={(e) => setLength(Number(e.target.value))}
-              className="w-full h-2 rounded-full appearance-none bg-surface-200 dark:bg-surface-700 accent-accent-500 cursor-pointer"
+              className="h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-200 accent-accent-500 dark:bg-surface-700"
             />
             <div className="flex justify-between text-xs text-surface-400">
               <span>4</span>
@@ -220,29 +258,55 @@ export default function PasswordGenerator({
 
           {/* Toggles */}
           <div className="space-y-2.5">
-            {([
-              { key: 'uppercase', label: 'A-Z (Uppercase)', value: uppercase, setter: setUppercase },
-              { key: 'lowercase', label: 'a-z (Lowercase)', value: lowercase, setter: setLowercase },
-              { key: 'numbers', label: '0-9 (Numbers)', value: numbers, setter: setNumbers },
-              { key: 'symbols', label: '!@#$% (Symbols)', value: symbols, setter: setSymbols },
-              { key: 'excludeAmbiguous', label: 'Exclude ambiguous (0, O, l, 1)', value: excludeAmbiguous, setter: setExcludeAmbiguous },
-            ] as const).map(({ key, label, value, setter }) => (
-              <label key={key} className="flex items-center gap-3 cursor-pointer">
+            {(
+              [
+                {
+                  key: 'uppercase',
+                  label: 'A-Z (Uppercase)',
+                  value: uppercase,
+                  setter: setUppercase,
+                },
+                {
+                  key: 'lowercase',
+                  label: 'a-z (Lowercase)',
+                  value: lowercase,
+                  setter: setLowercase,
+                },
+                { key: 'numbers', label: '0-9 (Numbers)', value: numbers, setter: setNumbers },
+                { key: 'symbols', label: '!@#$% (Symbols)', value: symbols, setter: setSymbols },
+                {
+                  key: 'excludeAmbiguous',
+                  label: 'Exclude ambiguous (0, O, l, 1)',
+                  value: excludeAmbiguous,
+                  setter: setExcludeAmbiguous,
+                },
+              ] as const
+            ).map(({ key, label, value, setter }) => (
+              <label key={key} className="flex cursor-pointer items-center gap-3">
                 <div
-                  className={`flex items-center justify-center h-5 w-5 rounded border-2 transition-colors ${
+                  className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-colors ${
                     value
-                      ? 'bg-accent-500 border-accent-500'
+                      ? 'border-accent-500 bg-accent-500'
                       : 'border-surface-300 dark:border-surface-600'
                   }`}
                   onClick={() => setter(!value)}
                 >
                   {value && (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3.5 w-3.5 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </div>
-                <span className="text-sm text-surface-700 dark:text-surface-300 select-none">{label}</span>
+                <span className="select-none text-sm text-surface-700 dark:text-surface-300">
+                  {label}
+                </span>
               </label>
             ))}
           </div>
@@ -251,7 +315,7 @@ export default function PasswordGenerator({
           {history.length > 1 && (
             <div className="space-y-1.5">
               <button
-                className="flex items-center gap-1 text-xs text-surface-500 hover:text-surface-700 dark:hover:text-surface-300 transition-colors"
+                className="flex items-center gap-1 text-xs text-surface-500 transition-colors hover:text-surface-700 dark:hover:text-surface-300"
                 onClick={() => setHistoryOpen(!historyOpen)}
               >
                 <svg
@@ -267,21 +331,21 @@ export default function PasswordGenerator({
                 History ({history.length})
               </button>
               {historyOpen && (
-                <div className="space-y-1 max-h-[120px] overflow-y-auto">
+                <div className="max-h-[120px] space-y-1 overflow-y-auto">
                   {history.map((pw, i) => (
                     <div
                       key={`${pw}-${i}`}
-                      className="flex items-center gap-2 px-2 py-1 rounded hover:bg-surface-100 dark:hover:bg-surface-800 cursor-pointer transition-colors"
+                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
                       onClick={() => {
                         setCurrentPassword(pw);
                         setHistoryOpen(false);
                       }}
                     >
-                      <span className="flex-1 font-mono text-xs text-surface-600 dark:text-surface-400 truncate">
+                      <span className="flex-1 truncate font-mono text-xs text-surface-600 dark:text-surface-400">
                         {pw}
                       </span>
                       {i === 0 && (
-                        <span className="text-[10px] text-accent-500 font-medium">Current</span>
+                        <span className="text-[10px] font-medium text-accent-500">Current</span>
                       )}
                     </div>
                   ))}
@@ -292,18 +356,19 @@ export default function PasswordGenerator({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-800/50 flex items-center justify-between">
-          <button
-            className="notion-button-ghost h-8 text-xs"
-            onClick={onClose}
-          >
+        <div className="flex items-center justify-between border-t border-surface-200 bg-surface-50 px-5 py-3 dark:border-surface-700 dark:bg-surface-800/50">
+          <button className="notion-button-ghost h-8 text-xs" onClick={onClose}>
             Cancel
           </button>
-          <button
-            className="notion-button-primary h-8 text-xs gap-1.5"
-            onClick={handleUse}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <button className="notion-button-primary h-8 gap-1.5 text-xs" onClick={handleUse}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
             Use password

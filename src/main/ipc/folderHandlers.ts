@@ -27,7 +27,10 @@ export function registerFolderHandlers(): void {
 
   ipcMain.handle(
     IPC_CHANNELS.FOLDER_CREATE,
-    (_event, { parentId, name, emoji }: { parentId: string | null; name: string; emoji?: string }) => {
+    (
+      _event,
+      { parentId, name, emoji }: { parentId: string | null; name: string; emoji?: string },
+    ) => {
       try {
         if (!isDatabaseOpen()) {
           return { success: false, error: 'Database is not open.' };
@@ -52,7 +55,12 @@ export function registerFolderHandlers(): void {
     IPC_CHANNELS.FOLDER_UPDATE,
     (
       _event,
-      { id, name, emoji, coverImage }: { id: string; name?: string; emoji?: string; coverImage?: string },
+      {
+        id,
+        name,
+        emoji,
+        coverImage,
+      }: { id: string; name?: string; emoji?: string; coverImage?: string },
     ) => {
       try {
         if (!isDatabaseOpen()) {

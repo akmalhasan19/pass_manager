@@ -29,18 +29,15 @@ export const useUIStore = create<UIState>((set) => ({
   quickFindOpen: false,
   activeView: 'folder',
 
-  toggleSidebar: () =>
-    set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+  toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 
   setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
 
-  toggleDarkMode: () =>
-    set((state) => ({ darkMode: !state.darkMode })),
+  toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),
 
   setDarkMode: (dark: boolean) => set({ darkMode: dark }),
 
-  toggleQuickFind: () =>
-    set((state) => ({ quickFindOpen: !state.quickFindOpen })),
+  toggleQuickFind: () => set((state) => ({ quickFindOpen: !state.quickFindOpen })),
 
   setQuickFindOpen: (open: boolean) => set({ quickFindOpen: open }),
 

@@ -208,11 +208,7 @@ export default function CoverImage({
     >
       {/* Uploaded image */}
       {!gradientClass && dataUrl && (
-        <img
-          src={dataUrl}
-          alt="Cover"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        <img src={dataUrl} alt="Cover" className="absolute inset-0 h-full w-full object-cover" />
       )}
 
       {/* Loading state */}
@@ -246,9 +242,7 @@ export default function CoverImage({
           <span className="text-sm font-medium">
             {isDragging ? 'Drop cover image here' : 'Add a cover image'}
           </span>
-          <span className="mt-1 text-xs text-surface-400">
-            Drag & drop or click to upload
-          </span>
+          <span className="mt-1 text-xs text-surface-400">Drag & drop or click to upload</span>
         </button>
       )}
 

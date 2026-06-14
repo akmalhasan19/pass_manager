@@ -37,9 +37,7 @@ describe('encryptAES256GCM / decryptAES256GCM', () => {
   });
 
   it('should throw on invalid key length during encryption', () => {
-    expect(() => encryptAES256GCM(Buffer.from('data'), SHORT_KEY)).toThrow(
-      'Key must be 32 bytes',
-    );
+    expect(() => encryptAES256GCM(Buffer.from('data'), SHORT_KEY)).toThrow('Key must be 32 bytes');
   });
 
   it('should throw on invalid key length during decryption', () => {
@@ -48,9 +46,7 @@ describe('encryptAES256GCM / decryptAES256GCM', () => {
       iv: Buffer.alloc(12),
       tag: Buffer.alloc(16),
     };
-    expect(() => decryptAES256GCM(fakeData, SHORT_KEY)).toThrow(
-      'Key must be 32 bytes',
-    );
+    expect(() => decryptAES256GCM(fakeData, SHORT_KEY)).toThrow('Key must be 32 bytes');
   });
 
   it('should throw when decrypting with wrong key', () => {

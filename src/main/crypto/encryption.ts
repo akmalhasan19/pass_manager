@@ -24,10 +24,7 @@ export function encryptAES256GCM(plaintext: Buffer, key: Buffer): EncryptedData 
   return { ciphertext, iv, tag };
 }
 
-export function decryptAES256GCM(
-  data: EncryptedData,
-  key: Buffer,
-): Buffer {
+export function decryptAES256GCM(data: EncryptedData, key: Buffer): Buffer {
   if (key.length !== KEY_BYTES) {
     throw new Error(`Key must be ${KEY_BYTES} bytes (got ${key.length})`);
   }

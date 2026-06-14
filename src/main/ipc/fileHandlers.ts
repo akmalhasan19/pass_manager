@@ -1,11 +1,5 @@
 import { ipcMain } from 'electron';
-import {
-  readFileSync,
-  writeFileSync,
-  existsSync,
-  unlinkSync,
-  mkdirSync,
-} from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { app } from 'electron';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
@@ -91,23 +85,20 @@ function decryptFileData(encryptedBlob: Buffer, key: Buffer): Buffer {
 }
 
 export function registerFileHandlers(): void {
-  ipcMain.handle(
-    IPC_CHANNELS.FILE_GET_BY_ITEM,
-    async (_event, { itemId }: { itemId: string }) => {
-      try {
-        if (!isDatabaseOpen()) {
-          return { success: false, error: 'Database is not open.' };
-        }
-        const attachments = fileRepo.getByItem(itemId);
-        return { success: true, data: attachments };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
+  ipcMain.handle(IPC_CHANNELS.FILE_GET_BY_ITEM, async (_event, { itemId }: { itemId: string }) => {
+    try {
+      if (!isDatabaseOpen()) {
+        return { success: false, error: 'Database is not open.' };
       }
-    },
-  );
+      const attachments = fileRepo.getByItem(itemId);
+      return { success: true, data: attachments };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
 
   ipcMain.handle(
     IPC_CHANNELS.FILE_ATTACH,
@@ -185,7 +176,14 @@ export function registerFileHandlers(): void {
 
         writeFileSync(tempPath, decrypted);
 
-        return { success: true, data: { filePath: tempPath, fileName: attachment.fileName, mimeType: attachment.mimeType } };
+        return {
+          success: true,
+          data: {
+            filePath: tempPath,
+            fileName: attachment.fileName,
+            mimeType: attachment.mimeType,
+          },
+        };
       } catch (error) {
         return {
           success: false,

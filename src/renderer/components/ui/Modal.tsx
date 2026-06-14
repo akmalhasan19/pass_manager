@@ -65,9 +65,7 @@ export default function Modal({
   }, [isOpen, onClose]);
 
   const positionClasses =
-    position === 'center'
-      ? 'items-center justify-center'
-      : 'items-start justify-center pt-[10vh]';
+    position === 'center' ? 'items-center justify-center' : 'items-start justify-center pt-[10vh]';
 
   return (
     <AnimatePresence>
@@ -87,7 +85,7 @@ export default function Modal({
             onClick={closeOnOverlayClick ? onClose : undefined}
           />
           <motion.div
-            className={`relative z-10 w-full rounded-xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-850 shadow-2xl overflow-hidden ${className}`}
+            className={`relative z-10 w-full overflow-hidden rounded-xl border border-surface-200 bg-white shadow-2xl dark:border-surface-700 dark:bg-surface-850 ${className}`}
             variants={cardVariants}
             onClick={(e) => e.stopPropagation()}
           >

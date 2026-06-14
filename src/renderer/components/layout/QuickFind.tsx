@@ -40,7 +40,10 @@ function highlightFuzzy(text: string, query: string): React.ReactNode {
         parts.push(text.slice(lastIndex, i));
       }
       parts.push(
-        <span key={i} className="bg-yellow-200 dark:bg-yellow-800 text-surface-900 dark:text-surface-100 rounded px-0.5">
+        <span
+          key={i}
+          className="rounded bg-yellow-200 px-0.5 text-surface-900 dark:bg-yellow-800 dark:text-surface-100"
+        >
           {text[i]}
         </span>,
       );
@@ -238,8 +241,19 @@ export default function QuickFind(): React.ReactElement {
       <div onKeyDown={handleKeyDown}>
         {/* Search input */}
         <div className="flex items-center border-b border-surface-200 dark:border-surface-700">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-5 text-surface-400 dark:text-surface-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="ml-5 h-5 w-5 shrink-0 text-surface-400 dark:text-surface-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
           <input
             ref={inputRef}
@@ -250,15 +264,31 @@ export default function QuickFind(): React.ReactElement {
             onKeyDown={handleKeyDown}
           />
           {isLoading && (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-5 text-surface-400 dark:text-surface-500 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="mr-5 h-5 w-5 shrink-0 animate-spin text-surface-400 dark:text-surface-500"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
             </svg>
           )}
         </div>
 
         {/* Results */}
-        <div ref={listRef} className="max-h-[400px] overflow-y-auto notion-scrollbar">
+        <div ref={listRef} className="notion-scrollbar max-h-[400px] overflow-y-auto">
           {results.length === 0 && query.trim() && !isLoading && (
             <div className="px-5 py-8 text-center">
               <p className="text-sm text-surface-500 dark:text-surface-400">
@@ -274,15 +304,21 @@ export default function QuickFind(): React.ReactElement {
               </p>
               <div className="mt-4 flex items-center justify-center gap-4 text-xs text-surface-400 dark:text-surface-500">
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 rounded bg-surface-100 dark:bg-surface-800 font-mono">↑↓</kbd>
+                  <kbd className="rounded bg-surface-100 px-1.5 py-0.5 font-mono dark:bg-surface-800">
+                    ↑↓
+                  </kbd>
                   Navigate
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 rounded bg-surface-100 dark:bg-surface-800 font-mono">↵</kbd>
+                  <kbd className="rounded bg-surface-100 px-1.5 py-0.5 font-mono dark:bg-surface-800">
+                    ↵
+                  </kbd>
                   Select
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 rounded bg-surface-100 dark:bg-surface-800 font-mono">Esc</kbd>
+                  <kbd className="rounded bg-surface-100 px-1.5 py-0.5 font-mono dark:bg-surface-800">
+                    Esc
+                  </kbd>
                   Close
                 </span>
               </div>
@@ -292,7 +328,7 @@ export default function QuickFind(): React.ReactElement {
           {/* Folders section */}
           {sections.folders.length > 0 && (
             <div>
-              <div className="px-5 py-2 text-xs font-medium text-surface-400 dark:text-surface-500 uppercase tracking-wider">
+              <div className="px-5 py-2 text-xs font-medium uppercase tracking-wider text-surface-400 dark:text-surface-500">
                 Folders
               </div>
               {sections.folders.map((result) => {
@@ -300,7 +336,7 @@ export default function QuickFind(): React.ReactElement {
                 return (
                   <button
                     key={`folder-${result.id}`}
-                    className={`flex items-center gap-3 w-full px-5 py-2.5 text-left transition-colors ${
+                    className={`flex w-full items-center gap-3 px-5 py-2.5 text-left transition-colors ${
                       globalIndex === selectedIndex
                         ? 'bg-accent-50 dark:bg-accent-900/20'
                         : 'hover:bg-surface-50 dark:hover:bg-surface-800/50'
@@ -308,9 +344,9 @@ export default function QuickFind(): React.ReactElement {
                     onClick={() => handleSelect(result)}
                     onMouseEnter={() => setSelectedIndex(globalIndex)}
                   >
-                    <span className="text-lg shrink-0">{result.emoji || '📁'}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-surface-800 dark:text-surface-200 truncate">
+                    <span className="shrink-0 text-lg">{result.emoji || '📁'}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-surface-800 dark:text-surface-200">
                         {highlightFuzzy(result.title, query)}
                       </p>
                       <p className="text-xs text-surface-500 dark:text-surface-400">
@@ -326,7 +362,7 @@ export default function QuickFind(): React.ReactElement {
           {/* Items section */}
           {sections.items.length > 0 && (
             <div>
-              <div className="px-5 py-2 text-xs font-medium text-surface-400 dark:text-surface-500 uppercase tracking-wider">
+              <div className="px-5 py-2 text-xs font-medium uppercase tracking-wider text-surface-400 dark:text-surface-500">
                 Items
               </div>
               {sections.items.map((result) => {
@@ -334,7 +370,7 @@ export default function QuickFind(): React.ReactElement {
                 return (
                   <button
                     key={`item-${result.id}`}
-                    className={`flex items-center gap-3 w-full px-5 py-2.5 text-left transition-colors ${
+                    className={`flex w-full items-center gap-3 px-5 py-2.5 text-left transition-colors ${
                       globalIndex === selectedIndex
                         ? 'bg-accent-50 dark:bg-accent-900/20'
                         : 'hover:bg-surface-50 dark:hover:bg-surface-800/50'
@@ -342,12 +378,12 @@ export default function QuickFind(): React.ReactElement {
                     onClick={() => handleSelect(result)}
                     onMouseEnter={() => setSelectedIndex(globalIndex)}
                   >
-                    <span className="text-lg shrink-0">{result.emoji || '🔑'}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-surface-800 dark:text-surface-200 truncate">
+                    <span className="shrink-0 text-lg">{result.emoji || '🔑'}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-surface-800 dark:text-surface-200">
                         {highlightFuzzy(result.title, query)}
                       </p>
-                      <p className="text-xs text-surface-500 dark:text-surface-400 truncate">
+                      <p className="truncate text-xs text-surface-500 dark:text-surface-400">
                         {highlightFuzzy(result.subtitle, query)}
                       </p>
                     </div>
@@ -360,7 +396,7 @@ export default function QuickFind(): React.ReactElement {
           {/* Tags section */}
           {sections.tags.length > 0 && (
             <div>
-              <div className="px-5 py-2 text-xs font-medium text-surface-400 dark:text-surface-500 uppercase tracking-wider">
+              <div className="px-5 py-2 text-xs font-medium uppercase tracking-wider text-surface-400 dark:text-surface-500">
                 Tags
               </div>
               {sections.tags.map((result) => {
@@ -369,7 +405,7 @@ export default function QuickFind(): React.ReactElement {
                 return (
                   <button
                     key={`tag-${result.id}`}
-                    className={`flex items-center gap-3 w-full px-5 py-2.5 text-left transition-colors ${
+                    className={`flex w-full items-center gap-3 px-5 py-2.5 text-left transition-colors ${
                       globalIndex === selectedIndex
                         ? 'bg-accent-50 dark:bg-accent-900/20'
                         : 'hover:bg-surface-50 dark:hover:bg-surface-800/50'
@@ -378,11 +414,11 @@ export default function QuickFind(): React.ReactElement {
                     onMouseEnter={() => setSelectedIndex(globalIndex)}
                   >
                     <span
-                      className="h-3 w-3 rounded-full shrink-0"
+                      className="h-3 w-3 shrink-0 rounded-full"
                       style={{ backgroundColor: tag.color || '#6366f1' }}
                     />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-surface-800 dark:text-surface-200 truncate">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-surface-800 dark:text-surface-200">
                         {highlightFuzzy(result.title, query)}
                       </p>
                       <p className="text-xs text-surface-500 dark:text-surface-400">
@@ -397,15 +433,21 @@ export default function QuickFind(): React.ReactElement {
         </div>
 
         {/* Footer hint */}
-        <div className="border-t border-surface-200 dark:border-surface-700 px-5 py-2.5 flex items-center justify-between text-xs text-surface-400 dark:text-surface-500">
-          <span>{results.length} result{results.length !== 1 ? 's' : ''}</span>
+        <div className="flex items-center justify-between border-t border-surface-200 px-5 py-2.5 text-xs text-surface-400 dark:border-surface-700 dark:text-surface-500">
+          <span>
+            {results.length} result{results.length !== 1 ? 's' : ''}
+          </span>
           <span className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-surface-100 dark:bg-surface-800 font-mono">↑↓</kbd>
+              <kbd className="rounded bg-surface-100 px-1 py-0.5 font-mono dark:bg-surface-800">
+                ↑↓
+              </kbd>
               Navigate
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-surface-100 dark:bg-surface-800 font-mono">↵</kbd>
+              <kbd className="rounded bg-surface-100 px-1 py-0.5 font-mono dark:bg-surface-800">
+                ↵
+              </kbd>
               Open
             </span>
           </span>

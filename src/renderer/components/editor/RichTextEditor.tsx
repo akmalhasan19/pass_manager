@@ -170,8 +170,8 @@ export default function RichTextEditor({
 
   if (!editor) {
     return (
-      <div className="rounded-md border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-850">
-        <div className="h-40 flex items-center justify-center text-sm text-surface-400">
+      <div className="rounded-md border border-surface-200 bg-white dark:border-surface-700 dark:bg-surface-850">
+        <div className="flex h-40 items-center justify-center text-sm text-surface-400">
           Loading editor...
         </div>
       </div>
@@ -179,43 +179,59 @@ export default function RichTextEditor({
   }
 
   return (
-    <div className="rich-text-editor-wrapper rounded-md border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-850 overflow-hidden">
+    <div className="rich-text-editor-wrapper overflow-hidden rounded-md border border-surface-200 bg-white dark:border-surface-700 dark:bg-surface-850">
       {editable && <MarkdownToolbar editor={editor} />}
 
       <BubbleMenu
         editor={editor}
         tippyOptions={{ duration: 150, placement: 'top' }}
-        className="flex items-center gap-0.5 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-850 shadow-lg px-1 py-1"
+        className="flex items-center gap-0.5 rounded-lg border border-surface-200 bg-white px-1 py-1 shadow-lg dark:border-surface-700 dark:bg-surface-850"
       >
         <BubbleBtn
           active={editor.isActive('bold')}
           label="Bold"
           onClick={() => editor.chain().focus().toggleBold().run()}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"
+          />
         </BubbleBtn>
         <BubbleBtn
           active={editor.isActive('italic')}
           label="Italic"
           onClick={() => editor.chain().focus().toggleItalic().run()}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10 4h2m0 0a4 4 0 014 4v8a4 4 0 01-4 4h-2m0-16L8 20" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M10 4h2m0 0a4 4 0 014 4v8a4 4 0 01-4 4h-2m0-16L8 20"
+          />
         </BubbleBtn>
         <BubbleBtn
           active={editor.isActive('strike')}
           label="Strikethrough"
           onClick={() => editor.chain().focus().toggleStrike().run()}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M17.5 12H15m-3 0H6m6 0a3 3 0 01-3 3H6m9-3a3 3 0 00-3-3H6m4 0V4m0 16v-4" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M17.5 12H15m-3 0H6m6 0a3 3 0 01-3 3H6m9-3a3 3 0 00-3-3H6m4 0V4m0 16v-4"
+          />
         </BubbleBtn>
         <BubbleBtn
           active={editor.isActive('code')}
           label="Code"
           onClick={() => editor.chain().focus().toggleCode().run()}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+          />
         </BubbleBtn>
-        <div className="w-px h-4 bg-surface-200 dark:bg-surface-700 mx-0.5" />
+        <div className="mx-0.5 h-4 w-px bg-surface-200 dark:bg-surface-700" />
         <BubbleBtn
           active={editor.isActive('link')}
           label="Link"
@@ -230,7 +246,11 @@ export default function RichTextEditor({
             }
           }}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+          />
         </BubbleBtn>
       </BubbleMenu>
 
@@ -247,7 +267,7 @@ export default function RichTextEditor({
           className="flex items-center"
         >
           <button
-            className="h-6 w-6 flex items-center justify-center rounded-full border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-850 shadow-md text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 hover:border-surface-300 dark:hover:border-surface-600 transition-colors"
+            className="flex h-6 w-6 items-center justify-center rounded-full border border-surface-200 bg-white text-surface-400 shadow-md transition-colors hover:border-surface-300 hover:text-surface-600 dark:border-surface-700 dark:bg-surface-850 dark:hover:border-surface-600 dark:hover:text-surface-300"
             onClick={() => {
               const { $from } = editor.state.selection;
               const coords = editor.view.coordsAtPos($from.pos);
@@ -263,14 +283,21 @@ export default function RichTextEditor({
             }}
             aria-label="Insert block"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-3 w-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
           </button>
         </FloatingMenu>
       )}
 
-      <div className="prose-editor px-4 py-3 min-h-[120px] max-h-[400px] overflow-y-auto notion-scrollbar">
+      <div className="prose-editor notion-scrollbar max-h-[400px] min-h-[120px] overflow-y-auto px-4 py-3">
         <EditorContent editor={editor} />
       </div>
 
@@ -299,15 +326,22 @@ function BubbleBtn({
 }) {
   return (
     <button
-      className={`h-7 w-7 flex items-center justify-center rounded transition-colors ${
+      className={`flex h-7 w-7 items-center justify-center rounded transition-colors ${
         active
-          ? 'bg-accent-100 dark:bg-accent-900/40 text-accent-700 dark:text-accent-300'
-          : 'text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800'
+          ? 'bg-accent-100 text-accent-700 dark:bg-accent-900/40 dark:text-accent-300'
+          : 'text-surface-500 hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800'
       }`}
       title={label}
       onClick={onClick}
     >
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-3.5 w-3.5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
         {children}
       </svg>
     </button>

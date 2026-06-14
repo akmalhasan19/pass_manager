@@ -67,7 +67,7 @@ describe('generatePassword', () => {
       numbers: false,
       symbols: true,
     });
-    expect(pw).toMatch(/^[!@#$%^&*()_+\-=\[\]{}|;:,.<>?~]+$/);
+    expect(pw).toMatch(/^[!@#$%^&*()_+\-=[\]{}|;:,.<>?~]+$/);
   });
 
   it('should exclude ambiguous characters when excludeAmbiguous is true', () => {

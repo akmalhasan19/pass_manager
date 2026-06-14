@@ -7,7 +7,7 @@
  */
 
 const { copyFileSync, existsSync, mkdirSync } = require('fs');
-const { resolve, dirname } = require('path');
+const { resolve } = require('path');
 
 const PACKAGE_ROOT = resolve(__dirname, '..');
 

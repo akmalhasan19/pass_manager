@@ -12,7 +12,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
+    setupFiles: [],
+    include: ['tests/**/*.test.{ts,tsx}'],
     exclude: ['node_modules', 'dist', 'dist-electron'],
+    environmentMatchGlobs: [
+      ['tests/unit/components/**', 'jsdom'],
+    ],
   },
 });

@@ -39,7 +39,13 @@ const COMMANDS: Command[] = [
   {
     label: 'Numbered List',
     description: 'List with numbering',
-    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h8M7 12h8m-8 4h8M4 6h.01M4 10h.01M4 14h.01" />,
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M7 8h8M7 12h8m-8 4h8M4 6h.01M4 10h.01M4 14h.01"
+      />
+    ),
     execute: (editor) => editor.chain().focus().toggleOrderedList().run(),
   },
   {
@@ -51,7 +57,13 @@ const COMMANDS: Command[] = [
   {
     label: 'Blockquote',
     description: 'Capture a quote',
-    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 3h18" />,
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 3h18"
+      />
+    ),
     execute: (editor) => editor.chain().focus().toggleBlockquote().run(),
   },
   {
@@ -63,7 +75,13 @@ const COMMANDS: Command[] = [
   {
     label: 'Checkbox',
     description: 'Trackable to-do item',
-    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />,
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+      />
+    ),
     execute: (editor) => editor.chain().focus().toggleTaskList().run(),
   },
 ];
@@ -147,17 +165,17 @@ export default function SlashCommandMenu({
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 w-64 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-850 shadow-2xl py-1 overflow-hidden"
+      className="fixed z-50 w-64 overflow-hidden rounded-lg border border-surface-200 bg-white py-1 shadow-2xl dark:border-surface-700 dark:bg-surface-850"
       style={{
         top: position.top,
         left: position.left,
         animation: 'fadeIn 0.1s ease-out',
       }}
     >
-      <div className="px-3 py-1.5 text-[11px] text-surface-400 dark:text-surface-500 uppercase tracking-wider font-medium border-b border-surface-100 dark:border-surface-800">
+      <div className="border-b border-surface-100 px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider text-surface-400 dark:border-surface-800 dark:text-surface-500">
         Basic blocks
       </div>
-      <div className="max-h-64 overflow-y-auto notion-scrollbar">
+      <div className="notion-scrollbar max-h-64 overflow-y-auto">
         {filtered.map((cmd, i) => (
           <button
             key={cmd.label}
@@ -169,18 +187,31 @@ export default function SlashCommandMenu({
             onClick={() => handleSelect(i)}
             onMouseEnter={() => setActiveIndex(i)}
           >
-            <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${
-              i === activeIndex
-                ? 'bg-accent-100 dark:bg-accent-900/40 text-accent-700 dark:text-accent-300'
-                : 'bg-surface-100 dark:bg-surface-800 text-surface-500 dark:text-surface-400'
-            }`}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
+                i === activeIndex
+                  ? 'bg-accent-100 text-accent-700 dark:bg-accent-900/40 dark:text-accent-300'
+                  : 'bg-surface-100 text-surface-500 dark:bg-surface-800 dark:text-surface-400'
+              }`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
                 {cmd.icon}
               </svg>
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium text-surface-700 dark:text-surface-200 truncate">{cmd.label}</div>
-              <div className="text-xs text-surface-400 dark:text-surface-500 truncate">{cmd.description}</div>
+              <div className="truncate text-sm font-medium text-surface-700 dark:text-surface-200">
+                {cmd.label}
+              </div>
+              <div className="truncate text-xs text-surface-400 dark:text-surface-500">
+                {cmd.description}
+              </div>
             </div>
           </button>
         ))}

@@ -1,8 +1,4 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  randomBytes,
-} from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import {
   createReadStream,
   createWriteStream,
@@ -42,10 +38,7 @@ function getTempPath(): string {
   return dir;
 }
 
-export async function encryptAndStoreFile(
-  sourcePath: string,
-  key: Buffer,
-): Promise<string> {
+export async function encryptAndStoreFile(sourcePath: string, key: Buffer): Promise<string> {
   if (key.length !== KEY_BYTES) {
     throw new Error(`Key must be ${KEY_BYTES} bytes (got ${key.length})`);
   }
@@ -78,10 +71,7 @@ export async function encryptAndStoreFile(
   });
 }
 
-export async function decryptAndRetrieveFile(
-  storagePath: string,
-  key: Buffer,
-): Promise<string> {
+export async function decryptAndRetrieveFile(storagePath: string, key: Buffer): Promise<string> {
   if (key.length !== KEY_BYTES) {
     throw new Error(`Key must be ${KEY_BYTES} bytes (got ${key.length})`);
   }

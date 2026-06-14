@@ -12,7 +12,9 @@ export class FolderRepository {
 
     let maxOrder = -1;
     if (parentId) {
-      const stmt = db.prepare('SELECT COALESCE(MAX(sort_order), -1) as max_order FROM folders WHERE parent_id = ?');
+      const stmt = db.prepare(
+        'SELECT COALESCE(MAX(sort_order), -1) as max_order FROM folders WHERE parent_id = ?',
+      );
       stmt.bind([parentId]);
       if (stmt.step()) {
         maxOrder = stmt.getAsObject().max_order as number;
@@ -78,7 +80,10 @@ export class FolderRepository {
     return folders;
   }
 
-  update(id: string, fields: Partial<Pick<Folder, 'name' | 'emoji' | 'coverImage' | 'sortOrder'>>): Folder | null {
+  update(
+    id: string,
+    fields: Partial<Pick<Folder, 'name' | 'emoji' | 'coverImage' | 'sortOrder'>>,
+  ): Folder | null {
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
@@ -86,10 +91,22 @@ export class FolderRepository {
     const params: unknown[] = [];
     const now = Date.now();
 
-    if (fields.name !== undefined) { sets.push('name = ?'); params.push(fields.name); }
-    if (fields.emoji !== undefined) { sets.push('emoji = ?'); params.push(fields.emoji); }
-    if (fields.coverImage !== undefined) { sets.push('cover_image = ?'); params.push(fields.coverImage); }
-    if (fields.sortOrder !== undefined) { sets.push('sort_order = ?'); params.push(fields.sortOrder); }
+    if (fields.name !== undefined) {
+      sets.push('name = ?');
+      params.push(fields.name);
+    }
+    if (fields.emoji !== undefined) {
+      sets.push('emoji = ?');
+      params.push(fields.emoji);
+    }
+    if (fields.coverImage !== undefined) {
+      sets.push('cover_image = ?');
+      params.push(fields.coverImage);
+    }
+    if (fields.sortOrder !== undefined) {
+      sets.push('sort_order = ?');
+      params.push(fields.sortOrder);
+    }
 
     if (sets.length === 0) return this.getById(id);
 
@@ -136,10 +153,12 @@ export class FolderRepository {
     }
 
     const now = Date.now();
-    db.run(
-      'UPDATE folders SET parent_id = ?, sort_order = ?, updated_at = ? WHERE id = ?',
-      [newParentId, sortOrder, now, id],
-    );
+    db.run('UPDATE folders SET parent_id = ?, sort_order = ?, updated_at = ? WHERE id = ?', [
+      newParentId,
+      sortOrder,
+      now,
+      id,
+    ]);
 
     return this.getById(id);
   }
@@ -153,7 +172,9 @@ export class FolderRepository {
 
     for (const folderId of allIds) {
       db.run('DELETE FROM attachments WHERE folder_id = ?', [folderId]);
-      db.run('DELETE FROM item_tags WHERE item_id IN (SELECT id FROM items WHERE folder_id = ?)', [folderId]);
+      db.run('DELETE FROM item_tags WHERE item_id IN (SELECT id FROM items WHERE folder_id = ?)', [
+        folderId,
+      ]);
       db.run('DELETE FROM items WHERE folder_id = ?', [folderId]);
       db.run('DELETE FROM folders WHERE id = ?', [folderId]);
     }

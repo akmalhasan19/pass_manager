@@ -10,11 +10,11 @@
   }
 
   .notion-breadcrumb-item {
-    @apply hover:text-surface-700 dark:hover:text-surface-200 transition-colors duration-100 cursor-pointer;
+    @apply cursor-pointer transition-colors duration-100 hover:text-surface-700 dark:hover:text-surface-200;
   }
 
   .notion-breadcrumb-item.current {
-    @apply text-surface-900 dark:text-surface-50 font-medium cursor-default;
+    @apply cursor-default font-medium text-surface-900 dark:text-surface-50;
   }
 
   .notion-toolbar {
@@ -31,11 +31,11 @@
   }
 
   .notion-empty-state-title {
-    @apply text-lg font-medium text-surface-500 dark:text-surface-400 mb-1;
+    @apply mb-1 text-lg font-medium text-surface-500 dark:text-surface-400;
   }
 
   .notion-empty-state-description {
-    @apply text-sm text-surface-400 dark:text-surface-500 max-w-xs;
+    @apply max-w-xs text-sm text-surface-400 dark:text-surface-500;
   }
 
   .notion-detail-field {

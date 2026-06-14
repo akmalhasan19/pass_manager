@@ -44,7 +44,11 @@ export async function createTestDatabase(): Promise<SqlJsDatabase> {
 
 export function destroyTestDatabase(): void {
   if (db) {
-    try { db.close(); } catch { /* ignore */ }
+    try {
+      db.close();
+    } catch {
+      /* ignore */
+    }
     db = null;
   }
   SQL = null;

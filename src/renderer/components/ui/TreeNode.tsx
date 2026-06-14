@@ -96,15 +96,12 @@ export default function TreeNode({
     [handleRenameSubmit, folder.name],
   );
 
-  const handleContextMenu = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setContextMenuPos({ x: e.clientX, y: e.clientY });
-      setShowContextMenu(true);
-    },
-    [],
-  );
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setShowContextMenu(true);
+  }, []);
 
   const handleClick = useCallback(() => {
     onSelect(folder.id);
@@ -144,13 +141,22 @@ export default function TreeNode({
         {/* Chevron */}
         <button
           className={`flex h-4 w-4 shrink-0 items-center justify-center rounded transition-transform duration-150 ${
-            hasChildren ? 'text-surface-400 hover:text-surface-600 dark:hover:text-surface-300' : 'text-transparent'
+            hasChildren
+              ? 'text-surface-400 hover:text-surface-600 dark:hover:text-surface-300'
+              : 'text-transparent'
           } ${isExpanded ? 'rotate-90' : ''}`}
           onClick={chevronClick}
           tabIndex={-1}
           aria-hidden={!hasChildren}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-3 w-3"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
@@ -158,7 +164,7 @@ export default function TreeNode({
         {/* Drag handle */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-3.5 w-3.5 shrink-0 text-surface-300 dark:text-surface-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+          className="h-3.5 w-3.5 shrink-0 cursor-grab text-surface-300 opacity-0 transition-opacity active:cursor-grabbing group-hover:opacity-100 dark:text-surface-600"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -177,7 +183,7 @@ export default function TreeNode({
               placement="bottom-start"
               ariaLabel={`Change emoji for ${folder.name}`}
             >
-              <span className="flex h-6 w-6 cursor-pointer items-center justify-center rounded hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors">
+              <span className="flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors hover:bg-surface-200 dark:hover:bg-surface-700">
                 {folder.emoji || '📁'}
               </span>
             </EmojiPicker>
@@ -190,7 +196,7 @@ export default function TreeNode({
         {isRenaming ? (
           <input
             ref={inputRef}
-            className="flex-1 min-w-0 px-1 py-0 text-sm bg-white dark:bg-surface-800 border border-accent-400 rounded outline-none ring-1 ring-accent-400/50"
+            className="min-w-0 flex-1 rounded border border-accent-400 bg-white px-1 py-0 text-sm outline-none ring-1 ring-accent-400/50 dark:bg-surface-800"
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}
             onBlur={handleRenameSubmit}
@@ -198,9 +204,7 @@ export default function TreeNode({
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <span className="flex-1 min-w-0 truncate text-sm">
-            {folder.name}
-          </span>
+          <span className="min-w-0 flex-1 truncate text-sm">{folder.name}</span>
         )}
       </div>
 
@@ -243,44 +247,77 @@ export default function TreeNode({
       {/* Context menu */}
       {showContextMenu && (
         <div
-          className="fixed z-50 min-w-[180px] rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 shadow-lg py-1"
-          style={{ top: contextMenuPos.y, left: contextMenuPos.x, animation: 'fadeIn 0.1s ease-out' }}
+          className="fixed z-50 min-w-[180px] rounded-lg border border-surface-200 bg-white py-1 shadow-lg dark:border-surface-700 dark:bg-surface-800"
+          style={{
+            top: contextMenuPos.y,
+            left: contextMenuPos.x,
+            animation: 'fadeIn 0.1s ease-out',
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           <button
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors"
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-surface-700 transition-colors hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-700"
             onClick={() => {
               setShowContextMenu(false);
               onNewSubfolder(folder.id);
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
             New Subfolder
           </button>
           <button
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors"
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-surface-700 transition-colors hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-700"
             onClick={() => {
               setShowContextMenu(false);
               handleDoubleClick();
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
             </svg>
             Rename
           </button>
           <div className="my-1 h-px bg-surface-200 dark:bg-surface-700" />
           <button
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-danger-600 dark:text-danger-400 hover:bg-danger-50 dark:hover:bg-danger-500/10 transition-colors"
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-danger-600 transition-colors hover:bg-danger-50 dark:text-danger-400 dark:hover:bg-danger-500/10"
             onClick={() => {
               setShowContextMenu(false);
               onDelete(folder.id);
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
             </svg>
             Delete
           </button>

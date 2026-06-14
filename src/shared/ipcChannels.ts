@@ -57,4 +57,14 @@ export const IPC_CHANNELS = {
   WINDOW_MAXIMIZE: 'window:maximize',
   WINDOW_CLOSE: 'window:close',
   WINDOW_IS_MAXIMIZED: 'window:isMaximized',
+
+  // Auto-updater
+  UPDATE_AVAILABLE: 'update:available',
+  UPDATE_NOT_AVAILABLE: 'update:not-available',
+  UPDATE_DOWNLOAD_PROGRESS: 'update:download-progress',
+  UPDATE_DOWNLOADED: 'update:downloaded',
+  UPDATE_ERROR: 'update:error',
+  CHECK_FOR_UPDATES: 'update:check',
+  DOWNLOAD_UPDATE: 'update:download',
+  QUIT_AND_INSTALL: 'update:quit-and-install',
 } as const;

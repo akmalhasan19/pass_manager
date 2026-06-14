@@ -45,9 +45,7 @@ function getCharacterSet(options: PasswordOptions): string {
   return chars;
 }
 
-export function generatePassword(
-  options: Partial<PasswordOptions> = {},
-): string {
+export function generatePassword(options: Partial<PasswordOptions> = {}): string {
   const merged: PasswordOptions = { ...DEFAULT_OPTIONS, ...options };
   const charSet = getCharacterSet(merged);
   const { length } = merged;
@@ -103,13 +101,7 @@ export function evaluateStrength(password: string): StrengthResult {
     score = 4;
   }
 
-  const labels: StrengthLabel[] = [
-    'Very Weak',
-    'Weak',
-    'Fair',
-    'Strong',
-    'Very Strong',
-  ];
+  const labels: StrengthLabel[] = ['Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
 
   return { score, label: labels[score], entropy: Math.round(entropy) };
 }

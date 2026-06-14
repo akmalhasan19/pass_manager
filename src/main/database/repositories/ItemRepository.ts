@@ -74,9 +74,7 @@ export class ItemRepository {
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
-    const stmt = db.prepare(
-      'SELECT * FROM items WHERE folder_id = ? ORDER BY sort_order ASC',
-    );
+    const stmt = db.prepare('SELECT * FROM items WHERE folder_id = ? ORDER BY sort_order ASC');
     stmt.bind([folderId]);
 
     const items: Item[] = [];
@@ -110,15 +108,42 @@ export class ItemRepository {
     const params: unknown[] = [];
     const now = Date.now();
 
-    if (fields.title !== undefined) { sets.push('title = ?'); params.push(fields.title); }
-    if (fields.username !== undefined) { sets.push('username = ?'); params.push(fields.username); }
-    if (fields.passwordEncrypted !== undefined) { sets.push('password_encrypted = ?'); params.push(fields.passwordEncrypted); }
-    if (fields.url !== undefined) { sets.push('url = ?'); params.push(fields.url); }
-    if (fields.notesEncrypted !== undefined) { sets.push('notes_encrypted = ?'); params.push(fields.notesEncrypted); }
-    if (fields.emoji !== undefined) { sets.push('emoji = ?'); params.push(fields.emoji); }
-    if (fields.coverImage !== undefined) { sets.push('cover_image = ?'); params.push(fields.coverImage); }
-    if (fields.isFavorite !== undefined) { sets.push('is_favorite = ?'); params.push(fields.isFavorite ? 1 : 0); }
-    if (fields.sortOrder !== undefined) { sets.push('sort_order = ?'); params.push(fields.sortOrder); }
+    if (fields.title !== undefined) {
+      sets.push('title = ?');
+      params.push(fields.title);
+    }
+    if (fields.username !== undefined) {
+      sets.push('username = ?');
+      params.push(fields.username);
+    }
+    if (fields.passwordEncrypted !== undefined) {
+      sets.push('password_encrypted = ?');
+      params.push(fields.passwordEncrypted);
+    }
+    if (fields.url !== undefined) {
+      sets.push('url = ?');
+      params.push(fields.url);
+    }
+    if (fields.notesEncrypted !== undefined) {
+      sets.push('notes_encrypted = ?');
+      params.push(fields.notesEncrypted);
+    }
+    if (fields.emoji !== undefined) {
+      sets.push('emoji = ?');
+      params.push(fields.emoji);
+    }
+    if (fields.coverImage !== undefined) {
+      sets.push('cover_image = ?');
+      params.push(fields.coverImage);
+    }
+    if (fields.isFavorite !== undefined) {
+      sets.push('is_favorite = ?');
+      params.push(fields.isFavorite ? 1 : 0);
+    }
+    if (fields.sortOrder !== undefined) {
+      sets.push('sort_order = ?');
+      params.push(fields.sortOrder);
+    }
 
     if (sets.length === 0) return this.getById(id);
 
@@ -201,18 +226,15 @@ export class ItemRepository {
     };
 
     const pattern = `%${query}%`;
-    searchInTable(
-      'SELECT * FROM items WHERE title LIKE ? ORDER BY sort_order ASC LIMIT 20',
-      [pattern],
-    );
-    searchInTable(
-      'SELECT * FROM items WHERE username LIKE ? ORDER BY sort_order ASC LIMIT 10',
-      [pattern],
-    );
-    searchInTable(
-      'SELECT * FROM items WHERE url LIKE ? ORDER BY sort_order ASC LIMIT 10',
-      [pattern],
-    );
+    searchInTable('SELECT * FROM items WHERE title LIKE ? ORDER BY sort_order ASC LIMIT 20', [
+      pattern,
+    ]);
+    searchInTable('SELECT * FROM items WHERE username LIKE ? ORDER BY sort_order ASC LIMIT 10', [
+      pattern,
+    ]);
+    searchInTable('SELECT * FROM items WHERE url LIKE ? ORDER BY sort_order ASC LIMIT 10', [
+      pattern,
+    ]);
 
     if (query.length > 2) {
       try {

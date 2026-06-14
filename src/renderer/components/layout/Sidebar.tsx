@@ -111,22 +111,16 @@ export default function Sidebar(): React.ReactElement {
     [handleNewFolder],
   );
 
-  const handleDragStart = useCallback(
-    (e: React.DragEvent, folderId: string) => {
-      e.dataTransfer.setData('text/plain', folderId);
-      e.dataTransfer.effectAllowed = 'move';
-    },
-    [],
-  );
+  const handleDragStart = useCallback((e: React.DragEvent, folderId: string) => {
+    e.dataTransfer.setData('text/plain', folderId);
+    e.dataTransfer.effectAllowed = 'move';
+  }, []);
 
-  const handleDragOver = useCallback(
-    (e: React.DragEvent, folderId: string) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      setDragOverId(folderId);
-    },
-    [],
-  );
+  const handleDragOver = useCallback((e: React.DragEvent, folderId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverId(folderId);
+  }, []);
 
   const handleDrop = useCallback(
     async (e: React.DragEvent, targetFolderId: string) => {
@@ -154,9 +148,9 @@ export default function Sidebar(): React.ReactElement {
       aria-label="Folder navigation"
     >
       {/* Header */}
-      <div className="flex h-12 items-center justify-between border-b border-surface-200 dark:border-surface-700 px-3 shrink-0">
+      <div className="flex h-12 shrink-0 items-center justify-between border-b border-surface-200 px-3 dark:border-surface-700">
         {sidebarOpen && (
-          <span className="text-sm font-semibold text-surface-800 dark:text-surface-200 truncate">
+          <span className="truncate text-sm font-semibold text-surface-800 dark:text-surface-200">
             SecurePass
           </span>
         )}
@@ -165,34 +159,63 @@ export default function Sidebar(): React.ReactElement {
             <>
               <button
                 onClick={() => handleNewFolder()}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
                 aria-label="New Folder"
                 title="New Folder"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
               </button>
               <button
                 onClick={toggleQuickFind}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
                 aria-label="Quick Find"
                 title="Quick Find (Ctrl+K)"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
                 </svg>
               </button>
             </>
           )}
           <button
             onClick={toggleSidebar}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
             aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               {sidebarOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                />
               ) : (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
               )}
@@ -202,7 +225,7 @@ export default function Sidebar(): React.ReactElement {
       </div>
 
       {/* Content area */}
-      <div className="flex-1 overflow-y-auto notion-scrollbar p-2 relative">
+      <div className="notion-scrollbar relative flex-1 overflow-y-auto p-2">
         <AnimatePresence mode="wait">
           {sidebarOpen ? (
             <motion.div
@@ -214,12 +237,12 @@ export default function Sidebar(): React.ReactElement {
               className="space-y-0.5"
               role="tree"
             >
-              <p className="px-2 py-1 text-xs font-medium text-surface-400 dark:text-surface-500 uppercase tracking-wider">
+              <p className="px-2 py-1 text-xs font-medium uppercase tracking-wider text-surface-400 dark:text-surface-500">
                 Folders
               </p>
 
               {folders.length === 0 && !isCreatingFolder && (
-                <p className="px-2 py-3 text-xs text-surface-400 dark:text-surface-500 italic">
+                <p className="px-2 py-3 text-xs italic text-surface-400 dark:text-surface-500">
                   No folders yet
                 </p>
               )}
@@ -254,7 +277,7 @@ export default function Sidebar(): React.ReactElement {
                   <span className="shrink-0 text-base leading-none">📁</span>
                   <input
                     ref={newFolderInputRef}
-                    className="flex-1 min-w-0 px-1 py-0 text-sm bg-white dark:bg-surface-800 border border-accent-400 rounded outline-none ring-1 ring-accent-400/50"
+                    className="min-w-0 flex-1 rounded border border-accent-400 bg-white px-1 py-0 text-sm outline-none ring-1 ring-accent-400/50 dark:bg-surface-800"
                     placeholder="Folder name..."
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
@@ -274,23 +297,41 @@ export default function Sidebar(): React.ReactElement {
               className="flex flex-col items-center gap-2 pt-2"
             >
               <button
-                className="flex h-8 w-8 items-center justify-center rounded-md text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
                 aria-label="New Folder"
                 onClick={() => handleNewFolder()}
                 title="New Folder"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
               </button>
               <button
-                className="flex h-8 w-8 items-center justify-center rounded-md text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
                 aria-label="Quick Find"
                 onClick={toggleQuickFind}
                 title="Quick Find"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
                 </svg>
               </button>
             </motion.div>
@@ -299,16 +340,28 @@ export default function Sidebar(): React.ReactElement {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-surface-200 dark:border-surface-700 p-2 space-y-1 shrink-0">
+      <div className="shrink-0 space-y-1 border-t border-surface-200 p-2 dark:border-surface-700">
         {sidebarOpen ? (
           <>
-            <button
-              className="notion-tree-node w-full"
-              onClick={() => setActiveView('settings')}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <button className="notion-tree-node w-full" onClick={() => setActiveView('settings')}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
               <span className="truncate">Settings</span>
             </button>
@@ -316,8 +369,19 @@ export default function Sidebar(): React.ReactElement {
               className="notion-tree-node w-full text-danger-500 hover:text-danger-600 dark:text-danger-400 dark:hover:text-danger-500"
               onClick={() => lock()}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
               </svg>
               <span className="truncate">Lock</span>
             </button>
@@ -325,24 +389,50 @@ export default function Sidebar(): React.ReactElement {
         ) : (
           <>
             <button
-              className="flex h-8 w-8 items-center justify-center rounded-md text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors mx-auto"
+              className="mx-auto flex h-8 w-8 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
               aria-label="Settings"
               onClick={() => setActiveView('settings')}
               title="Settings"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
             </button>
             <button
-              className="flex h-8 w-8 items-center justify-center rounded-md text-danger-500 hover:bg-danger-50 dark:hover:bg-danger-500/10 transition-colors mx-auto"
+              className="mx-auto flex h-8 w-8 items-center justify-center rounded-md text-danger-500 transition-colors hover:bg-danger-50 dark:hover:bg-danger-500/10"
               onClick={() => lock()}
               aria-label="Lock"
               title="Lock"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
               </svg>
             </button>
           </>

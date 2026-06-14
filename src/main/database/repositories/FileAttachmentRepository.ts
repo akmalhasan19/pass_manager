@@ -56,9 +56,7 @@ export class FileAttachmentRepository {
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
-    const stmt = db.prepare(
-      'SELECT * FROM attachments WHERE item_id = ? ORDER BY created_at ASC',
-    );
+    const stmt = db.prepare('SELECT * FROM attachments WHERE item_id = ? ORDER BY created_at ASC');
     stmt.bind([itemId]);
 
     const attachments: Attachment[] = [];

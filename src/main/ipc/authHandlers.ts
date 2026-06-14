@@ -18,11 +18,7 @@ import {
   getDatabase,
   isDatabaseOpen,
 } from '../database/connection';
-import {
-  initializeDatabase,
-  authFileExists,
-  getAuthPath,
-} from '../database/migrations';
+import { initializeDatabase, authFileExists, getAuthPath } from '../database/migrations';
 import { evaluateStrength } from '../crypto/passwordGenerator';
 
 let masterKey: Buffer | null = null;
@@ -76,89 +72,95 @@ function clearKeys(): void {
 }
 
 export function registerAuthHandlers(): void {
-  ipcMain.handle(IPC_CHANNELS.AUTH_INIT, async (_event, { masterPassword }: { masterPassword: string }) => {
-    try {
-      const strength = evaluateStrength(masterPassword);
-      if (strength.score < 2) {
+  ipcMain.handle(
+    IPC_CHANNELS.AUTH_INIT,
+    async (_event, { masterPassword }: { masterPassword: string }) => {
+      try {
+        const strength = evaluateStrength(masterPassword);
+        if (strength.score < 2) {
+          return {
+            success: false,
+            error: `Master password too weak: ${strength.label}. Choose a stronger password.`,
+          };
+        }
+
+        if (authFileExists()) {
+          return { success: false, error: 'App is already initialized.' };
+        }
+
+        const salt = generateSalt();
+        const key = deriveMasterKey(masterPassword, salt, {
+          algorithm: 'pbkdf2',
+          iterations: DEFAULT_PBKDF2_ITERATIONS,
+        });
+        const verificationHash = hashKeyForVerification(key);
+
+        const authMetadata: AuthMetadata = {
+          salt,
+          kdfAlgorithm: 'pbkdf2',
+          kdfIterations: DEFAULT_PBKDF2_ITERATIONS,
+          kdfMemory: null,
+          kdfParallelism: null,
+          verificationHash,
+          createdAt: Date.now(),
+        };
+
+        await initializeSqlJs();
+        openDatabase();
+        initializeDatabase();
+        saveDatabase();
+        writeAuthMetadata(authMetadata);
+
+        masterKey = key;
+        currentSalt = salt;
+        currentKdfAlgorithm = 'pbkdf2';
+        currentKdfIterations = DEFAULT_PBKDF2_ITERATIONS;
+
+        return { success: true };
+      } catch (error) {
         return {
           success: false,
-          error: `Master password too weak: ${strength.label}. Choose a stronger password.`,
+          error: error instanceof Error ? error.message : 'Unknown error during initialization',
         };
       }
+    },
+  );
 
-      if (authFileExists()) {
-        return { success: false, error: 'App is already initialized.' };
+  ipcMain.handle(
+    IPC_CHANNELS.AUTH_UNLOCK,
+    async (_event, { masterPassword }: { masterPassword: string }) => {
+      try {
+        if (!authFileExists()) {
+          return { success: false, error: 'App not initialized. Please set up first.' };
+        }
+
+        const authMetadata = readAuthMetadata();
+        const key = deriveMasterKey(masterPassword, authMetadata.salt, {
+          algorithm: authMetadata.kdfAlgorithm,
+          iterations: authMetadata.kdfIterations,
+        });
+
+        if (!verifyKeyAgainstHash(key, authMetadata.verificationHash)) {
+          return { success: false, error: 'Invalid master password.' };
+        }
+
+        await initializeSqlJs();
+        openDatabase();
+
+        masterKey = key;
+        currentSalt = authMetadata.salt;
+        currentKdfAlgorithm = authMetadata.kdfAlgorithm;
+        currentKdfIterations = authMetadata.kdfIterations;
+
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error during unlock',
+        };
       }
-
-      const salt = generateSalt();
-      const key = deriveMasterKey(masterPassword, salt, {
-        algorithm: 'pbkdf2',
-        iterations: DEFAULT_PBKDF2_ITERATIONS,
-      });
-      const verificationHash = hashKeyForVerification(key);
-
-      const authMetadata: AuthMetadata = {
-        salt,
-        kdfAlgorithm: 'pbkdf2',
-        kdfIterations: DEFAULT_PBKDF2_ITERATIONS,
-        kdfMemory: null,
-        kdfParallelism: null,
-        verificationHash,
-        createdAt: Date.now(),
-      };
-
-      await initializeSqlJs();
-      openDatabase();
-      initializeDatabase();
-      saveDatabase();
-      writeAuthMetadata(authMetadata);
-
-      masterKey = key;
-      currentSalt = salt;
-      currentKdfAlgorithm = 'pbkdf2';
-      currentKdfIterations = DEFAULT_PBKDF2_ITERATIONS;
-
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error during initialization',
-      };
-    }
-  });
-
-  ipcMain.handle(IPC_CHANNELS.AUTH_UNLOCK, async (_event, { masterPassword }: { masterPassword: string }) => {
-    try {
-      if (!authFileExists()) {
-        return { success: false, error: 'App not initialized. Please set up first.' };
-      }
-
-      const authMetadata = readAuthMetadata();
-      const key = deriveMasterKey(masterPassword, authMetadata.salt, {
-        algorithm: authMetadata.kdfAlgorithm,
-        iterations: authMetadata.kdfIterations,
-      });
-
-      if (!verifyKeyAgainstHash(key, authMetadata.verificationHash)) {
-        return { success: false, error: 'Invalid master password.' };
-      }
-
-      await initializeSqlJs();
-      openDatabase();
-
-      masterKey = key;
-      currentSalt = authMetadata.salt;
-      currentKdfAlgorithm = authMetadata.kdfAlgorithm;
-      currentKdfIterations = authMetadata.kdfIterations;
-
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error during unlock',
-      };
-    }
-  });
+    },
+  );
 
   ipcMain.handle(IPC_CHANNELS.AUTH_LOCK, () => {
     try {
@@ -227,9 +229,7 @@ export function registerAuthHandlers(): void {
           return { success: false, error: 'Database not available.' };
         }
 
-        const itemStmt = db.prepare(
-          'SELECT id, password_encrypted, notes_encrypted FROM items',
-        );
+        const itemStmt = db.prepare('SELECT id, password_encrypted, notes_encrypted FROM items');
         const updateStmt = db.prepare(
           'UPDATE items SET password_encrypted = ?, notes_encrypted = ? WHERE id = ?',
         );
@@ -279,6 +279,9 @@ export function registerAuthHandlers(): void {
         currentSalt = newSalt;
         currentKdfAlgorithm = 'pbkdf2';
         currentKdfIterations = DEFAULT_PBKDF2_ITERATIONS;
+
+        // Security: zero out the old key buffer to minimize key material in memory
+        oldKey.fill(0);
 
         return { success: true };
       } catch (error) {

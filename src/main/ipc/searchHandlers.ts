@@ -86,67 +86,64 @@ export function registerSearchHandlers(): void {
     }
   });
 
-  ipcMain.handle(
-    IPC_CHANNELS.ITEM_SEARCH_BY_TAG,
-    (_event, { tagId }: { tagId: string }) => {
-      try {
-        if (!isDatabaseOpen()) {
-          return { success: false, error: 'Database is not open.' };
-        }
+  ipcMain.handle(IPC_CHANNELS.ITEM_SEARCH_BY_TAG, (_event, { tagId }: { tagId: string }) => {
+    try {
+      if (!isDatabaseOpen()) {
+        return { success: false, error: 'Database is not open.' };
+      }
 
-        const tag = tagRepo.getById(tagId);
-        if (!tag) {
-          return { success: false, error: 'Tag not found.' };
-        }
+      const tag = tagRepo.getById(tagId);
+      if (!tag) {
+        return { success: false, error: 'Tag not found.' };
+      }
 
-        const db = getDatabase();
-        if (!db) {
-          return { success: false, error: 'Database not available.' };
-        }
+      const db = getDatabase();
+      if (!db) {
+        return { success: false, error: 'Database not available.' };
+      }
 
-        const stmt = db.prepare(
-          `SELECT items.* FROM items
+      const stmt = db.prepare(
+        `SELECT items.* FROM items
            JOIN item_tags ON items.id = item_tags.item_id
            WHERE item_tags.tag_id = ?
            ORDER BY items.sort_order ASC`,
-        );
-        stmt.bind([tagId]);
+      );
+      stmt.bind([tagId]);
 
-        const itemIds: string[] = [];
-        while (stmt.step()) {
-          const row = stmt.getAsObject() as { id: string };
-          itemIds.push(row.id);
-        }
-        stmt.free();
-
-        const allFolders = folderRepo.getFlatList();
-        const folderMap = new Map<string, Folder>();
-        for (const f of allFolders) {
-          folderMap.set(f.id, f);
-        }
-
-        const results: SearchResultItem[] = [];
-        for (const itemId of itemIds) {
-          const item = itemRepo.getById(itemId);
-          if (!item) continue;
-
-          results.push({
-            type: 'item',
-            id: item.id,
-            title: item.title,
-            subtitle: `#${tag.name} — ${item.username || item.url || 'No details'}`,
-            emoji: item.emoji,
-            breadcrumb: buildBreadcrumb(item.folderId, folderMap),
-          });
-        }
-
-        return { success: true, data: results };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
+      const itemIds: string[] = [];
+      while (stmt.step()) {
+        const row = stmt.getAsObject() as { id: string };
+        itemIds.push(row.id);
       }
-    },
-  );
+      stmt.free();
+
+      const allFolders = folderRepo.getFlatList();
+      const folderMap = new Map<string, Folder>();
+      for (const f of allFolders) {
+        folderMap.set(f.id, f);
+      }
+
+      const results: SearchResultItem[] = [];
+      for (const itemId of itemIds) {
+        const item = itemRepo.getById(itemId);
+        if (!item) continue;
+
+        results.push({
+          type: 'item',
+          id: item.id,
+          title: item.title,
+          subtitle: `#${tag.name} — ${item.username || item.url || 'No details'}`,
+          emoji: item.emoji,
+          breadcrumb: buildBreadcrumb(item.folderId, folderMap),
+        });
+      }
+
+      return { success: true, data: results };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
 }

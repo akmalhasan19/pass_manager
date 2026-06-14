@@ -1,0 +1,151 @@
+appId: com.securepass.manager
+productName: SecurePass Manager
+copyright: Copyright © 2024 SecurePass Manager
+
+directories:
+  output: release
+  buildResources: build/icons
+
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - public/**/*
+  - '!dist/**/*.map'
+  - '!dist-electron/**/*.map'
+  - '!dist-electron/**/sql-wasm.wasm'
+  # Include WASM files from public
+  - public/sql-wasm.wasm
+
+asar: true
+asarUnpack:
+  - '**/*.wasm'
+  - '**/*.node'
+
+compression: maximum
+
+# ---------------------------------------------------------------------------
+# Windows
+# ---------------------------------------------------------------------------
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+  icon: build/icons/icon.ico
+  artifactName: ${productName}-${version}-${arch}-setup.${ext}
+  # Code signing (commented unless certificate available)
+  # certificateFile: build/cert.pfx
+  # certificatePassword: ${CSC_KEY_PASSWORD}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: build/icons/icon.ico
+  uninstallerIcon: build/icons/icon.ico
+  installerHeaderIcon: build/icons/icon.ico
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: SecurePass Manager
+  deleteAppDataOnUninstall: false
+  installerSidebar: null
+  artifactName: ${productName}-${version}-setup.${ext}
+
+portable:
+  artifactName: ${productName}-${version}-portable.${ext}
+
+# ---------------------------------------------------------------------------
+# macOS
+# ---------------------------------------------------------------------------
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: build/icons/icon.icns
+  category: public.app-category.utilities
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Code signing (commented unless Apple Developer ID available)
+  # identity: ${APPLE_DEVELOPER_IDENTITY}
+  # provisioningProfile: build/profile.provisionprofile
+  # notarize:
+  #   teamId: ${APPLE_TEAM_ID}
+
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+# ---------------------------------------------------------------------------
+# Linux
+# ---------------------------------------------------------------------------
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+    - target: rpm
+      arch:
+        - x64
+  icon: build/icons
+  category: Utility
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  maintainer: securepass@example.com
+  synopsis: Zero-knowledge desktop password manager
+
+appImage:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+deb:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libsecret-1-0
+
+rpm:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  depends:
+    - gtk3
+    - libnotify
+    - nss
+    - libXScrnSaver
+    - libXtst
+    - xdg-utils
+    - at-spi2-core
+    - libsecret
+
+# ---------------------------------------------------------------------------
+# Auto-updater (electron-updater)
+# ---------------------------------------------------------------------------
+publish:
+  provider: github
+  owner: securepass-manager
+  repo: securepass-manager
+  releaseType: release
+  # For private repos, use:
+  # token: ${GH_TOKEN}
+  # For custom server:
+  # provider: generic
+  # url: https://updates.securepass.example.com

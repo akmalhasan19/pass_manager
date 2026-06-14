@@ -21,7 +21,7 @@ export default function MainAppPage(): React.ReactElement {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-surface-50 dark:bg-surface-900">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-surface-50 dark:bg-surface-900">
       <TitleBar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
@@ -32,21 +32,30 @@ export default function MainAppPage(): React.ReactElement {
 
       {/* Auto-lock idle warning */}
       {isEnabled && showWarning && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
-          <div className="flex items-center gap-4 px-5 py-3 rounded-xl bg-surface-800 dark:bg-surface-700 text-white shadow-2xl border border-surface-600">
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-slide-up">
+          <div className="flex items-center gap-4 rounded-xl border border-surface-600 bg-surface-800 px-5 py-3 text-white shadow-2xl dark:bg-surface-700">
             <div className="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-warning-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 shrink-0 text-warning-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
               <div>
                 <p className="text-sm font-medium">Session expiring</p>
-                <p className="text-xs text-surface-300">
-                  Auto-lock in {formatTime(timeRemaining)}
-                </p>
+                <p className="text-xs text-surface-300">Auto-lock in {formatTime(timeRemaining)}</p>
               </div>
             </div>
             <button
-              className="px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors shrink-0"
+              className="shrink-0 rounded-md bg-white/10 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-white/20"
               onClick={extendTimer}
             >
               Extend session

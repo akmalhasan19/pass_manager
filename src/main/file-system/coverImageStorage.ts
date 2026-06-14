@@ -1,11 +1,4 @@
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  unlinkSync,
-  statSync,
-} from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { app } from 'electron';
 import { randomBytes } from 'node:crypto';
@@ -13,14 +6,7 @@ import { randomBytes } from 'node:crypto';
 const COVERS_DIR_NAME = 'covers';
 const MAX_COVER_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
-const ALLOWED_EXTENSIONS = new Set([
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.gif',
-  '.webp',
-  '.svg',
-]);
+const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg']);
 
 const MIME_TYPES: Record<string, string> = {
   '.png': 'image/png',

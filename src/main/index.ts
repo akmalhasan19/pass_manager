@@ -8,6 +8,13 @@ import { registerFileHandlers } from './ipc/fileHandlers';
 import { registerCoverHandlers } from './ipc/coverHandlers';
 import { registerSettingsHandlers } from './ipc/settingsHandlers';
 import { registerHealthHandlers } from './ipc/healthHandlers';
+import {
+  initAutoUpdater,
+  checkForUpdates,
+  downloadUpdate,
+  quitAndInstall,
+  disposeAutoUpdater,
+} from './ipc/updateHandlers';
 import { IPC_CHANNELS } from '../shared/ipcChannels';
 
 const isDev = !!process.env.VITE_DEV_SERVER_URL;
@@ -28,7 +35,7 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: true,
-      sandbox: false,
+      sandbox: true,
       spellcheck: false,
     },
   });
@@ -49,6 +56,9 @@ function createWindow(): void {
   });
 
   mainWindow = win;
+
+  // Initialize auto-updater
+  initAutoUpdater(win);
 }
 
 function setCSP(): void {
@@ -83,6 +93,19 @@ function registerAllHandlers(): void {
   registerCoverHandlers();
   registerSettingsHandlers();
   registerHealthHandlers();
+
+  // Auto-updater IPC handlers
+  ipcMain.handle(IPC_CHANNELS.CHECK_FOR_UPDATES, async () => {
+    return await checkForUpdates();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.DOWNLOAD_UPDATE, async () => {
+    await downloadUpdate();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.QUIT_AND_INSTALL, () => {
+    quitAndInstall();
+  });
 
   // Power monitor events → forward to renderer
   powerMonitor.on('lock-screen', () => {
@@ -140,6 +163,7 @@ if (!gotTheLock) {
   });
 
   app.on('before-quit', () => {
+    disposeAutoUpdater();
     mainWindow = null;
   });
 

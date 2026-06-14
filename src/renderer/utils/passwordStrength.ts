@@ -8,13 +8,7 @@ export interface StrengthResult {
   entropy: number;
 }
 
-const LABELS: StrengthLabel[] = [
-  'Very Weak',
-  'Weak',
-  'Fair',
-  'Strong',
-  'Very Strong',
-];
+const LABELS: StrengthLabel[] = ['Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
 
 const STROKE_COLORS: Record<StrengthScore, string> = {
   0: 'bg-danger-500',

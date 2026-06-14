@@ -128,11 +128,10 @@ export class DatabaseNotOpenError extends DatabaseError {
 
 export class DatabaseCorruptedError extends DatabaseError {
   constructor(path: string, cause?: unknown) {
-    super(
-      `Database file is corrupted or invalid: ${path}`,
-      'DB_CORRUPTED',
-      { path, cause: cause instanceof Error ? cause.message : String(cause) },
-    );
+    super(`Database file is corrupted or invalid: ${path}`, 'DB_CORRUPTED', {
+      path,
+      cause: cause instanceof Error ? cause.message : String(cause),
+    });
     this.name = 'DatabaseCorruptedError';
   }
 }
@@ -163,6 +162,10 @@ export interface HealthReport {
   strong: number;
   score: 'A' | 'B' | 'C' | 'D' | 'F';
   weakPasswords: Array<{ itemId: string; title: string; reason: string }>;
-  reusedPasswords: Array<{ hash: string; count: number; items: Array<{ itemId: string; title: string }> }>;
+  reusedPasswords: Array<{
+    hash: string;
+    count: number;
+    items: Array<{ itemId: string; title: string }>;
+  }>;
   oldPasswords: Array<{ itemId: string; title: string; daysSinceChange: number }>;
 }

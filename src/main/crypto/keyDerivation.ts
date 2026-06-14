@@ -25,13 +25,7 @@ export function deriveKeyPBKDF2(
   salt: Buffer,
   iterations: number = DEFAULT_PBKDF2_ITERATIONS,
 ): Buffer {
-  return pbkdf2Sync(
-    Buffer.from(password, 'utf-8'),
-    salt,
-    iterations,
-    KEY_BYTES,
-    PBKDF2_DIGEST,
-  );
+  return pbkdf2Sync(Buffer.from(password, 'utf-8'), salt, iterations, KEY_BYTES, PBKDF2_DIGEST);
 }
 
 export async function deriveKeyArgon2id(
@@ -66,11 +60,7 @@ export function timingSafeEqual(a: string, b: string): boolean {
   return result === 0;
 }
 
-export function deriveMasterKey(
-  password: string,
-  salt: Buffer,
-  params: KdfParams,
-): Buffer {
+export function deriveMasterKey(password: string, salt: Buffer, params: KdfParams): Buffer {
   switch (params.algorithm) {
     case 'pbkdf2':
       return deriveKeyPBKDF2(password, salt, params.iterations);

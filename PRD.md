@@ -657,58 +657,58 @@ CREATE TABLE auth_metadata (
   - [x] 8.4.6 Toast notifications (success, error, info) with auto-dismiss.
 
 ### **PHASE 9: Testing & Quality Assurance**
-- [ ] 9.1 Unit Tests (Jest + React Testing Library):
-  - [ ] 9.1.1 Test all crypto functions (encryption/decryption round-trip, wrong key fails, key derivation consistency).
-  - [ ] 9.1.2 Test password generator (length, character set constraints, randomness).
-  - [ ] 9.1.3 Test password health evaluation (weak, strong, reused detection).
-  - [ ] 9.1.4 Test repository layer (CRUD, tree construction, trash logic).
-  - [ ] 9.1.5 Test Zustand store actions (state updates, async flows, error handling).
-  - [ ] 9.1.6 Test React components (rendering, user interactions, accessibility).
-- [ ] 9.2 Integration Tests:
-  - [ ] 9.2.1 Test IPC round-trip (renderer calls → main process → DB → response).
-  - [ ] 9.2.2 Test file attachment encrypt/decrypt flow (end-to-end).
-  - [ ] 9.2.3 Test auth flow (init → unlock → lock → unlock with wrong password).
-  - [ ] 9.2.4 Test auto-lock timer (simulate idle, verify lock triggered).
-- [ ] 9.3 E2E Tests (Playwright + Electron):
-  - [ ] 9.3.1 Setup Playwright to launch Electron app.
-  - [ ] 9.3.2 Test: first-time setup, create master password, unlock.
-  - [ ] 9.3.3 Test: create folder, create item, search item, open item detail.
-  - [ ] 9.3.4 Test: delete item, restore from trash, permanently delete.
-  - [ ] 9.3.5 Test: generate password, copy password, use password generator in item.
-  - [ ] 9.3.6 Test: lock and unlock with correct/incorrect password.
-  - [ ] 9.3.7 Test: settings change (theme, auto-lock), verify persistence.
-- [ ] 9.4 Security Audit:
-  - [ ] 9.4.1 Verify no sensitive data is logged to console or files.
-  - [ ] 9.4.2 Verify keys are cleared from memory on lock.
-  - [ ] 9.4.3 Test SQL injection resistance (parameterized queries).
-  - [ ] 9.4.4 Test XSS resistance in rich text editor (sanitize HTML output).
-  - [ ] 9.4.5 Verify preload script exposes only necessary APIs (no `require('fs')` in renderer).
-  - [ ] 9.4.6 Verify CSP prevents inline scripts and unsafe-eval.
-- [ ] 9.5 Performance & Stress Testing:
-  - [ ] 9.5.1 Test with 10,000 items — search performance, tree rendering.
-  - [ ] 9.5.2 Test with deeply nested folders (100 levels) — tree navigation, move operations.
-  - [ ] 9.5.3 Test large file attachment (100MB PDF) — streaming encryption, memory usage.
-  - [ ] 9.5.4 Measure bundle size, optimize with Vite code splitting.
+- [x] 9.1 Unit Tests (Jest + React Testing Library):
+  - [x] 9.1.1 Test all crypto functions (encryption/decryption round-trip, wrong key fails, key derivation consistency).
+  - [x] 9.1.2 Test password generator (length, character set constraints, randomness).
+  - [x] 9.1.3 Test password health evaluation (weak, strong, reused detection).
+  - [x] 9.1.4 Test repository layer (CRUD, tree construction, trash logic).
+  - [x] 9.1.5 Test Zustand store actions (state updates, async flows, error handling).
+  - [x] 9.1.6 Test React components (rendering, user interactions, accessibility).
+- [x] 9.2 Integration Tests:
+  - [x] 9.2.1 Test IPC round-trip (renderer calls → main process → DB → response).
+  - [x] 9.2.2 Test file attachment encrypt/decrypt flow (end-to-end).
+  - [x] 9.2.3 Test auth flow (init → unlock → lock → unlock with wrong password).
+  - [x] 9.2.4 Test auto-lock timer (simulate idle, verify lock triggered).
+- [x] 9.3 E2E Tests (Playwright + Electron):
+  - [x] 9.3.1 Setup Playwright to launch Electron app.
+  - [x] 9.3.2 Test: first-time setup, create master password, unlock.
+  - [x] 9.3.3 Test: create folder, create item, search item, open item detail.
+  - [x] 9.3.4 Test: delete item, restore from trash, permanently delete.
+  - [x] 9.3.5 Test: generate password, copy password, use password generator in item.
+  - [x] 9.3.6 Test: lock and unlock with correct/incorrect password.
+  - [x] 9.3.7 Test: settings change (theme, auto-lock), verify persistence.
+- [x] 9.4 Security Audit:
+  - [x] 9.4.1 Verify no sensitive data is logged to console or files.
+  - [x] 9.4.2 Verify keys are cleared from memory on lock.
+  - [x] 9.4.3 Test SQL injection resistance (parameterized queries).
+  - [x] 9.4.4 Test XSS resistance in rich text editor (sanitize HTML output).
+  - [x] 9.4.5 Verify preload script exposes only necessary APIs (no `require('fs')` in renderer).
+  - [x] 9.4.6 Verify CSP prevents inline scripts and unsafe-eval.
+- [x] 9.5 Performance & Stress Testing:
+  - [x] 9.5.1 Test with 10,000 items — search performance, tree rendering.
+  - [x] 9.5.2 Test with deeply nested folders (100 levels) — tree navigation, move operations.
+  - [x] 9.5.3 Test large file attachment (100MB PDF) — streaming encryption, memory usage.
+  - [x] 9.5.4 Measure bundle size, optimize with Vite code splitting.
 
 ### **PHASE 10: Build, Package & Deployment**
-- [ ] 10.1 Configure `electron-builder` (`build/electron-builder.yml`):
-  - [ ] 10.1.1 Windows: NSIS installer + portable, code signing if cert available.
-  - [ ] 10.1.2 macOS: DMG, code signing, notarization (if Apple Developer ID).
-  - [ ] 10.1.3 Linux: AppImage, DEB, RPM.
-  - [ ] 10.1.4 Auto-updater configuration (electron-updater + GitHub releases or custom server).
-- [ ] 10.2 Environment & Scripts:
-  - [ ] 10.2.1 `npm run dev` — start Vite dev server + Electron.
-  - [ ] 10.2.2 `npm run build` — build renderer and main for production.
-  - [ ] 10.2.3 `npm run dist` — package with electron-builder.
-  - [ ] 10.2.4 `npm run test` — run all test suites.
-  - [ ] 10.2.5 `npm run lint` — run ESLint.
-  - [ ] 10.2.6 `npm run format` — run Prettier.
-- [ ] 10.3 Documentation:
-  - [ ] 10.3.1 Update `README.md` with final setup, build, and contribution instructions.
-  - [ ] 10.3.2 Create `docs/SECURITY.md` explaining the zero-knowledge architecture, threat model, and responsible disclosure.
-  - [ ] 10.3.3 Create `docs/ARCHITECTURE.md` with diagrams (data flow, component hierarchy, IPC flow).
-  - [ ] 10.3.4 Create `docs/CHANGELOG.md` (initial version 0.1.0).
-  - [ ] 10.3.5 Write inline JSDoc/TSDoc for all public functions and components.
+- [x] 10.1 Configure `electron-builder` (`build/electron-builder.yml`):
+  - [x] 10.1.1 Windows: NSIS installer + portable, code signing if cert available.
+  - [x] 10.1.2 macOS: DMG, code signing, notarization (if Apple Developer ID).
+  - [x] 10.1.3 Linux: AppImage, DEB, RPM.
+  - [x] 10.1.4 Auto-updater configuration (electron-updater + GitHub releases or custom server).
+- [x] 10.2 Environment & Scripts:
+  - [x] 10.2.1 `npm run dev` — start Vite dev server + Electron.
+  - [x] 10.2.2 `npm run build` — build renderer and main for production.
+  - [x] 10.2.3 `npm run dist` — package with electron-builder.
+  - [x] 10.2.4 `npm run test` — run all test suites.
+  - [x] 10.2.5 `npm run lint` — run ESLint.
+  - [x] 10.2.6 `npm run format` — run Prettier.
+- [x] 10.3 Documentation:
+  - [x] 10.3.1 Update `README.md` with final setup, build, and contribution instructions.
+  - [x] 10.3.2 Create `docs/SECURITY.md` explaining the zero-knowledge architecture, threat model, and responsible disclosure.
+  - [x] 10.3.3 Create `docs/ARCHITECTURE.md` with diagrams (data flow, component hierarchy, IPC flow).
+  - [x] 10.3.4 Create `docs/CHANGELOG.md` (initial version 0.1.0).
+  - [x] 10.3.5 Write inline JSDoc/TSDoc for all public functions and components.
 
 ---
 

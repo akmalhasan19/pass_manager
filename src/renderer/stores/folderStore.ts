@@ -11,7 +11,10 @@ export interface FolderState {
 
   loadTree: () => Promise<void>;
   createFolder: (parentId: string | null, name: string, emoji?: string) => Promise<Folder | null>;
-  updateFolder: (id: string, fields: { name?: string; emoji?: string; coverImage?: string }) => Promise<void>;
+  updateFolder: (
+    id: string,
+    fields: { name?: string; emoji?: string; coverImage?: string },
+  ) => Promise<void>;
   moveFolder: (id: string, newParentId: string | null, sortOrder?: number) => Promise<void>;
   deleteFolder: (id: string) => Promise<void>;
   setSelectedFolder: (id: string | null) => void;
@@ -40,9 +43,7 @@ function findAndUpdateNode(
 function removeNode(nodes: Folder[], id: string): Folder[] {
   return nodes
     .filter((n) => n.id !== id)
-    .map((n) =>
-      n.children ? { ...n, children: removeNode(n.children, id) } : n,
-    );
+    .map((n) => (n.children ? { ...n, children: removeNode(n.children, id) } : n));
 }
 
 function findParentId(nodes: Folder[], id: string, parentId: string | null = null): string | null {
@@ -76,11 +77,7 @@ function isDescendant(nodes: Folder[], ancestorId: string, descendantId: string)
   return false;
 }
 
-function insertNode(
-  nodes: Folder[],
-  parentId: string | null,
-  folder: Folder,
-): Folder[] {
+function insertNode(nodes: Folder[], parentId: string | null, folder: Folder): Folder[] {
   if (parentId === null) {
     return [...nodes, folder];
   }

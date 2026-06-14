@@ -19,5 +19,29 @@ export default tseslint.config(
       'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
-  prettierConfig
+  {
+    // Test files: allow console.log for performance output, require() for helpers
+    files: ['tests/**/*.{ts,tsx}', 'scripts/**/*.js'],
+    rules: {
+      'no-console': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-undef': 'off',
+      'no-empty': 'off',
+    },
+  },
+  {
+    // Database connection: empty catch blocks are intentional for error recovery
+    files: ['src/main/database/connection.ts'],
+    rules: {
+      'no-empty': 'off',
+    },
+  },
+  {
+    // Migrations: require() is used internally for circular dependency avoidance
+    files: ['src/main/database/migrations.ts'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+  prettierConfig,
 );

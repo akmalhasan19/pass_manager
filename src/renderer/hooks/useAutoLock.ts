@@ -12,6 +12,17 @@ export interface UseAutoLockReturn {
   isEnabled: boolean;
 }
 
+/**
+ * Hook that manages the auto-lock timer.
+ *
+ * When the user is authenticated and `autoLockTime > 0`, this hook:
+ * 1. Tracks user activity (mouse, keyboard, scroll)
+ * 2. Shows a warning 30 seconds before the lock timer expires
+ * 3. Calls `authStore.lock()` when the timer reaches zero
+ * 4. Resets the timer on any activity
+ *
+ * @returns Object with `timeRemaining`, `showWarning`, `extendTimer`, and `isEnabled`
+ */
 export function useAutoLock(): UseAutoLockReturn {
   const { lock, isAuthenticated } = useAuthStore();
   const { settings, loadSettings, isLoaded } = useSettingsStore();
@@ -52,12 +63,15 @@ export function useAutoLock(): UseAutoLockReturn {
     setShowWarning(false);
     setTimeRemaining(autoLockTime);
 
-    warningTimerRef.current = setTimeout(() => {
-      const elapsed = Date.now() - lastActivityRef.current;
-      if (elapsed >= autoLockTime - WARNING_BEFORE_LOCK && !isLockingRef.current) {
-        setShowWarning(true);
-      }
-    }, Math.max(0, autoLockTime - WARNING_BEFORE_LOCK));
+    warningTimerRef.current = setTimeout(
+      () => {
+        const elapsed = Date.now() - lastActivityRef.current;
+        if (elapsed >= autoLockTime - WARNING_BEFORE_LOCK && !isLockingRef.current) {
+          setShowWarning(true);
+        }
+      },
+      Math.max(0, autoLockTime - WARNING_BEFORE_LOCK),
+    );
 
     lockTimerRef.current = setTimeout(() => {
       if (!isLockingRef.current) {
@@ -111,7 +125,16 @@ export function useAutoLock(): UseAutoLockReturn {
   useEffect(() => {
     if (!isAuthenticated || autoLockTime <= 0) return;
 
-    const activityEvents = ['mousemove', 'mousedown', 'click', 'keydown', 'scroll', 'wheel', 'touchstart', 'touchmove'];
+    const activityEvents = [
+      'mousemove',
+      'mousedown',
+      'click',
+      'keydown',
+      'scroll',
+      'wheel',
+      'touchstart',
+      'touchmove',
+    ];
 
     const handleActivity = () => {
       resetTimer();
@@ -166,7 +189,8 @@ export function useAutoLock(): UseAutoLockReturn {
     }
   }, [isAuthenticated]);
 
-  const roundedTimeRemaining = timeRemaining === Infinity ? Infinity : Math.ceil(timeRemaining / 1000) * 1000;
+  const roundedTimeRemaining =
+    timeRemaining === Infinity ? Infinity : Math.ceil(timeRemaining / 1000) * 1000;
 
   return {
     timeRemaining: roundedTimeRemaining,
