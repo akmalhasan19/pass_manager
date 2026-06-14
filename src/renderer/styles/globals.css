@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --accent: #6366f1;
+    --accent-hover: #4f46e5;
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 56px;
+  }
+
+  html {
+    @apply antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  body {
+    @apply bg-surface-50 text-surface-800 dark:bg-surface-900 dark:text-surface-100;
+    @apply overflow-hidden select-none;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  ::selection {
+    @apply bg-accent-200 dark:bg-accent-800;
+  }
+
+  * {
+    @apply border-surface-200 dark:border-surface-700;
+  }
+}
+
+@layer components {
+  .notion-sidebar {
+    @apply fixed left-0 top-0 h-full w-[var(--sidebar-width)] border-r;
+    @apply bg-white dark:bg-surface-850;
+    @apply transition-all duration-200 ease-out;
+    @apply z-30;
+  }
+
+  .notion-sidebar.collapsed {
+    @apply w-[var(--sidebar-collapsed-width)];
+  }
+
+  .notion-main {
+    @apply ml-[var(--sidebar-width)];
+    @apply transition-all duration-200 ease-out;
+  }
+
+  .notion-main.expanded {
+    @apply ml-[var(--sidebar-collapsed-width)];
+  }
+
+  .notion-card {
+    @apply rounded-lg border bg-white dark:bg-surface-800;
+    @apply hover:shadow-sm dark:hover:bg-surface-750;
+    @apply transition-all duration-150 ease-out;
+    @apply cursor-pointer;
+  }
+
+  .notion-card.selected {
+    @apply border-accent-300 dark:border-accent-600;
+    @apply bg-accent-50 dark:bg-accent-900/20;
+  }
+
+  .notion-input {
+    @apply w-full rounded-md border-0 bg-transparent px-3 py-2 text-sm;
+    @apply placeholder:text-surface-400 dark:placeholder:text-surface-500;
+    @apply focus:outline-none focus:ring-2 focus:ring-accent-400/50;
+    @apply transition-all duration-150;
+  }
+
+  .notion-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium;
+    @apply transition-all duration-150 ease-out;
+    @apply focus:outline-none focus:ring-2 focus:ring-accent-400/50 focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .notion-button-primary {
+    @apply notion-button;
+    @apply bg-accent-600 text-white hover:bg-accent-700 active:bg-accent-800;
+    @apply dark:bg-accent-500 dark:hover:bg-accent-600;
+  }
+
+  .notion-button-ghost {
+    @apply notion-button;
+    @apply text-surface-600 hover:bg-surface-100 active:bg-surface-200;
+    @apply dark:text-surface-300 dark:hover:bg-surface-800 dark:active:bg-surface-750;
+  }
+
+  .notion-button-danger {
+    @apply notion-button;
+    @apply bg-danger-500 text-white hover:bg-danger-600 active:bg-danger-700;
+  }
+
+  .notion-tree-node {
+    @apply flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm;
+    @apply text-surface-700 dark:text-surface-300;
+    @apply hover:bg-surface-100 dark:hover:bg-surface-800;
+    @apply transition-colors duration-100;
+    @apply cursor-pointer;
+  }
+
+  .notion-tree-node.selected {
+    @apply bg-accent-100 text-accent-700 dark:bg-accent-900/30 dark:text-accent-300;
+  }
+
+  .notion-tree-node.drag-over {
+    @apply bg-accent-100 dark:bg-accent-900/30 ring-2 ring-accent-400;
+  }
+
+  .notion-scrollbar {
+    @apply overflow-y-auto;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .notion-scrollbar:hover {
+    scrollbar-color: theme('colors.surface.300') transparent;
+    @apply dark:scrollbar-color-surface-700;
+  }
+
+  .notion-scrollbar::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+
+  .notion-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .notion-scrollbar::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-transparent;
+  }
+
+  .notion-scrollbar:hover::-webkit-scrollbar-thumb {
+    @apply bg-surface-300 dark:bg-surface-600;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

@@ -1,0 +1,111 @@
+@layer components {
+  .notion-breadcrumb {
+    @apply flex items-center gap-1.5 text-sm text-surface-500 dark:text-surface-400;
+  }
+
+  .notion-breadcrumb-separator {
+    @apply mx-1 text-surface-300 dark:text-surface-600;
+  }
+
+  .notion-breadcrumb-item {
+    @apply hover:text-surface-700 dark:hover:text-surface-200 transition-colors duration-100 cursor-pointer;
+  }
+
+  .notion-breadcrumb-item.current {
+    @apply text-surface-900 dark:text-surface-50 font-medium cursor-default;
+  }
+
+  .notion-toolbar {
+    @apply flex items-center gap-1 border-b px-4 py-1.5;
+    @apply bg-white dark:bg-surface-850;
+  }
+
+  .notion-empty-state {
+    @apply flex flex-col items-center justify-center py-16 text-center;
+  }
+
+  .notion-empty-state-icon {
+    @apply mb-4 text-4xl opacity-30;
+  }
+
+  .notion-empty-state-title {
+    @apply text-lg font-medium text-surface-500 dark:text-surface-400 mb-1;
+  }
+
+  .notion-empty-state-description {
+    @apply text-sm text-surface-400 dark:text-surface-500 max-w-xs;
+  }
+
+  .notion-detail-field {
+    @apply space-y-1.5;
+  }
+
+  .notion-detail-label {
+    @apply text-xs font-medium uppercase tracking-wider text-surface-400 dark:text-surface-500;
+  }
+
+  .notion-detail-value {
+    @apply flex items-center gap-2 rounded-md border px-3 py-2 text-sm;
+    @apply bg-white dark:bg-surface-850;
+    @apply text-surface-800 dark:text-surface-200;
+  }
+
+  .notion-tag {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+    @apply bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-300;
+    @apply transition-colors duration-100;
+  }
+
+  .notion-tag-removable {
+    @apply notion-tag cursor-pointer hover:bg-surface-200 dark:hover:bg-surface-700;
+  }
+
+  .notion-cover {
+    @apply relative w-full overflow-hidden rounded-t-lg;
+    @apply bg-gradient-to-br from-accent-400 to-accent-600;
+    aspect-ratio: 3 / 1;
+  }
+
+  .notion-cover-image {
+    @apply absolute inset-0 h-full w-full object-cover;
+  }
+
+  .notion-cover-gradient {
+    @apply absolute inset-0;
+    @apply bg-gradient-to-br from-accent-400/80 to-accent-600/80;
+  }
+
+  .notion-quick-find {
+    @apply fixed inset-0 z-50 flex items-start justify-center pt-[15vh];
+  }
+
+  .notion-quick-find-overlay {
+    @apply absolute inset-0 bg-black/40 backdrop-blur-sm;
+  }
+
+  .notion-quick-find-modal {
+    @apply relative w-full max-w-xl rounded-xl border shadow-2xl;
+    @apply bg-white dark:bg-surface-850;
+    @apply overflow-hidden;
+  }
+
+  .notion-quick-find-input {
+    @apply w-full border-0 bg-transparent px-5 py-4 text-lg;
+    @apply text-surface-900 dark:text-surface-50;
+    @apply placeholder:text-surface-400 dark:placeholder:text-surface-500;
+    @apply focus:outline-none;
+  }
+
+  .notion-health-card {
+    @apply rounded-xl border p-5;
+    @apply bg-white dark:bg-surface-800;
+  }
+
+  .notion-progress-bar {
+    @apply h-2 w-full overflow-hidden rounded-full bg-surface-200 dark:bg-surface-700;
+  }
+
+  .notion-progress-fill {
+    @apply h-full rounded-full transition-all duration-500 ease-out;
+  }
+}
