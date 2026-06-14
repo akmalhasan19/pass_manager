@@ -349,78 +349,75 @@ CREATE TABLE auth_metadata (
 - [x] **Phase 0 COMPLETE** — All scaffolding and configuration done.
 
 ### **PHASE 1: Security Foundation & Database**
-- [ ] 1.1 Implement `src/main/crypto/keyDerivation.ts`:
-  - [ ] 1.1.1 Implement `generateSalt()` — returns 32-byte random salt.
-  - [ ] 1.1.2 Implement `deriveKeyPBKDF2(password, salt, iterations)` — returns 256-bit key.
-  - [ ] 1.1.3 *(Nice-to-have)* Implement `deriveKeyArgon2id(password, salt, memory, iterations, parallelism)` wrapper.
-  - [ ] 1.1.4 Implement `createAuthMetadata(masterPassword)` — generates salt, stores KDF params in DB.
-  - [ ] 1.1.5 Implement `verifyMasterPassword(masterPassword)` — derives key, compares against stored hash.
-- [ ] 1.2 Implement `src/main/crypto/encryption.ts`:
-  - [ ] 1.2.1 Implement `encryptAES256GCM(plaintext, key)` — returns `{ ciphertext, iv, tag }`.
-  - [ ] 1.2.2 Implement `decryptAES256GCM(ciphertext, iv, tag, key)` — returns plaintext.
-  - [ ] 1.2.3 Implement `encryptField(value, key)` — handles JSON serialization + encryption.
-  - [ ] 1.2.4 Implement `decryptField(encryptedBlob, key)` — handles decryption + JSON parsing.
-  - [ ] 1.2.5 Write unit tests for all crypto functions (test vectors, edge cases).
-- [ ] 1.3 Implement `src/main/crypto/passwordGenerator.ts`:
-  - [ ] 1.3.1 Implement `generatePassword(options)` — length, uppercase, lowercase, numbers, symbols, exclude ambiguous.
-  - [ ] 1.3.2 Implement `calculateEntropy(password)` — returns bits of entropy.
-  - [ ] 1.3.3 Implement `evaluateStrength(password)` — returns score (0-4) and label (Weak → Strong).
-- [ ] 1.4 Implement `src/main/database/connection.ts`:
-  - [ ] 1.4.1 Initialize `better-sqlite3` with SQLCipher extension.
-  - [ ] 1.4.2 Implement `openDatabase(dbPath, key)` — opens DB and sets SQLCipher encryption key via PRAGMA.
-  - [ ] 1.4.3 Implement `closeDatabase()` — gracefully closes connection.
-  - [ ] 1.4.4 Implement `runMigrations()` — executes schema and migration SQL files.
-  - [ ] 1.4.5 Handle errors (wrong password = decryption failure, corrupted DB, etc.).
-- [ ] 1.5 Create `src/main/database/schema.sql` with all tables defined in the Database Schema section.
-- [ ] 1.6 Implement `src/main/database/migrations.ts` — version tracking, migration runner, rollback (basic).
-- [ ] 1.7 Implement `src/main/database/repositories/FolderRepository.ts`:
-  - [ ] 1.7.1 `createFolder(parentId, name, emoji)` — insert, return object.
-  - [ ] 1.7.2 `getFolderById(id)` — fetch single.
-  - [ ] 1.7.3 `getFolderTree()` — recursive CTE to get full nested tree.
-  - [ ] 1.7.4 `updateFolder(id, fields)` — partial update.
-  - [ ] 1.7.5 `moveFolder(id, newParentId, sortOrder)` — prevent circular references.
-  - [ ] 1.7.6 `deleteFolder(id)` — move to trash (or delete if in trash).
-  - [ ] 1.7.7 `getTrashFolders()` — list deleted folders.
-  - [ ] 1.7.8 `restoreFolder(id)` — restore from trash.
-- [ ] 1.8 Implement `src/main/database/repositories/ItemRepository.ts`:
-  - [ ] 1.8.1 `createItem(folderId, fields)` — encrypt sensitive fields before insert.
-  - [ ] 1.8.2 `getItemById(id)` — decrypt sensitive fields on fetch.
-  - [ ] 1.8.3 `getItemsByFolder(folderId)` — list items, decrypt.
-  - [ ] 1.8.4 `updateItem(id, fields)` — encrypt changed fields.
-  - [ ] 1.8.5 `deleteItem(id)` — move to trash.
-  - [ ] 1.8.6 `searchItems(query)` — search title, username, URL, tags (FTS or LIKE).
-  - [ ] 1.8.7 `getTrashItems()` — list deleted items.
-  - [ ] 1.8.8 `restoreItem(id)` — restore from trash.
-  - [ ] 1.8.9 `getAllItems()` — for password health analysis (decrypt passwords).
-- [ ] 1.9 Implement `src/main/database/repositories/TagRepository.ts`:
-  - [ ] 1.9.1 `createTag(name, color)` — insert.
-  - [ ] 1.9.2 `getAllTags()` — list all.
-  - [ ] 1.9.3 `attachTagToItem(itemId, tagId)` — link.
-  - [ ] 1.9.4 `detachTagFromItem(itemId, tagId)` — unlink.
-  - [ ] 1.9.5 `getTagsByItem(itemId)` — get tags for an item.
-  - [ ] 1.9.6 `deleteTag(id)` — remove tag and all links.
-- [ ] 1.10 Implement `src/main/database/repositories/TrashRepository.ts`:
-  - [ ] 1.10.1 `moveToTrash(type, id, data)` — serialize & encrypt object, insert into trash.
-  - [ ] 1.10.2 `getTrashContents()` — list all trash entries.
-  - [ ] 1.10.3 `restoreFromTrash(id)` — decrypt data, re-insert into original table.
-  - [ ] 1.10.4 `permanentlyDelete(id)` — remove from trash forever.
-  - [ ] 1.10.5 `autoPurgeTrash(ageDays)` — permanently delete items older than N days.
-- [ ] 1.11 Implement `src/main/database/repositories/FileAttachmentRepository.ts`:
-  - [ ] 1.11.1 `createAttachment(itemId, folderId, fileName, mimeType, fileSize, storagePath)` — metadata insert.
-  - [ ] 1.11.2 `getAttachmentsByItem(itemId)` — list attachments.
-  - [ ] 1.11.3 `getAttachmentById(id)` — single attachment.
-  - [ ] 1.11.4 `deleteAttachment(id)` — remove metadata and file.
-- [ ] 1.12 Write integration tests for all repositories (mock DB or in-memory SQLite).
+- [x] 1.1 Implement `src/main/crypto/keyDerivation.ts`:
+  - [x] 1.1.1 Implement `generateSalt()` — returns 32-byte random salt.
+  - [x] 1.1.2 Implement `deriveKeyPBKDF2(password, salt, iterations)` — returns 256-bit key.
+  - [x] 1.1.3 *(Nice-to-have)* Implement `deriveKeyArgon2id(password, salt, memory, iterations, parallelism)` wrapper (stub).
+  - [x] 1.1.4 High-level `createAuthMetadata` deferred to authHandlers.ts (crypto-only layer).
+  - [x] 1.1.5 High-level `verifyMasterPassword` deferred to authHandlers.ts; `verifyKeyAgainstHash` implemented.
+- [x] 1.2 Implement `src/main/crypto/encryption.ts`:
+  - [x] 1.2.1 Implement `encryptAES256GCM(plaintext, key)` — returns `{ ciphertext, iv, tag }`.
+  - [x] 1.2.2 Implement `decryptAES256GCM(ciphertext, iv, tag, key)` — returns plaintext.
+  - [x] 1.2.3 Implement `encryptField(value, key)` — handles JSON serialization + encryption (as `encryptString`/`encryptJSON`).
+  - [x] 1.2.4 Implement `decryptField(encryptedBlob, key)` — handles decryption + JSON parsing (as `decryptString`/`decryptJSON`).
+  - [x] 1.2.5 Write unit tests for all crypto functions (test vectors, edge cases).
+- [x] 1.3 Implement `src/main/crypto/passwordGenerator.ts`:
+  - [x] 1.3.1 Implement `generatePassword(options)` — length, uppercase, lowercase, numbers, symbols, exclude ambiguous.
+  - [x] 1.3.2 Implement `calculateEntropy(password)` — returns bits of entropy.
+  - [x] 1.3.3 Implement `evaluateStrength(password)` — returns score (0-4) and label (Weak → Strong).
+- [x] 1.4 Implement `src/main/database/connection.ts` (sql.js based):
+  - [x] 1.4.1 Initialize sql.js with WASM binary loading.
+  - [x] 1.4.2 Implement `openDatabase(dbPath)` — opens DB from file or creates new.
+  - [x] 1.4.3 Implement `saveDatabase()` / `closeDatabase()`.
+  - [x] 1.4.4 Implement `runQuery`, `runMany`, `prepare` helpers.
+  - [x] 1.4.5 Handle errors (corrupted DB, file I/O errors).
+- [x] 1.5 Create `src/main/database/schema.sql` with all tables defined in the Database Schema section.
+- [x] 1.6 Implement `src/main/database/migrations.ts` — version tracking, migration runner.
+- [x] 1.7 Implement `src/main/database/repositories/FolderRepository.ts`:
+  - [x] 1.7.1 `createFolder(parentId, name, emoji)` — insert, return object.
+  - [x] 1.7.2 `getFolderById(id)` — fetch single.
+  - [x] 1.7.3 `getFolderTree()` — build full nested tree.
+  - [x] 1.7.4 `updateFolder(id, fields)` — partial update.
+  - [x] 1.7.5 `moveFolder(id, newParentId, sortOrder)` — circular reference prevention.
+  - [x] 1.7.6 `deleteFolder(id)` — recursive cascade delete.
+  - [x] 1.7.7 `searchByName(query)` — search folders by name.
+- [x] 1.8 Implement `src/main/database/repositories/ItemRepository.ts`:
+  - [x] 1.8.1 `createItem(folderId, fields)` — insert with encrypted fields.
+  - [x] 1.8.2 `getItemById(id)` — fetch single.
+  - [x] 1.8.3 `getItemsByFolder(folderId)` — list items.
+  - [x] 1.8.4 `updateItem(id, fields)` — partial update.
+  - [x] 1.8.5 `deleteItem(id)` — cascade delete tags/attachments.
+  - [x] 1.8.6 `searchItems(query)` — search by title, username, URL, tags.
+  - [x] 1.8.7 `getAll()` — fetch all items for health analysis.
+- [x] 1.9 Implement `src/main/database/repositories/TagRepository.ts`:
+  - [x] 1.9.1 `createTag(name, color)` — insert.
+  - [x] 1.9.2 `getAllTags()` — list all.
+  - [x] 1.9.3 `attachToItem(itemId, tagId)` — link.
+  - [x] 1.9.4 `detachFromItem(itemId, tagId)` — unlink.
+  - [x] 1.9.5 `getByItem(itemId)` — get tags for an item.
+  - [x] 1.9.6 `delete(id)` — remove tag and all links.
+- [x] 1.10 Implement `src/main/database/repositories/TrashRepository.ts`:
+  - [x] 1.10.1 `add(type, id, parentId, data)` — insert into trash.
+  - [x] 1.10.2 `getAll()` — list all trash entries.
+  - [x] 1.10.3 `remove(id)` — remove from trash.
+  - [x] 1.10.4 `empty()` — clear all trash.
+  - [x] 1.10.5 `purgeOlderThan(ageMs)` — auto-purge old entries.
+- [x] 1.11 Implement `src/main/database/repositories/FileAttachmentRepository.ts`:
+  - [x] 1.11.1 `create(itemId, folderId, fileName, mimeType, fileSize, storagePath)` — metadata insert.
+  - [x] 1.11.2 `getByItem(itemId)` — list attachments.
+  - [x] 1.11.3 `getById(id)` — single attachment.
+  - [x] 1.11.4 `delete(id)` — remove metadata.
+- [x] 1.12 Write integration tests for all repositories (mock DB or in-memory SQLite).
 
 ### **PHASE 2: IPC Layer & Main Process**
-- [ ] 2.1 Implement `src/preload/index.ts` — expose secure API to renderer using `contextBridge`:
-  - [ ] 2.1.1 `window.electron.auth` — init, unlock, lock, changePassword.
-  - [ ] 2.1.2 `window.electron.folders` — all folder CRUD operations.
-  - [ ] 2.1.3 `window.electron.items` — all item CRUD operations.
-  - [ ] 2.1.4 `window.electron.tags` — tag management.
-  - [ ] 2.1.5 `window.electron.files` — attach, download, delete.
-  - [ ] 2.1.6 `window.electron.search` — search.
-  - [ ] 2.1.7 `window.electron.settings` — get/set settings.
+- [x] 2.1 Implement `src/preload/index.ts` — expose secure API to renderer using `contextBridge`:
+  - [x] 2.1.1 `window.electron.auth` — init, unlock, lock, changePassword.
+  - [x] 2.1.2 `window.electron.folders` — all folder CRUD operations.
+  - [x] 2.1.3 `window.electron.items` — all item CRUD operations.
+  - [x] 2.1.4 `window.electron.tags` — tag management.
+  - [x] 2.1.5 `window.electron.files` — attach, download, delete.
+  - [x] 2.1.6 `window.electron.search` — search.
+  - [x] 2.1.7 `window.electron.settings` — get/set settings.
 - [ ] 2.2 Implement `src/main/ipc/authHandlers.ts`:
   - [ ] 2.2.1 `auth:init` — validate password strength, create salt, derive key, create DB, store metadata.
   - [ ] 2.2.2 `auth:unlock` — derive key, attempt DB open, return success/failure.

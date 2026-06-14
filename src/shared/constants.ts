@@ -1,0 +1,16 @@
+export const APP_NAME = 'SecurePass Manager';
+export const APP_VERSION = '0.1.0';
+
+export const DEFAULT_AUTO_LOCK_TIME = 5 * 60 * 1000;
+export const MIN_PASSWORD_LENGTH = 4;
+export const MAX_PASSWORD_LENGTH = 128;
+export const DEFAULT_PASSWORD_LENGTH = 20;
+
+export const PASSWORD_HEALTH_WEAK_THRESHOLD = 12;
+export const PASSWORD_HEALTH_OLD_DAYS = 90;
+
+export const TRASH_AUTO_PURGE_DAYS = 30;
+
+export const SIDEBAR_WIDTH = 260;
+export const SIDEBAR_COLLAPSED_WIDTH = 56;
+export const QUICK_FIND_MAX_RESULTS = 20;
