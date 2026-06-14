@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useUIStore } from '../../stores/uiStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useFolderStore } from '../../stores/folderStore';
@@ -89,6 +90,13 @@ export default function Sidebar(): React.ReactElement {
     [updateFolder],
   );
 
+  const handleEmojiChange = useCallback(
+    async (id: string, emoji: string) => {
+      await updateFolder(id, { emoji });
+    },
+    [updateFolder],
+  );
+
   const handleDelete = useCallback(
     async (id: string) => {
       await deleteFolder(id);
@@ -136,12 +144,12 @@ export default function Sidebar(): React.ReactElement {
     setDragOverId(null);
   }, []);
 
-  const width = sidebarOpen ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed-width)';
-
   return (
-    <aside
-      className={`notion-sidebar flex flex-col ${!sidebarOpen ? 'collapsed' : ''}`}
-      style={{ width }}
+    <motion.aside
+      className="notion-sidebar flex flex-col"
+      initial={false}
+      animate={{ width: sidebarOpen ? 260 : 56 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       role="navigation"
       aria-label="Folder navigation"
     >
@@ -194,82 +202,100 @@ export default function Sidebar(): React.ReactElement {
       </div>
 
       {/* Content area */}
-      <div className="flex-1 overflow-y-auto notion-scrollbar p-2">
-        {sidebarOpen ? (
-          <div className="space-y-0.5" role="tree">
-            <p className="px-2 py-1 text-xs font-medium text-surface-400 dark:text-surface-500 uppercase tracking-wider">
-              Folders
-            </p>
-
-            {folders.length === 0 && !isCreatingFolder && (
-              <p className="px-2 py-3 text-xs text-surface-400 dark:text-surface-500 italic">
-                No folders yet
+      <div className="flex-1 overflow-y-auto notion-scrollbar p-2 relative">
+        <AnimatePresence mode="wait">
+          {sidebarOpen ? (
+            <motion.div
+              key="expanded"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="space-y-0.5"
+              role="tree"
+            >
+              <p className="px-2 py-1 text-xs font-medium text-surface-400 dark:text-surface-500 uppercase tracking-wider">
+                Folders
               </p>
-            )}
 
-            {folders.map((folder) => (
-              <TreeNode
-                key={folder.id}
-                folder={folder}
-                depth={0}
-                selectedFolderId={selectedFolderId}
-                expandedFolderIds={expandedFolderIds}
-                onSelect={handleSelectFolder}
-                onToggleExpand={toggleExpandFolder}
-                onRename={handleRename}
-                onDelete={handleDelete}
-                onNewSubfolder={handleNewSubfolder}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                onDragLeave={handleDragLeave}
-                dragOverId={dragOverId}
-              />
-            ))}
+              {folders.length === 0 && !isCreatingFolder && (
+                <p className="px-2 py-3 text-xs text-surface-400 dark:text-surface-500 italic">
+                  No folders yet
+                </p>
+              )}
 
-            {/* Inline new folder creation */}
-            {isCreatingFolder && (
-              <div
-                className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm"
-                style={{ paddingLeft: `${(newFolderParentId ? 24 : 0) + 8}px` }}
-              >
-                <span className="shrink-0 text-base leading-none">📁</span>
-                <input
-                  ref={newFolderInputRef}
-                  className="flex-1 min-w-0 px-1 py-0 text-sm bg-white dark:bg-surface-800 border border-accent-400 rounded outline-none ring-1 ring-accent-400/50"
-                  placeholder="Folder name..."
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  onBlur={handleCreateFolderSubmit}
-                  onKeyDown={handleCreateFolderKeyDown}
+              {folders.map((folder) => (
+                <TreeNode
+                  key={folder.id}
+                  folder={folder}
+                  depth={0}
+                  selectedFolderId={selectedFolderId}
+                  expandedFolderIds={expandedFolderIds}
+                  onSelect={handleSelectFolder}
+                  onToggleExpand={toggleExpandFolder}
+                  onRename={handleRename}
+                  onDelete={handleDelete}
+                  onNewSubfolder={handleNewSubfolder}
+                  onEmojiChange={handleEmojiChange}
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onDragLeave={handleDragLeave}
+                  dragOverId={dragOverId}
                 />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2 pt-2">
-            <button
-              className="flex h-8 w-8 items-center justify-center rounded-md text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
-              aria-label="New Folder"
-              onClick={() => handleNewFolder()}
-              title="New Folder"
+              ))}
+
+              {/* Inline new folder creation */}
+              {isCreatingFolder && (
+                <div
+                  className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm"
+                  style={{ paddingLeft: `${(newFolderParentId ? 24 : 0) + 8}px` }}
+                >
+                  <span className="shrink-0 text-base leading-none">📁</span>
+                  <input
+                    ref={newFolderInputRef}
+                    className="flex-1 min-w-0 px-1 py-0 text-sm bg-white dark:bg-surface-800 border border-accent-400 rounded outline-none ring-1 ring-accent-400/50"
+                    placeholder="Folder name..."
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    onBlur={handleCreateFolderSubmit}
+                    onKeyDown={handleCreateFolderKeyDown}
+                  />
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="collapsed"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex flex-col items-center gap-2 pt-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
-            <button
-              className="flex h-8 w-8 items-center justify-center rounded-md text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
-              aria-label="Quick Find"
-              onClick={toggleQuickFind}
-              title="Quick Find"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </button>
-          </div>
-        )}
+              <button
+                className="flex h-8 w-8 items-center justify-center rounded-md text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                aria-label="New Folder"
+                onClick={() => handleNewFolder()}
+                title="New Folder"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+              <button
+                className="flex h-8 w-8 items-center justify-center rounded-md text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                aria-label="Quick Find"
+                onClick={toggleQuickFind}
+                title="Quick Find"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Footer */}
@@ -322,6 +348,6 @@ export default function Sidebar(): React.ReactElement {
           </>
         )}
       </div>
-    </aside>
+    </motion.aside>
   );
 }

@@ -92,6 +92,24 @@ function decryptFileData(encryptedBlob: Buffer, key: Buffer): Buffer {
 
 export function registerFileHandlers(): void {
   ipcMain.handle(
+    IPC_CHANNELS.FILE_GET_BY_ITEM,
+    async (_event, { itemId }: { itemId: string }) => {
+      try {
+        if (!isDatabaseOpen()) {
+          return { success: false, error: 'Database is not open.' };
+        }
+        const attachments = fileRepo.getByItem(itemId);
+        return { success: true, data: attachments };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    },
+  );
+
+  ipcMain.handle(
     IPC_CHANNELS.FILE_ATTACH,
     async (_event, { itemId, filePath }: { itemId: string; filePath: string }) => {
       try {

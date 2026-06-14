@@ -135,9 +135,9 @@ export function registerItemHandlers(): void {
         folderId: string;
         title: string;
         username?: string;
-        passwordEncrypted?: ArrayBuffer | null;
+        password?: string | null;
         url?: string;
-        notesEncrypted?: ArrayBuffer | null;
+        notes?: string | null;
         emoji?: string | null;
         coverImage?: string | null;
       },
@@ -151,19 +151,32 @@ export function registerItemHandlers(): void {
           return { success: false, error: 'Item title is required.' };
         }
 
+        const key = getMasterKey();
+        if (!key) {
+          return { success: false, error: 'No master key available. Unlock first.' };
+        }
+
+        let passwordEncrypted: ArrayBuffer | null = null;
+        if (fields.password) {
+          passwordEncrypted = encryptString(fields.password, key) as unknown as ArrayBuffer;
+        }
+
+        let notesEncrypted: ArrayBuffer | null = null;
+        if (fields.notes) {
+          notesEncrypted = encryptString(fields.notes, key) as unknown as ArrayBuffer;
+        }
+
         const item = itemRepo.create(folderId, {
           title: fields.title.trim(),
           username: fields.username,
-          passwordEncrypted: fields.passwordEncrypted ?? null,
+          passwordEncrypted,
           url: fields.url,
-          notesEncrypted: fields.notesEncrypted ?? null,
+          notesEncrypted,
           emoji: fields.emoji ?? null,
           coverImage: fields.coverImage ?? null,
         });
 
-        const tags = tagRepo.getByItem(item.id);
-        const data = { ...item, tags: tags.length > 0 ? tags : undefined };
-
+        const data = decryptItem(item, key);
         return { success: true, data };
       } catch (error) {
         return {
@@ -185,9 +198,9 @@ export function registerItemHandlers(): void {
         id: string;
         title?: string;
         username?: string;
-        passwordEncrypted?: ArrayBuffer | null;
+        password?: string | null;
         url?: string;
-        notesEncrypted?: ArrayBuffer | null;
+        notes?: string | null;
         emoji?: string | null;
         coverImage?: string | null;
         isFavorite?: boolean;
@@ -197,6 +210,11 @@ export function registerItemHandlers(): void {
       try {
         if (!isDatabaseOpen()) {
           return { success: false, error: 'Database is not open.' };
+        }
+
+        const key = getMasterKey();
+        if (!key) {
+          return { success: false, error: 'No master key available. Unlock first.' };
         }
 
         const existing = itemRepo.getById(id);
@@ -218,18 +236,28 @@ export function registerItemHandlers(): void {
 
         if (fields.title !== undefined) updateFields.title = fields.title.trim();
         if (fields.username !== undefined) updateFields.username = fields.username;
-        if (fields.passwordEncrypted !== undefined) updateFields.passwordEncrypted = fields.passwordEncrypted;
+        if (fields.password !== undefined) {
+          updateFields.passwordEncrypted = fields.password
+            ? (encryptString(fields.password, key) as unknown as ArrayBuffer)
+            : null;
+        }
         if (fields.url !== undefined) updateFields.url = fields.url;
-        if (fields.notesEncrypted !== undefined) updateFields.notesEncrypted = fields.notesEncrypted;
+        if (fields.notes !== undefined) {
+          updateFields.notesEncrypted = fields.notes
+            ? (encryptString(fields.notes, key) as unknown as ArrayBuffer)
+            : null;
+        }
         if (fields.emoji !== undefined) updateFields.emoji = fields.emoji;
         if (fields.coverImage !== undefined) updateFields.coverImage = fields.coverImage;
         if (fields.isFavorite !== undefined) updateFields.isFavorite = fields.isFavorite;
         if (fields.sortOrder !== undefined) updateFields.sortOrder = fields.sortOrder;
 
         const item = itemRepo.update(id, updateFields);
-        const tags = tagRepo.getByItem(id);
-        const data = { ...item, tags: tags.length > 0 ? tags : undefined };
+        if (!item) {
+          return { success: false, error: 'Failed to update item.' };
+        }
 
+        const data = decryptItem(item, key);
         return { success: true, data };
       } catch (error) {
         return {
@@ -257,7 +285,7 @@ export function registerItemHandlers(): void {
       }
 
       const serialized = serializeItemForTrash(item);
-      const encrypted = encryptString(serialized, key);
+      const encrypted = encryptString(serialized, key) as unknown as ArrayBuffer;
       trashRepo.add('item', id, item.folderId, encrypted);
 
       itemRepo.delete(id);
@@ -367,6 +395,28 @@ export function registerItemHandlers(): void {
         const data = { ...updatedItem, tags: tags.length > 0 ? tags : undefined };
 
         return { success: true, data };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.ITEM_GET_ALL,
+    () => {
+      try {
+        if (!isDatabaseOpen()) {
+          return { success: false, error: 'Database is not open.' };
+        }
+        const data = itemRepo.getAll();
+        const itemsWithTags = data.map((item) => {
+          const tags = tagRepo.getByItem(item.id);
+          return { ...item, tags: tags.length > 0 ? tags : undefined };
+        });
+        return { success: true, data: itemsWithTags };
       } catch (error) {
         return {
           success: false,

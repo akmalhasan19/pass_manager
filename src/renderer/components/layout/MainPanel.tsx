@@ -1,9 +1,15 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useUIStore, type ActiveView } from '../../stores/uiStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useFolderStore } from '../../stores/folderStore';
 import { useItemStore } from '../../stores/itemStore';
-import type { Folder } from '../../../shared/types';
+import FolderView from '../views/FolderView';
+import ItemDetailView from '../views/ItemDetailView';
+import TrashView from '../views/TrashView';
+import SettingsView from '../views/SettingsView';
+import PasswordHealthView from '../views/PasswordHealthView';
+import type { Folder, Tag, ItemDecrypted } from '../../../shared/types';
 
 function buildBreadcrumbPath(
   folders: Folder[],
@@ -22,15 +28,6 @@ function buildBreadcrumbPath(
   return null;
 }
 
-type SortOption = 'name' | 'createdAt' | 'updatedAt' | 'sortOrder';
-
-const SORT_LABELS: Record<SortOption, string> = {
-  name: 'Name',
-  createdAt: 'Date Created',
-  updatedAt: 'Date Modified',
-  sortOrder: 'Custom',
-};
-
 export default function MainPanel(): React.ReactElement {
   const { activeView, setActiveView, sidebarOpen, toggleQuickFind } = useUIStore();
   const { lock } = useAuthStore();
@@ -44,13 +41,19 @@ export default function MainPanel(): React.ReactElement {
     items,
     itemIds,
     currentFolderId,
+    selectedItemId,
     loadItems,
+    loadItemById,
     createItem,
+    updateItem,
+    deleteItem,
     setSelectedItem,
   } = useItemStore();
 
-  const [sortBy, setSortBy] = useState<SortOption>('sortOrder');
-  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [selectedItemDecrypted, setSelectedItemDecrypted] = useState<ItemDecrypted | null>(null);
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [isItemLoading, setIsItemLoading] = useState(false);
+
   const [newItemTitle, setNewItemTitle] = useState('');
   const [isCreatingItem, setIsCreatingItem] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -60,37 +63,6 @@ export default function MainPanel(): React.ReactElement {
     if (!selectedFolderId) return [];
     return buildBreadcrumbPath(folders, selectedFolderId) || [];
   }, [folders, selectedFolderId]);
-
-  const sortedItemIds = useMemo(() => {
-    const ids = [...itemIds];
-    switch (sortBy) {
-      case 'name':
-        return ids.sort((a, b) => {
-          const itemA = items[a];
-          const itemB = items[b];
-          return (itemA?.title || '').localeCompare(itemB?.title || '');
-        });
-      case 'createdAt':
-        return ids.sort((a, b) => {
-          const itemA = items[a];
-          const itemB = items[b];
-          return (itemB?.createdAt || 0) - (itemA?.createdAt || 0);
-        });
-      case 'updatedAt':
-        return ids.sort((a, b) => {
-          const itemA = items[a];
-          const itemB = items[b];
-          return (itemB?.updatedAt || 0) - (itemA?.updatedAt || 0);
-        });
-      case 'sortOrder':
-      default:
-        return ids.sort((a, b) => {
-          const itemA = items[a];
-          const itemB = items[b];
-          return (itemA?.sortOrder || 0) - (itemB?.sortOrder || 0);
-        });
-    }
-  }, [itemIds, items, sortBy]);
 
   const handleBreadcrumbClick = useCallback(
     (folderId: string | null) => {
@@ -151,13 +123,169 @@ export default function MainPanel(): React.ReactElement {
     [setSelectedItem, setActiveView],
   );
 
+  const handleBackToFolder = useCallback(() => {
+    setActiveView('folder');
+    setSelectedItem(null);
+  }, [setActiveView, setSelectedItem]);
+
+  useEffect(() => {
+    if (activeView === 'item' && selectedItemId) {
+      setIsItemLoading(true);
+      loadItemById(selectedItemId).then(() => {
+        setIsItemLoading(false);
+      }).catch(() => {
+        setIsItemLoading(false);
+      });
+    }
+  }, [selectedItemId, activeView, loadItemById]);
+
+  useEffect(() => {
+    const currentItem = selectedItemId ? items[selectedItemId] : null;
+    if (currentItem && 'password' in currentItem) {
+      setSelectedItemDecrypted(currentItem as ItemDecrypted);
+    } else {
+      setSelectedItemDecrypted(null);
+    }
+  }, [items, selectedItemId]);
+
+  useEffect(() => {
+    window.electron.tags.getAll().then((tags) => {
+      setAllTags(tags);
+    }).catch(() => {
+      setAllTags([]);
+    });
+  }, []);
+
+  const handleItemUpdate = useCallback(async (id: string, fields: Record<string, unknown>) => {
+    await updateItem(id, fields as any);
+  }, [updateItem]);
+
+  const handleItemDelete = useCallback((id: string) => {
+    deleteItem(id).then(() => {
+      handleBackToFolder();
+    }).catch(() => {});
+  }, [deleteItem, handleBackToFolder]);
+
+  const handleCreateTag = useCallback(async (name: string, color?: string): Promise<Tag | null> => {
+    try {
+      const tag = await window.electron.tags.create(name, color);
+      setAllTags((prev) => [...prev, tag]);
+      return tag;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const handleAttachTag = useCallback(async (itemId: string, tagId: string) => {
+    await window.electron.tags.attach(itemId, tagId);
+    if (selectedItemId) {
+      await loadItemById(selectedItemId);
+    }
+  }, [selectedItemId, loadItemById]);
+
+  const handleDetachTag = useCallback(async (itemId: string, tagId: string) => {
+    await window.electron.tags.detach(itemId, tagId);
+    if (selectedItemId) {
+      await loadItemById(selectedItemId);
+    }
+  }, [selectedItemId, loadItemById]);
+
+  // File attachment operations
+  const handleFileAttach = useCallback(async (itemId: string) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        await window.electron.files.attach(itemId, (file as any).path);
+      } catch (err) {
+        console.error('Failed to attach file:', err);
+      }
+    };
+    input.click();
+  }, []);
+
+  const handleFileDownload = useCallback(async (attachmentId: string) => {
+    try {
+      await window.electron.files.download(attachmentId);
+    } catch (err) {
+      console.error('Failed to download file:', err);
+    }
+  }, []);
+
+  const handleFileDelete = useCallback(async (attachmentId: string) => {
+    try {
+      await window.electron.files.delete(attachmentId);
+    } catch (err) {
+      console.error('Failed to delete file:', err);
+    }
+  }, []);
+
   const isFolderView = activeView === 'folder';
 
+  const renderActiveView = (): React.ReactNode => {
+    switch (activeView) {
+      case 'folder':
+        return (
+          <FolderView
+            items={items}
+            itemIds={itemIds}
+            currentFolderId={currentFolderId}
+            onSelectItem={handleSelectItem}
+            onDeleteItem={(id) => {
+              deleteItem(id);
+            }}
+            onToggleFavorite={(id) => {
+              const item = items[id];
+              if (item) {
+                updateItem(id, { isFavorite: !item.isFavorite });
+              }
+            }}
+            isCreatingItem={isCreatingItem}
+            newItemTitle={newItemTitle}
+            onNewItemTitleChange={setNewItemTitle}
+            onNewItemSubmit={handleNewItemSubmit}
+            onNewItemCancel={() => {
+              setIsCreatingItem(false);
+              setNewItemTitle('');
+            }}
+          />
+        );
+      case 'item':
+        return (
+          <ItemDetailView
+            item={selectedItemDecrypted}
+            isLoading={isItemLoading}
+            onUpdate={handleItemUpdate}
+            onDelete={handleItemDelete}
+            onBack={handleBackToFolder}
+            allTags={allTags}
+            onCreateTag={handleCreateTag}
+            onAttachTag={handleAttachTag}
+            onDetachTag={handleDetachTag}
+            onFileAttach={handleFileAttach}
+            onFileDownload={handleFileDownload}
+            onFileDelete={handleFileDelete}
+          />
+        );
+      case 'health':
+        return <PasswordHealthView onSelectItem={handleSelectItem} />;
+      case 'trash':
+        return <TrashView />;
+      case 'settings':
+        return <SettingsView />;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <main
-      className={`flex-1 flex flex-col overflow-hidden transition-all duration-200 ease-out ${
-        sidebarOpen ? 'ml-[var(--sidebar-width)]' : 'ml-[var(--sidebar-collapsed-width)]'
-      }`}
+    <motion.main
+      className="flex-1 flex flex-col overflow-hidden"
+      initial={false}
+      animate={{ marginLeft: sidebarOpen ? 260 : 56 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
     >
       {/* Toolbar */}
       <div className="notion-toolbar h-12 shrink-0 items-center justify-between">
@@ -272,46 +400,8 @@ export default function MainPanel(): React.ReactElement {
             New Folder
           </button>
 
-          {/* Sort dropdown */}
-          <div className="relative ml-auto">
-            <button
-              className="notion-button-ghost h-8 text-xs gap-1.5"
-              onClick={() => setSortMenuOpen(!sortMenuOpen)}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
-              </svg>
-              Sort: {SORT_LABELS[sortBy]}
-            </button>
-            {sortMenuOpen && (
-              <div
-                className="absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 shadow-lg py-1"
-                style={{ animation: 'fadeIn 0.1s ease-out' }}
-              >
-                {(Object.keys(SORT_LABELS) as SortOption[]).map((option) => (
-                  <button
-                    key={option}
-                    className={`flex w-full items-center gap-2 px-3 py-1.5 text-sm transition-colors ${
-                      sortBy === option
-                        ? 'text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/20'
-                        : 'text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700'
-                    }`}
-                    onClick={() => {
-                      setSortBy(option);
-                      setSortMenuOpen(false);
-                    }}
-                  >
-                    {sortBy === option && (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                    {SORT_LABELS[option]}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Spacer to push inline inputs to the right */}
+          <div className="ml-auto" />
 
           {/* Inline new item creation */}
           {isCreatingItem && (
@@ -354,117 +444,21 @@ export default function MainPanel(): React.ReactElement {
       )}
 
       {/* Content area */}
-      <div className="flex-1 overflow-y-auto notion-scrollbar">
-        {/* Folder view - list items */}
-        {activeView === 'folder' && (
-          <div className="h-full">
-            {sortedItemIds.length > 0 ? (
-              <div className="divide-y divide-surface-200 dark:divide-surface-700">
-                {sortedItemIds.map((itemId) => {
-                  const item = items[itemId];
-                  if (!item) return null;
-                  return (
-                    <button
-                      key={item.id}
-                      className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
-                      onClick={() => handleSelectItem(item.id)}
-                    >
-                      <span className="text-xl shrink-0">{item.emoji || '🔑'}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-surface-800 dark:text-surface-200 truncate">
-                          {item.title}
-                        </p>
-                        {item.username && (
-                          <p className="text-xs text-surface-500 dark:text-surface-400 truncate">
-                            {item.username}
-                          </p>
-                        )}
-                      </div>
-                      {item.url && (
-                        <span className="text-xs text-surface-400 dark:text-surface-500 truncate max-w-[200px] hidden md:block">
-                          {new URL(item.url).hostname}
-                        </span>
-                      )}
-                      {item.isFavorite && (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-500 shrink-0" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={0}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                        </svg>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="notion-empty-state h-full">
-                <div className="notion-empty-state-icon">📂</div>
-                <p className="notion-empty-state-title">No items yet</p>
-                <p className="notion-empty-state-description">
-                  {currentFolderId
-                    ? 'Click "New Item" to add your first password entry.'
-                    : 'Select a folder from the sidebar to view its items.'}
-                </p>
-                {currentFolderId && (
-                  <button
-                    className="notion-button-primary mt-4 text-xs"
-                    onClick={() => {
-                      setIsCreatingItem(true);
-                      setNewItemTitle('');
-                    }}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                    New Item
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Item detail view */}
-        {activeView === 'item' && (
-          <div className="notion-empty-state h-full">
-            <div className="notion-empty-state-icon">🔑</div>
-            <p className="notion-empty-state-title">Item Detail</p>
-            <p className="notion-empty-state-description">
-              Select an item from the folder view to see its details.
-            </p>
-          </div>
-        )}
-
-        {/* Health view */}
-        {activeView === 'health' && (
-          <div className="notion-empty-state h-full">
-            <div className="notion-empty-state-icon">🛡️</div>
-            <p className="notion-empty-state-title">Password Health</p>
-            <p className="notion-empty-state-description">
-              Add some passwords to see your security health report.
-            </p>
-          </div>
-        )}
-
-        {/* Trash view */}
-        {activeView === 'trash' && (
-          <div className="notion-empty-state h-full">
-            <div className="notion-empty-state-icon">🗑️</div>
-            <p className="notion-empty-state-title">Trash is empty</p>
-            <p className="notion-empty-state-description">
-              Deleted items will appear here.
-            </p>
-          </div>
-        )}
-
-        {/* Settings view */}
-        {activeView === 'settings' && (
-          <div className="p-6">
-            <p className="text-sm text-surface-400 dark:text-surface-500 italic">
-              Settings — Coming in Phase 5
-            </p>
-          </div>
-        )}
+      <div className="flex-1 overflow-y-auto notion-scrollbar relative">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeView}
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -12 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute inset-0"
+          >
+            {renderActiveView()}
+          </motion.div>
+        </AnimatePresence>
       </div>
-    </main>
+    </motion.main>
   );
 }
 

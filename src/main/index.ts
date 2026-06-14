@@ -1,11 +1,13 @@
-import { app, BrowserWindow, ipcMain, session } from 'electron';
+import { app, BrowserWindow, ipcMain, session, powerMonitor } from 'electron';
 import { join } from 'node:path';
 import { registerAuthHandlers } from './ipc/authHandlers';
 import { registerFolderHandlers } from './ipc/folderHandlers';
 import { registerItemHandlers } from './ipc/itemHandlers';
 import { registerSearchHandlers } from './ipc/searchHandlers';
 import { registerFileHandlers } from './ipc/fileHandlers';
+import { registerCoverHandlers } from './ipc/coverHandlers';
 import { registerSettingsHandlers } from './ipc/settingsHandlers';
+import { registerHealthHandlers } from './ipc/healthHandlers';
 import { IPC_CHANNELS } from '../shared/ipcChannels';
 
 const isDev = !!process.env.VITE_DEV_SERVER_URL;
@@ -78,7 +80,18 @@ function registerAllHandlers(): void {
   registerItemHandlers();
   registerSearchHandlers();
   registerFileHandlers();
+  registerCoverHandlers();
   registerSettingsHandlers();
+  registerHealthHandlers();
+
+  // Power monitor events → forward to renderer
+  powerMonitor.on('lock-screen', () => {
+    mainWindow?.webContents.send(IPC_CHANNELS.POWER_MONITOR_LOCK_SCREEN);
+  });
+
+  powerMonitor.on('suspend', () => {
+    mainWindow?.webContents.send(IPC_CHANNELS.POWER_MONITOR_SUSPEND);
+  });
 
   // Window control handlers
   ipcMain.handle(IPC_CHANNELS.WINDOW_MINIMIZE, () => {

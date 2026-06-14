@@ -1,0 +1,315 @@
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { useEditor, EditorContent, BubbleMenu, FloatingMenu } from '@tiptap/react';
+import type { Editor } from '@tiptap/core';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
+import LinkExtension from '@tiptap/extension-link';
+import CodeBlock from '@tiptap/extension-code-block';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import MarkdownToolbar from './MarkdownToolbar';
+import SlashCommandMenu from './SlashCommandMenu';
+import type { Command } from './SlashCommandMenu';
+
+export interface RichTextEditorProps {
+  content: string | null;
+  onChange: (json: string) => void;
+  placeholder?: string;
+  editable?: boolean;
+}
+
+function isInCodeBlock(editor: { isActive: (name: string) => boolean } | null): boolean {
+  if (!editor) return true;
+  return editor.isActive('codeBlock');
+}
+
+export default function RichTextEditor({
+  content,
+  onChange,
+  placeholder,
+  editable = true,
+}: RichTextEditorProps): React.ReactElement {
+  const [slashOpen, setSlashOpen] = useState(false);
+  const [slashQuery, setSlashQuery] = useState('');
+  const [slashPos, setSlashPos] = useState<{ top: number; left: number } | null>(null);
+  const slashNodeRangeRef = useRef<{ from: number; to: number } | null>(null);
+
+  const extensions = useMemo(
+    () => [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+        codeBlock: false,
+      }),
+      CodeBlock.configure({
+        HTMLAttributes: {
+          class: 'notion-code-block',
+        },
+      }),
+      Placeholder.configure({
+        placeholder: placeholder || "Type '/' for commands...",
+      }),
+      LinkExtension.configure({
+        openOnClick: false,
+        autolink: true,
+        HTMLAttributes: {
+          class: 'text-accent-600 dark:text-accent-400 underline cursor-pointer',
+        },
+      }),
+      TaskList.configure({
+        HTMLAttributes: {
+          class: 'notion-task-list',
+        },
+      }),
+      TaskItem.configure({
+        HTMLAttributes: {
+          class: 'notion-task-item',
+        },
+        nested: true,
+      }),
+    ],
+    [placeholder],
+  );
+
+  const editor = useEditor({
+    extensions,
+    content: null,
+    editable,
+    onUpdate: ({ editor: ed }: { editor: Editor }) => {
+      const json = JSON.stringify(ed.getJSON());
+      onChange(json);
+    },
+  });
+
+  useEffect(() => {
+    if (!editor) return;
+    if (editor.isDestroyed) return;
+
+    const currentJson = JSON.stringify(editor.getJSON());
+    if (content && currentJson === content) return;
+
+    try {
+      const parsed = content ? JSON.parse(content) : null;
+      if (parsed) {
+        editor.commands.setContent(parsed);
+      } else {
+        editor.commands.setContent(content || '');
+      }
+    } catch {
+      editor.commands.setContent(content || '');
+    }
+  }, [editor, content]);
+
+  useEffect(() => {
+    if (!editor) return;
+    editor.setEditable(editable);
+  }, [editor, editable]);
+
+  const closeSlash = useCallback(() => {
+    setSlashOpen(false);
+    setSlashQuery('');
+    slashNodeRangeRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const checkSlash = () => {
+      if (isInCodeBlock(editor)) {
+        if (slashOpen) closeSlash();
+        return;
+      }
+
+      const { $from } = editor.state.selection;
+      const node = $from.node();
+      const text = node.textContent || '';
+
+      if (text.startsWith('/') && node.type.name === 'paragraph') {
+        const start = $from.start();
+        const end = $from.end();
+        slashNodeRangeRef.current = { from: start, to: end };
+        setSlashQuery(text.slice(1));
+
+        const coords = editor.view.coordsAtPos($from.pos);
+        const editorEl = editor.view.dom.closest('.rich-text-editor-wrapper');
+        if (editorEl) {
+          const rect = editorEl.getBoundingClientRect();
+          setSlashPos({
+            top: coords.bottom - rect.top + 4,
+            left: coords.left - rect.left,
+          });
+        } else {
+          setSlashPos({ top: coords.bottom + 4, left: coords.left });
+        }
+        setSlashOpen(true);
+      } else {
+        if (slashOpen) closeSlash();
+      }
+    };
+
+    editor.on('selectionUpdate', checkSlash);
+    editor.on('update', checkSlash);
+
+    return () => {
+      editor.off('selectionUpdate', checkSlash);
+      editor.off('update', checkSlash);
+    };
+  }, [editor, slashOpen, closeSlash]);
+
+  const handleCommandExecute = useCallback(
+    (cmd: Command) => {
+      if (!editor) return;
+      const range = slashNodeRangeRef.current;
+      if (range && range.to > range.from) {
+        editor.chain().focus().deleteRange(range).run();
+      }
+      cmd.execute(editor);
+      closeSlash();
+    },
+    [editor, closeSlash],
+  );
+
+  if (!editor) {
+    return (
+      <div className="rounded-md border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-850">
+        <div className="h-40 flex items-center justify-center text-sm text-surface-400">
+          Loading editor...
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rich-text-editor-wrapper rounded-md border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-850 overflow-hidden">
+      {editable && <MarkdownToolbar editor={editor} />}
+
+      <BubbleMenu
+        editor={editor}
+        tippyOptions={{ duration: 150, placement: 'top' }}
+        className="flex items-center gap-0.5 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-850 shadow-lg px-1 py-1"
+      >
+        <BubbleBtn
+          active={editor.isActive('bold')}
+          label="Bold"
+          onClick={() => editor.chain().focus().toggleBold().run()}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />
+        </BubbleBtn>
+        <BubbleBtn
+          active={editor.isActive('italic')}
+          label="Italic"
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10 4h2m0 0a4 4 0 014 4v8a4 4 0 01-4 4h-2m0-16L8 20" />
+        </BubbleBtn>
+        <BubbleBtn
+          active={editor.isActive('strike')}
+          label="Strikethrough"
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17.5 12H15m-3 0H6m6 0a3 3 0 01-3 3H6m9-3a3 3 0 00-3-3H6m4 0V4m0 16v-4" />
+        </BubbleBtn>
+        <BubbleBtn
+          active={editor.isActive('code')}
+          label="Code"
+          onClick={() => editor.chain().focus().toggleCode().run()}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        </BubbleBtn>
+        <div className="w-px h-4 bg-surface-200 dark:bg-surface-700 mx-0.5" />
+        <BubbleBtn
+          active={editor.isActive('link')}
+          label="Link"
+          onClick={() => {
+            const prev = editor.getAttributes('link').href as string;
+            const url = window.prompt('Enter URL:', prev || '');
+            if (url === null) return;
+            if (url === '') {
+              editor.chain().focus().extendMarkRange('link').unsetLink().run();
+            } else {
+              editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+            }
+          }}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+        </BubbleBtn>
+      </BubbleMenu>
+
+      {editable && (
+        <FloatingMenu
+          editor={editor}
+          tippyOptions={{ duration: 150, placement: 'left' }}
+          shouldShow={({ editor: ed }) => {
+            if (ed.isActive('codeBlock')) return false;
+            const { $from } = ed.state.selection;
+            const node = $from.node();
+            return node.type.name === 'paragraph' && node.content.size === 0;
+          }}
+          className="flex items-center"
+        >
+          <button
+            className="h-6 w-6 flex items-center justify-center rounded-full border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-850 shadow-md text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 hover:border-surface-300 dark:hover:border-surface-600 transition-colors"
+            onClick={() => {
+              const { $from } = editor.state.selection;
+              const coords = editor.view.coordsAtPos($from.pos);
+              const editorEl = editor.view.dom.closest('.rich-text-editor-wrapper');
+              if (editorEl) {
+                const rect = editorEl.getBoundingClientRect();
+                setSlashPos({ top: coords.bottom - rect.top + 4, left: coords.left - rect.left });
+              } else {
+                setSlashPos({ top: coords.bottom + 4, left: coords.left });
+              }
+              setSlashQuery('');
+              setSlashOpen(true);
+            }}
+            aria-label="Insert block"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        </FloatingMenu>
+      )}
+
+      <div className="prose-editor px-4 py-3 min-h-[120px] max-h-[400px] overflow-y-auto notion-scrollbar">
+        <EditorContent editor={editor} />
+      </div>
+
+      <SlashCommandMenu
+        editor={editor}
+        query={slashQuery}
+        position={slashPos}
+        isOpen={slashOpen}
+        onClose={closeSlash}
+        onExecute={handleCommandExecute}
+      />
+    </div>
+  );
+}
+
+function BubbleBtn({
+  active,
+  label,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      className={`h-7 w-7 flex items-center justify-center rounded transition-colors ${
+        active
+          ? 'bg-accent-100 dark:bg-accent-900/40 text-accent-700 dark:text-accent-300'
+          : 'text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800'
+      }`}
+      title={label}
+      onClick={onClick}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        {children}
+      </svg>
+    </button>
+  );
+}

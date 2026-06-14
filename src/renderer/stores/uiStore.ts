@@ -4,11 +4,13 @@ export type ActiveView = 'folder' | 'item' | 'health' | 'trash' | 'settings';
 
 interface UIState {
   sidebarOpen: boolean;
+  /** Reflects the effective dark mode currently applied to the UI. */
   darkMode: boolean;
   quickFindOpen: boolean;
   activeView: ActiveView;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
+  /** @deprecated Use the Theme setting in settingsStore instead. */
   toggleDarkMode: () => void;
   setDarkMode: (dark: boolean) => void;
   toggleQuickFind: () => void;
@@ -18,27 +20,12 @@ interface UIState {
 
 function getInitialDarkMode(): boolean {
   if (typeof window === 'undefined') return false;
-  const stored = localStorage.getItem('sp-dark-mode');
-  if (stored !== null) return stored === 'true';
   return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
-function applyDarkMode(dark: boolean): void {
-  const root = document.documentElement;
-  if (dark) {
-    root.classList.add('dark');
-  } else {
-    root.classList.remove('dark');
-  }
-  localStorage.setItem('sp-dark-mode', String(dark));
-}
-
-const initialDark = getInitialDarkMode();
-applyDarkMode(initialDark);
-
 export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: true,
-  darkMode: initialDark,
+  darkMode: getInitialDarkMode(),
   quickFindOpen: false,
   activeView: 'folder',
 
@@ -48,16 +35,9 @@ export const useUIStore = create<UIState>((set) => ({
   setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
 
   toggleDarkMode: () =>
-    set((state) => {
-      const next = !state.darkMode;
-      applyDarkMode(next);
-      return { darkMode: next };
-    }),
+    set((state) => ({ darkMode: !state.darkMode })),
 
-  setDarkMode: (dark: boolean) => {
-    applyDarkMode(dark);
-    set({ darkMode: dark });
-  },
+  setDarkMode: (dark: boolean) => set({ darkMode: dark }),
 
   toggleQuickFind: () =>
     set((state) => ({ quickFindOpen: !state.quickFindOpen })),

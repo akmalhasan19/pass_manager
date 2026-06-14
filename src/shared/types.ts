@@ -95,6 +95,7 @@ export interface AppSettings {
   defaultPasswordSymbols: boolean;
   defaultPasswordExcludeAmbiguous: boolean;
   trashAutoPurgeDays: number;
+  passwordHealthOldDays: number;
 }
 
 export interface SearchResultItem {

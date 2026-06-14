@@ -21,6 +21,9 @@ export const IPC_CHANNELS = {
   ITEM_TOGGLE_FAVORITE: 'item:toggleFavorite',
   ITEM_SEARCH: 'item:search',
   ITEM_SEARCH_BY_TAG: 'item:searchByTag',
+  ITEM_GET_ALL: 'item:getAll',
+
+  HEALTH_ANALYZE: 'health:analyze',
 
   TAG_GET_ALL: 'tag:getAll',
   TAG_CREATE: 'tag:create',
@@ -28,9 +31,17 @@ export const IPC_CHANNELS = {
   TAG_DETACH: 'tag:detach',
   TAG_DELETE: 'tag:delete',
 
+  FILE_GET_BY_ITEM: 'file:getByItem',
   FILE_ATTACH: 'file:attach',
   FILE_DOWNLOAD: 'file:download',
   FILE_DELETE: 'file:delete',
+
+  COVER_UPLOAD: 'cover:upload',
+  COVER_READ: 'cover:read',
+  COVER_DELETE: 'cover:delete',
+
+  POWER_MONITOR_LOCK_SCREEN: 'power-monitor:lock-screen',
+  POWER_MONITOR_SUSPEND: 'power-monitor:suspend',
 
   SETTINGS_GET: 'settings:get',
   SETTINGS_SET: 'settings:set',

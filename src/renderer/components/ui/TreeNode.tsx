@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { Folder } from '../../../shared/types';
+import EmojiPicker from './EmojiPicker';
 
 interface TreeNodeProps {
   folder: Folder;
@@ -11,6 +13,7 @@ interface TreeNodeProps {
   onRename: (id: string, newName: string) => void;
   onDelete: (id: string) => void;
   onNewSubfolder: (parentId: string) => void;
+  onEmojiChange?: (id: string, emoji: string) => void;
   onDragStart: (e: React.DragEvent, folderId: string) => void;
   onDragOver: (e: React.DragEvent, folderId: string) => void;
   onDrop: (e: React.DragEvent, folderId: string) => void;
@@ -28,6 +31,7 @@ export default function TreeNode({
   onRename,
   onDelete,
   onNewSubfolder,
+  onEmojiChange,
   onDragStart,
   onDragOver,
   onDrop,
@@ -164,8 +168,22 @@ export default function TreeNode({
         </svg>
 
         {/* Emoji or folder icon */}
-        <span className="shrink-0 text-base leading-none">
-          {folder.emoji || '📁'}
+        <span className="shrink-0 text-base leading-none" onClick={(e) => e.stopPropagation()}>
+          {onEmojiChange ? (
+            <EmojiPicker
+              value={folder.emoji}
+              defaultEmoji="📁"
+              onChange={(emoji) => onEmojiChange(folder.id, emoji)}
+              placement="bottom-start"
+              ariaLabel={`Change emoji for ${folder.name}`}
+            >
+              <span className="flex h-6 w-6 cursor-pointer items-center justify-center rounded hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors">
+                {folder.emoji || '📁'}
+              </span>
+            </EmojiPicker>
+          ) : (
+            <span>{folder.emoji || '📁'}</span>
+          )}
         </span>
 
         {/* Name or rename input */}
@@ -187,29 +205,40 @@ export default function TreeNode({
       </div>
 
       {/* Children */}
-      {isExpanded && folder.children && (
-        <div role="group">
-          {folder.children.map((child) => (
-            <TreeNode
-              key={child.id}
-              folder={child}
-              depth={depth + 1}
-              selectedFolderId={selectedFolderId}
-              expandedFolderIds={expandedFolderIds}
-              onSelect={onSelect}
-              onToggleExpand={onToggleExpand}
-              onRename={onRename}
-              onDelete={onDelete}
-              onNewSubfolder={onNewSubfolder}
-              onDragStart={onDragStart}
-              onDragOver={onDragOver}
-              onDrop={onDrop}
-              onDragLeave={onDragLeave}
-              dragOverId={dragOverId}
-            />
-          ))}
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {isExpanded && folder.children && (
+          <motion.div
+            key="children"
+            role="group"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            style={{ overflow: 'hidden' }}
+          >
+            {folder.children.map((child) => (
+              <TreeNode
+                key={child.id}
+                folder={child}
+                depth={depth + 1}
+                selectedFolderId={selectedFolderId}
+                expandedFolderIds={expandedFolderIds}
+                onSelect={onSelect}
+                onToggleExpand={onToggleExpand}
+                onRename={onRename}
+                onDelete={onDelete}
+                onNewSubfolder={onNewSubfolder}
+                onEmojiChange={onEmojiChange}
+                onDragStart={onDragStart}
+                onDragOver={onDragOver}
+                onDrop={onDrop}
+                onDragLeave={onDragLeave}
+                dragOverId={dragOverId}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Context menu */}
       {showContextMenu && (

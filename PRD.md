@@ -548,113 +548,113 @@ CREATE TABLE auth_metadata (
   - [x] 4.5.4 App logo and name.
 
 ### **PHASE 5: Item & Folder Views**
-- [ ] 5.1 Implement `src/renderer/components/views/FolderView.tsx`:
-  - [ ] 5.1.1 Grid or list layout of items in selected folder.
-  - [ ] 5.1.2 Each item card shows emoji, title, username preview, URL preview.
-  - [ ] 5.1.3 Click to open item detail.
-  - [ ] 5.1.4 Right-click context menu (edit, delete, duplicate, favorite).
-  - [ ] 5.1.5 Sort options (name, date created, date modified, custom).
-  - [ ] 5.1.6 Empty state for new folders.
-- [ ] 5.2 Implement `src/renderer/components/views/ItemDetailView.tsx`:
-  - [ ] 5.2.1 Cover image area (optional, with upload/remove).
-  - [ ] 5.2.2 Emoji picker (title area).
-  - [ ] 5.2.3 Title input (editable inline).
-  - [ ] 5.2.4 Username field (copy button).
-  - [ ] 5.2.5 Password field (masked by default, reveal toggle, copy button, strength indicator).
-  - [ ] 5.2.6 URL field (open in browser button, copy button).
-  - [ ] 5.2.7 Tags section (add/remove tags, create new tag inline).
-  - [ ] 5.2.8 Rich Text Notes area (TipTap editor, see Phase 7).
-  - [ ] 5.2.9 Attachments section (list, upload, download, delete).
-  - [ ] 5.2.10 Metadata footer (created at, updated at, ID).
-  - [ ] 5.2.11 Auto-save on blur/debounce for all fields.
-- [ ] 5.3 Implement `src/renderer/components/views/TrashView.tsx`:
-  - [ ] 5.3.1 List of deleted folders and items.
-  - [ ] 5.3.2 Restore button per item.
-  - [ ] 5.3.3 Permanent delete button per item (with confirmation dialog).
-  - [ ] 5.3.4 "Empty Trash" button.
-  - [ ] 5.3.5 Show original deletion date.
-- [ ] 5.4 Implement `src/renderer/components/views/SettingsView.tsx`:
-  - [ ] 5.4.1 General settings: theme (light/dark/auto), language.
-  - [ ] 5.4.2 Security settings: auto-lock timer (1min, 5min, 15min, never), change master password.
-  - [ ] 5.4.3 Password generator defaults: length, character sets.
-  - [ ] 5.4.4 Data settings: export encrypted backup, import backup, purge trash.
-  - [ ] 5.4.5 About section: version, license, credits.
+- [x] 5.1 Implement `src/renderer/components/views/FolderView.tsx`:
+  - [x] 5.1.1 Grid or list layout of items in selected folder.
+  - [x] 5.1.2 Each item card shows emoji, title, username preview, URL preview.
+  - [x] 5.1.3 Click to open item detail.
+  - [x] 5.1.4 Right-click context menu (edit, delete, duplicate, favorite).
+  - [x] 5.1.5 Sort options (name, date created, date modified, custom).
+  - [x] 5.1.6 Empty state for new folders.
+- [x] 5.2 Implement `src/renderer/components/views/ItemDetailView.tsx`:
+  - [x] 5.2.1 Cover image area (optional, with upload/remove).
+  - [x] 5.2.2 Emoji picker (title area).
+  - [x] 5.2.3 Title input (editable inline).
+  - [x] 5.2.4 Username field (copy button).
+  - [x] 5.2.5 Password field (masked by default, reveal toggle, copy button, strength indicator).
+  - [x] 5.2.6 URL field (open in browser button, copy button).
+  - [x] 5.2.7 Tags section (add/remove tags, create new tag inline).
+  - [x] 5.2.8 Rich Text Notes area (TipTap editor, see Phase 7).
+  - [x] 5.2.9 Attachments section (list, upload, download, delete).
+  - [x] 5.2.10 Metadata footer (created at, updated at, ID).
+  - [x] 5.2.11 Auto-save on blur/debounce for all fields.
+- [x] 5.3 Implement `src/renderer/components/views/TrashView.tsx`:
+  - [x] 5.3.1 List of deleted folders and items.
+  - [x] 5.3.2 Restore button per item.
+  - [x] 5.3.3 Permanent delete button per item (with confirmation dialog).
+  - [x] 5.3.4 "Empty Trash" button.
+  - [x] 5.3.5 Show original deletion date.
+- [x] 5.4 Implement `src/renderer/components/views/SettingsView.tsx`:
+  - [x] 5.4.1 General settings: theme (light/dark/auto), auto-lock timer.
+  - [x] 5.4.2 Security settings: change master password, auto-purge trash timer.
+  - [x] 5.4.3 Password generator defaults: length, character sets.
+  - [x] 5.4.4 Data settings: export encrypted backup, import backup, purge trash.
+  - [x] 5.4.5 About section: version, license, credits.
 
 ### **PHASE 6: Auto-Lock, Password Generator & Health**
-- [ ] 6.1 Implement `src/renderer/hooks/useAutoLock.ts`:
-  - [ ] 6.1.1 Track mouse/keyboard idle time using `mousemove`, `keydown`, `click` listeners.
-  - [ ] 6.1.2 Start a timer based on `settings.autoLockTime`.
-  - [ ] 6.1.3 Reset timer on any activity.
-  - [ ] 6.1.4 Call `authStore.lock()` when timer expires.
-  - [ ] 6.1.5 Show idle warning (30 seconds before lock) with ability to extend.
-  - [ ] 6.1.6 Handle screen lock/sleep events (Electron powerMonitor API).
-- [ ] 6.2 Implement `src/renderer/components/widgets/PasswordGenerator.tsx`:
-  - [ ] 6.2.1 Length slider (4-128 characters).
-  - [ ] 6.2.2 Toggles: uppercase, lowercase, numbers, symbols.
-  - [ ] 6.2.3 Toggle: exclude ambiguous characters (0, O, l, 1, etc.).
-  - [ ] 6.2.4 Generated password display (copy button, regenerate button).
-  - [ ] 6.2.5 Entropy and strength display.
-  - [ ] 6.2.6 History of recently generated passwords (session only, not stored).
-  - [ ] 6.2.7 Modal or inline widget usable from ItemDetailView.
-- [ ] 6.3 Implement `src/renderer/components/views/PasswordHealthView.tsx`:
-  - [ ] 6.3.1 Overview cards: total passwords, weak, reused, old, strong.
-  - [ ] 6.3.2 Weak passwords list (click to edit item).
-  - [ ] 6.3.3 Reused passwords list (grouped by hash, shows count).
-  - [ ] 6.3.4 Old passwords list (not changed in >90 days, configurable).
-  - [ ] 6.3.5 Overall score/rating (e.g., A, B, C, D).
-  - [ ] 6.3.6 Action buttons: "Go to item" for each entry.
-  - [ ] 6.3.7 Visual charts (progress bars, donut charts) for summary.
+- [x] 6.1 Implement `src/renderer/hooks/useAutoLock.ts`:
+  - [x] 6.1.1 Track mouse/keyboard idle time using `mousemove`, `keydown`, `click` listeners.
+  - [x] 6.1.2 Start a timer based on `settings.autoLockTime`.
+  - [x] 6.1.3 Reset timer on any activity.
+  - [x] 6.1.4 Call `authStore.lock()` when timer expires.
+  - [x] 6.1.5 Show idle warning (30 seconds before lock) with ability to extend.
+  - [x] 6.1.6 Handle screen lock/sleep events (Electron powerMonitor API).
+- [x] 6.2 Implement `src/renderer/components/widgets/PasswordGenerator.tsx`:
+  - [x] 6.2.1 Length slider (4-128 characters).
+  - [x] 6.2.2 Toggles: uppercase, lowercase, numbers, symbols.
+  - [x] 6.2.3 Toggle: exclude ambiguous characters (0, O, l, 1, etc.).
+  - [x] 6.2.4 Generated password display (copy button, regenerate button).
+  - [x] 6.2.5 Entropy and strength display.
+  - [x] 6.2.6 History of recently generated passwords (session only, not stored).
+  - [x] 6.2.7 Modal or inline widget usable from ItemDetailView.
+- [x] 6.3 Implement `src/renderer/components/views/PasswordHealthView.tsx`:
+  - [x] 6.3.1 Overview cards: total passwords, weak, reused, old, strong.
+  - [x] 6.3.2 Weak passwords list (click to edit item).
+  - [x] 6.3.3 Reused passwords list (grouped by hash, shows count).
+  - [x] 6.3.4 Old passwords list (not changed in >90 days, configurable).
+  - [x] 6.3.5 Overall score/rating (e.g., A, B, C, D).
+  - [x] 6.3.6 Action buttons: "Go to item" for each entry.
+  - [x] 6.3.7 Visual charts (progress bars, donut charts) for summary.
 
 ### **PHASE 7: Rich Text Notes (TipTap)**
-- [ ] 7.1 Install and configure TipTap extensions:
-  - [ ] 7.1.1 `@tiptap/react` (core).
-  - [ ] 7.1.2 `@tiptap/starter-kit` (bold, italic, headings, lists, blockquote, code).
-  - [ ] 7.1.3 `@tiptap/extension-placeholder` (type '/' for commands).
-  - [ ] 7.1.4 `@tiptap/extension-link` (auto-link URLs).
-  - [ ] 7.1.5 `@tiptap/extension-code-block` (for code snippets like SSH keys).
-  - [ ] 7.1.6 `@tiptap/extension-task-list` (checkboxes for recovery codes).
-- [ ] 7.2 Implement `src/renderer/components/editor/RichTextEditor.tsx`:
-  - [ ] 7.2.1 TipTap `EditorContent` component.
-  - [ ] 7.2.2 Bubble menu (formatting toolbar on text selection).
-  - [ ] 7.2.3 Floating menu (quick insert on empty line).
-  - [ ] 7.2.4 Dark mode support via Tailwind classes.
-  - [ ] 7.2.5 Store content as JSON (TipTap doc format), encrypt before saving.
-  - [ ] 7.2.6 Load and decrypt JSON on item open.
-- [ ] 7.3 Implement `src/renderer/components/editor/SlashCommandMenu.tsx`:
-  - [ ] 7.3.1 Triggered by typing `/`.
-  - [ ] 7.3.2 Menu items: Heading 1, Heading 2, Bullet List, Numbered List, Code Block, Blockquote, Divider, Checkbox.
-  - [ ] 7.3.3 Keyboard navigation (arrow keys, Enter, Escape).
-  - [ ] 7.3.4 Filter items based on typed text after `/`.
-  - [ ] 7.3.5 Insert corresponding node on selection.
-- [ ] 7.4 Implement `src/renderer/components/editor/MarkdownToolbar.tsx`:
-  - [ ] 7.4.1 Fixed toolbar with formatting buttons (bold, italic, heading, list, code, link).
-  - [ ] 7.4.2 Active state highlighting based on current cursor position.
-  - [ ] 7.4.3 Keyboard shortcuts (Ctrl+B, Ctrl+I, etc.).
+- [x] 7.1 Install and configure TipTap extensions:
+  - [x] 7.1.1 `@tiptap/react` (core).
+  - [x] 7.1.2 `@tiptap/starter-kit` (bold, italic, headings, lists, blockquote, code).
+  - [x] 7.1.3 `@tiptap/extension-placeholder` (type '/' for commands).
+  - [x] 7.1.4 `@tiptap/extension-link` (auto-link URLs).
+  - [x] 7.1.5 `@tiptap/extension-code-block` (for code snippets like SSH keys).
+  - [x] 7.1.6 `@tiptap/extension-task-list` (checkboxes for recovery codes).
+- [x] 7.2 Implement `src/renderer/components/editor/RichTextEditor.tsx`:
+  - [x] 7.2.1 TipTap `EditorContent` component.
+  - [x] 7.2.2 Bubble menu (formatting toolbar on text selection).
+  - [x] 7.2.3 Floating menu (quick insert on empty line).
+  - [x] 7.2.4 Dark mode support via Tailwind classes.
+  - [x] 7.2.5 Store content as JSON (TipTap doc format), encrypt before saving.
+  - [x] 7.2.6 Load and decrypt JSON on item open.
+- [x] 7.3 Implement `src/renderer/components/editor/SlashCommandMenu.tsx`:
+  - [x] 7.3.1 Triggered by typing `/`.
+  - [x] 7.3.2 Menu items: Heading 1, Heading 2, Bullet List, Numbered List, Code Block, Blockquote, Divider, Checkbox.
+  - [x] 7.3.3 Keyboard navigation (arrow keys, Enter, Escape).
+  - [x] 7.3.4 Filter items based on typed text after `/`.
+  - [x] 7.3.5 Insert corresponding node on selection.
+- [x] 7.4 Implement `src/renderer/components/editor/MarkdownToolbar.tsx`:
+  - [x] 7.4.1 Fixed toolbar with formatting buttons (bold, italic, heading, list, code, link).
+  - [x] 7.4.2 Active state highlighting based on current cursor position.
+  - [x] 7.4.3 Keyboard shortcuts (Ctrl+B, Ctrl+I, etc.).
 
 ### **PHASE 8: Visual Polish (Emoji, Cover, Dark Mode, Animations)**
-- [ ] 8.1 Implement `src/renderer/components/ui/EmojiPicker.tsx`:
-  - [ ] 8.1.1 Popover with emoji grid (use `emoji-picker-react` or native).
-  - [ ] 8.1.2 Search emojis by name.
-  - [ ] 8.1.3 Recently used emojis section.
-  - [ ] 8.1.4 Used in folder tree and item detail.
-- [ ] 8.2 Implement `src/renderer/components/ui/CoverImage.tsx`:
-  - [ ] 8.2.1 Upload area for cover image (drag & drop or file picker).
-  - [ ] 8.2.2 Display as wide banner (Notion style, 16:9 or 3:1 ratio).
-  - [ ] 8.2.3 Gradient overlay option (predefined gradients as alternative to image).
-  - [ ] 8.2.4 Remove/replace button.
-  - [ ] 8.2.5 Store image path in metadata; image itself is NOT encrypted (cosmetic), or optionally encrypt if sensitive.
-- [ ] 8.3 Implement Dark Mode:
-  - [ ] 8.3.1 `darkMode` class strategy in Tailwind.
-  - [ ] 8.3.2 Toggle in settings (light / dark / system).
-  - [ ] 8.3.3 Persist preference in settings DB.
-  - [ ] 8.3.4 All components must render correctly in both modes.
-- [ ] 8.4 Implement Animations (Framer Motion):
-  - [ ] 8.4.1 Page transitions (fade/slide between views).
-  - [ ] 8.4.2 Sidebar collapse/expand animation.
-  - [ ] 8.4.3 Modal enter/exit animations (Quick Find, Password Generator, Confirm Dialog).
-  - [ ] 8.4.4 Tree node expand/collapse animation.
-  - [ ] 8.4.5 Drag-and-drop ghost/placeholder animation.
-  - [ ] 8.4.6 Toast notifications (success, error, info) with auto-dismiss.
+- [x] 8.1 Implement `src/renderer/components/ui/EmojiPicker.tsx`:
+  - [x] 8.1.1 Popover with emoji grid (use `emoji-picker-react` or native).
+  - [x] 8.1.2 Search emojis by name.
+  - [x] 8.1.3 Recently used emojis section.
+  - [x] 8.1.4 Used in folder tree and item detail.
+- [x] 8.2 Implement `src/renderer/components/ui/CoverImage.tsx`:
+  - [x] 8.2.1 Upload area for cover image (drag & drop or file picker).
+  - [x] 8.2.2 Display as wide banner (Notion style, 16:9 or 3:1 ratio).
+  - [x] 8.2.3 Gradient overlay option (predefined gradients as alternative to image).
+  - [x] 8.2.4 Remove/replace button.
+  - [x] 8.2.5 Store image path in metadata; image itself is NOT encrypted (cosmetic), or optionally encrypt if sensitive.
+- [x] 8.3 Implement Dark Mode:
+  - [x] 8.3.1 `darkMode` class strategy in Tailwind.
+  - [x] 8.3.2 Toggle in settings (light / dark / system).
+  - [x] 8.3.3 Persist preference in settings DB.
+  - [x] 8.3.4 All components must render correctly in both modes.
+- [x] 8.4 Implement Animations (Framer Motion):
+  - [x] 8.4.1 Page transitions (fade/slide between views).
+  - [x] 8.4.2 Sidebar collapse/expand animation.
+  - [x] 8.4.3 Modal enter/exit animations (Quick Find, Password Generator, Confirm Dialog).
+  - [x] 8.4.4 Tree node expand/collapse animation.
+  - [x] 8.4.5 Drag-and-drop ghost/placeholder animation.
+  - [x] 8.4.6 Toast notifications (success, error, info) with auto-dismiss.
 
 ### **PHASE 9: Testing & Quality Assurance**
 - [ ] 9.1 Unit Tests (Jest + React Testing Library):

@@ -91,7 +91,7 @@
 
   .notion-button-danger {
     @apply notion-button;
-    @apply bg-danger-500 text-white hover:bg-danger-600 active:bg-danger-700;
+    @apply bg-danger-500 text-white hover:bg-danger-600 active:bg-danger-600;
   }
 
   .notion-tree-node {
@@ -108,6 +108,8 @@
 
   .notion-tree-node.drag-over {
     @apply bg-accent-100 dark:bg-accent-900/30 ring-2 ring-accent-400;
+    transform: scale(1.01);
+    transition: transform 0.15s ease-out, background-color 0.15s ease-out, box-shadow 0.15s ease-out;
   }
 
   .notion-scrollbar {
@@ -118,7 +120,10 @@
 
   .notion-scrollbar:hover {
     scrollbar-color: theme('colors.surface.300') transparent;
-    @apply dark:scrollbar-color-surface-700;
+  }
+
+  .dark .notion-scrollbar:hover {
+    scrollbar-color: theme('colors.surface.700') transparent;
   }
 
   .notion-scrollbar::-webkit-scrollbar {
@@ -135,6 +140,171 @@
 
   .notion-scrollbar:hover::-webkit-scrollbar-thumb {
     @apply bg-surface-300 dark:bg-surface-600;
+  }
+
+  /* --- TipTap Rich Text Editor styles --- */
+
+  .prose-editor .ProseMirror {
+    @apply outline-none min-h-[120px];
+    @apply text-sm text-surface-800 dark:text-surface-200;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    -moz-tab-size: 2;
+    tab-size: 2;
+  }
+
+  .prose-editor .ProseMirror p.is-editor-empty:first-child::before {
+    @apply text-surface-400 dark:text-surface-500;
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .prose-editor .ProseMirror h1 {
+    @apply text-2xl font-bold mb-2 mt-4 text-surface-900 dark:text-white;
+  }
+
+  .prose-editor .ProseMirror h2 {
+    @apply text-xl font-semibold mb-1.5 mt-3 text-surface-900 dark:text-white;
+  }
+
+  .prose-editor .ProseMirror h3 {
+    @apply text-lg font-medium mb-1 mt-2 text-surface-800 dark:text-surface-100;
+  }
+
+  .prose-editor .ProseMirror p {
+    @apply leading-relaxed mb-1;
+  }
+
+  .prose-editor .ProseMirror ul {
+    @apply list-disc pl-6 mb-2;
+  }
+
+  .prose-editor .ProseMirror ol {
+    @apply list-decimal pl-6 mb-2;
+  }
+
+  .prose-editor .ProseMirror li {
+    @apply mb-0.5;
+  }
+
+  .prose-editor .ProseMirror li p {
+    @apply mb-0;
+  }
+
+  .prose-editor .ProseMirror blockquote {
+    @apply border-l-4 border-accent-400 dark:border-accent-500 pl-4 my-2 italic text-surface-600 dark:text-surface-400;
+  }
+
+  .prose-editor .ProseMirror code {
+    @apply rounded bg-surface-100 dark:bg-surface-700 px-1.5 py-0.5 text-[0.9em] font-mono text-accent-700 dark:text-accent-300;
+  }
+
+  .notion-code-block {
+    @apply block rounded-lg bg-surface-100 dark:bg-surface-800 my-2 p-3 font-mono text-sm text-surface-700 dark:text-surface-300 overflow-x-auto;
+    white-space: pre;
+  }
+
+  .prose-editor .ProseMirror pre {
+    @apply my-2;
+  }
+
+  .prose-editor .ProseMirror hr {
+    @apply my-4 border-surface-200 dark:border-surface-700;
+  }
+
+  .prose-editor .ProseMirror a {
+    @apply text-accent-600 dark:text-accent-400 underline cursor-pointer;
+  }
+
+  .prose-editor .ProseMirror strong {
+    @apply font-semibold;
+  }
+
+  .prose-editor .ProseMirror em {
+    @apply italic;
+  }
+
+  .prose-editor .ProseMirror s {
+    @apply line-through;
+  }
+
+  /* Task list styles */
+  .notion-task-list {
+    @apply list-none pl-0 mb-2;
+  }
+
+  .notion-task-item {
+    @apply flex items-start gap-1.5 mb-0.5 pl-0;
+    list-style: none;
+  }
+
+  .notion-task-item > label {
+    @apply shrink-0 mt-0.5;
+  }
+
+  .notion-task-item > label input[type="checkbox"] {
+    @apply h-4 w-4 rounded border-surface-300 dark:border-surface-600 text-accent-600 focus:ring-accent-400;
+  }
+
+  .notion-task-item > div {
+    @apply flex-1;
+  }
+
+  .notion-task-item[data-checked="true"] > div {
+    @apply line-through text-surface-400 dark:text-surface-500;
+  }
+
+  .ProseMirror-gapcursor {
+    @apply hidden;
+  }
+
+  /* --- Emoji Picker overrides --- */
+
+  .emoji-picker-wrapper .EmojiPickerReact {
+    --epr-bg-color: transparent;
+    --epr-category-label-bg-color: transparent;
+    --epr-search-input-bg-color: theme('colors.surface.100');
+    --epr-search-input-border-color: theme('colors.surface.200');
+    --epr-search-input-text-color: theme('colors.surface.800');
+    --epr-search-input-placeholder-color: theme('colors.surface.400');
+    --epr-text-color: theme('colors.surface.700');
+    --epr-hover-bg-color: theme('colors.surface.100');
+    --epr-focus-bg-color: theme('colors.surface.100');
+    --epr-highlight-color: theme('colors.accent.500');
+    --epr-category-icon-active-color: theme('colors.accent.500');
+    --epr-skin-tone-picker-menu-color: theme('colors.surface.200');
+    --epr-scroll-handle-color: theme('colors.surface.300');
+    --epr-scroll-track-color: transparent;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .dark .emoji-picker-wrapper .EmojiPickerReact {
+    --epr-search-input-bg-color: theme('colors.surface.800');
+    --epr-search-input-border-color: theme('colors.surface.700');
+    --epr-search-input-text-color: theme('colors.surface.100');
+    --epr-search-input-placeholder-color: theme('colors.surface.500');
+    --epr-text-color: theme('colors.surface.300');
+    --epr-hover-bg-color: theme('colors.surface.700');
+    --epr-focus-bg-color: theme('colors.surface.700');
+    --epr-skin-tone-picker-menu-color: theme('colors.surface.700');
+    --epr-scroll-handle-color: theme('colors.surface.600');
+  }
+
+  .emoji-picker-wrapper .EmojiPickerReact * {
+    font-family: inherit !important;
+  }
+
+  .emoji-picker-wrapper .epr-search-container input {
+    @apply rounded-md text-sm;
+    border-width: 1px !important;
+  }
+
+  .emoji-picker-wrapper .epr-category-nav {
+    @apply pb-1;
   }
 }
 

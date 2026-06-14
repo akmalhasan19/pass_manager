@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { produce } from 'immer';
-import type { Item } from '../../shared/types';
+import type { Item, ItemDecrypted } from '../../shared/types';
 
 export interface ItemState {
-  items: Record<string, Item>;
+  items: Record<string, Item | ItemDecrypted>;
   itemIds: string[];
   currentFolderId: string | null;
   selectedItemId: string | null;
@@ -17,21 +17,21 @@ export interface ItemState {
     fields: {
       title: string;
       username?: string;
-      passwordEncrypted?: ArrayBuffer | null;
+      password?: string | null;
       url?: string;
-      notesEncrypted?: ArrayBuffer | null;
+      notes?: string | null;
       emoji?: string | null;
       coverImage?: string | null;
     },
-  ) => Promise<Item | null>;
+  ) => Promise<ItemDecrypted | null>;
   updateItem: (
     id: string,
     fields: {
       title?: string;
       username?: string;
-      passwordEncrypted?: ArrayBuffer | null;
+      password?: string | null;
       url?: string;
-      notesEncrypted?: ArrayBuffer | null;
+      notes?: string | null;
       emoji?: string | null;
       coverImage?: string | null;
       isFavorite?: boolean;

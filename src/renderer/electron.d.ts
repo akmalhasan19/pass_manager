@@ -1,11 +1,13 @@
 import {
   Folder,
   Item,
+  ItemDecrypted,
   Tag,
   Attachment,
   TrashEntry,
   AppSettings,
   SearchResultItem,
+  HealthReport,
 } from '../shared/types';
 
 export interface ElectronAuthAPI {
@@ -29,37 +31,38 @@ export interface ElectronFoldersAPI {
 }
 
 export interface ElectronItemsAPI {
+  getAll(): Promise<Item[]>;
   getByFolder(folderId: string): Promise<Item[]>;
-  getById(id: string): Promise<Item | null>;
+  getById(id: string): Promise<ItemDecrypted | null>;
   create(
     folderId: string,
     fields: {
       title: string;
       username?: string;
-      passwordEncrypted?: ArrayBuffer | null;
+      password?: string | null;
       url?: string;
-      notesEncrypted?: ArrayBuffer | null;
+      notes?: string | null;
       emoji?: string | null;
       coverImage?: string | null;
     },
-  ): Promise<Item>;
+  ): Promise<ItemDecrypted>;
   update(
     id: string,
     fields: {
       title?: string;
       username?: string;
-      passwordEncrypted?: ArrayBuffer | null;
+      password?: string | null;
       url?: string;
-      notesEncrypted?: ArrayBuffer | null;
+      notes?: string | null;
       emoji?: string | null;
       coverImage?: string | null;
       isFavorite?: boolean;
       sortOrder?: number;
     },
-  ): Promise<Item | null>;
+  ): Promise<ItemDecrypted | null>;
   delete(id: string): Promise<void>;
   restore(id: string): Promise<void>;
-  toggleFavorite(id: string): Promise<Item | null>;
+  toggleFavorite(id: string): Promise<ItemDecrypted | null>;
   search(query: string): Promise<Item[]>;
   searchByTag(tagId: string): Promise<Item[]>;
 }
@@ -73,9 +76,16 @@ export interface ElectronTagsAPI {
 }
 
 export interface ElectronFilesAPI {
+  getByItem(itemId: string): Promise<Attachment[]>;
   attach(itemId: string, filePath: string): Promise<Attachment>;
   download(attachmentId: string): Promise<string>;
   delete(attachmentId: string): Promise<Attachment | null>;
+}
+
+export interface ElectronCoversAPI {
+  upload(filePath: string): Promise<string>;
+  read(coverName: string): Promise<string>;
+  delete(coverName: string): Promise<void>;
 }
 
 export interface ElectronSearchAPI {
@@ -104,15 +114,21 @@ export interface ElectronWindowAPI {
   isMaximized(): Promise<boolean>;
 }
 
+export interface ElectronHealthAPI {
+  analyze(oldDays?: number): Promise<HealthReport>;
+}
+
 export interface ElectronAPI {
   auth: ElectronAuthAPI;
   folders: ElectronFoldersAPI;
   items: ElectronItemsAPI;
   tags: ElectronTagsAPI;
   files: ElectronFilesAPI;
+  covers: ElectronCoversAPI;
   search: ElectronSearchAPI;
   settings: ElectronSettingsAPI;
   trash: ElectronTrashAPI;
+  health: ElectronHealthAPI;
   window: ElectronWindowAPI;
 }
 

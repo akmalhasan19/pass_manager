@@ -31,6 +31,8 @@ const api = {
   },
 
   items: {
+    getAll: () =>
+      ipcRenderer.invoke(IPC_CHANNELS.ITEM_GET_ALL),
     getByFolder: (folderId: string) =>
       ipcRenderer.invoke(IPC_CHANNELS.ITEM_GET_BY_FOLDER, { folderId }),
     getById: (id: string) =>
@@ -81,12 +83,23 @@ const api = {
   },
 
   files: {
+    getByItem: (itemId: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.FILE_GET_BY_ITEM, { itemId }),
     attach: (itemId: string, filePath: string) =>
       ipcRenderer.invoke(IPC_CHANNELS.FILE_ATTACH, { itemId, filePath }),
     download: (attachmentId: string) =>
       ipcRenderer.invoke(IPC_CHANNELS.FILE_DOWNLOAD, { attachmentId }),
     delete: (attachmentId: string) =>
       ipcRenderer.invoke(IPC_CHANNELS.FILE_DELETE, { attachmentId }),
+  },
+
+  covers: {
+    upload: (filePath: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.COVER_UPLOAD, { filePath }),
+    read: (coverName: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.COVER_READ, { coverName }),
+    delete: (coverName: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.COVER_DELETE, { coverName }),
   },
 
   search: {
@@ -118,6 +131,11 @@ const api = {
       ipcRenderer.invoke(IPC_CHANNELS.TRASH_PURGE),
   },
 
+  health: {
+    analyze: (oldDays?: number) =>
+      ipcRenderer.invoke(IPC_CHANNELS.HEALTH_ANALYZE, { oldDays }),
+  },
+
   window: {
     minimize: () =>
       ipcRenderer.invoke(IPC_CHANNELS.WINDOW_MINIMIZE),
@@ -129,5 +147,14 @@ const api = {
       ipcRenderer.invoke(IPC_CHANNELS.WINDOW_IS_MAXIMIZED),
   },
 };
+
+// Forward power monitor events to renderer as DOM events
+ipcRenderer.on(IPC_CHANNELS.POWER_MONITOR_LOCK_SCREEN, () => {
+  window.dispatchEvent(new CustomEvent('power-monitor-lock-screen'));
+});
+
+ipcRenderer.on(IPC_CHANNELS.POWER_MONITOR_SUSPEND, () => {
+  window.dispatchEvent(new CustomEvent('power-monitor-suspend'));
+});
 
 contextBridge.exposeInMainWorld('electron', api);

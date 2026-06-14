@@ -1,10 +1,14 @@
 import React, { useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { useTheme } from '../hooks/useTheme';
 import LockScreenPage from './LockScreenPage';
 import MainAppPage from './MainAppPage';
 
 export default function App(): React.ReactElement {
   const { status, checkAuth } = useAuthStore();
+
+  // Apply theme before any rendered content appears to avoid flashes.
+  useTheme();
 
   useEffect(() => {
     if (status === 'idle') {

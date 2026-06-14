@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useUIStore } from '../../stores/uiStore';
 import { useFolderStore } from '../../stores/folderStore';
 import { useItemStore } from '../../stores/itemStore';
+import Modal from '../ui/Modal';
 import type { Folder, Item, Tag } from '../../../shared/types';
 
 interface SearchResult {
@@ -226,15 +227,15 @@ export default function QuickFind(): React.ReactElement {
     return { folders: foldersResult, items: itemsResult, tags: tagsResult };
   }, [results]);
 
-  if (!quickFindOpen) return <></>;
-
   return (
-    <div className="notion-quick-find" role="dialog" aria-label="Quick Find">
-      <div
-        className="notion-quick-find-overlay"
-        onClick={() => setQuickFindOpen(false)}
-      />
-      <div className="notion-quick-find-modal" onKeyDown={handleKeyDown}>
+    <Modal
+      isOpen={quickFindOpen}
+      onClose={() => setQuickFindOpen(false)}
+      position="top"
+      className="max-w-xl"
+      ariaLabel="Quick Find"
+    >
+      <div onKeyDown={handleKeyDown}>
         {/* Search input */}
         <div className="flex items-center border-b border-surface-200 dark:border-surface-700">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-5 text-surface-400 dark:text-surface-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -410,6 +411,6 @@ export default function QuickFind(): React.ReactElement {
           </span>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

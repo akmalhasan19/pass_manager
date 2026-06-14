@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   defaultPasswordSymbols: true,
   defaultPasswordExcludeAmbiguous: true,
   trashAutoPurgeDays: 30,
+  passwordHealthOldDays: 90,
 };
 
 type SettingKey = keyof AppSettings;
