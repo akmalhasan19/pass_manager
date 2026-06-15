@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import { useUIStore } from './uiStore';
+import { useItemStore } from './itemStore';
+import { useFolderStore } from './folderStore';
 
 export type AuthStatus = 'idle' | 'checking' | 'setup' | 'locked' | 'unlocked' | 'error';
 
@@ -84,6 +87,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       // Lock should always proceed even if IPC fails
     } finally {
+      useItemStore.getState().reset();
+      useFolderStore.getState().reset();
+      useUIStore.getState().reset();
       set({ status: 'locked', error: null, ...deriveFlags('locked') });
     }
   },

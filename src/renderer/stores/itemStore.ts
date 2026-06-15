@@ -43,6 +43,7 @@ export interface ItemState {
   setSelectedItem: (id: string | null) => void;
   searchItems: (query: string) => Promise<void>;
   clearSearch: () => void;
+  reset: () => void;
 }
 
 export const useItemStore = create<ItemState>((set, get) => ({
@@ -208,4 +209,14 @@ export const useItemStore = create<ItemState>((set, get) => ({
       get().loadItems(currentFolderId);
     }
   },
+
+  reset: () =>
+    set({
+      items: {},
+      itemIds: [],
+      currentFolderId: null,
+      selectedItemId: null,
+      isLoading: false,
+      error: null,
+    }),
 }));

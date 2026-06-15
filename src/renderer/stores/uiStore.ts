@@ -19,6 +19,7 @@ interface UIState {
   setActiveView: (view: ActiveView) => void;
   toggleCenterPanel: () => void;
   setCenterPanelVisible: (visible: boolean) => void;
+  reset: () => void;
 }
 
 function getInitialDarkMode(): boolean {
@@ -50,4 +51,11 @@ export const useUIStore = create<UIState>((set) => ({
   toggleCenterPanel: () => set((state) => ({ centerPanelVisible: !state.centerPanelVisible })),
 
   setCenterPanelVisible: (visible: boolean) => set({ centerPanelVisible: visible }),
+
+  reset: () =>
+    set({
+      activeView: 'home',
+      centerPanelVisible: true,
+      quickFindOpen: false,
+    }),
 }));

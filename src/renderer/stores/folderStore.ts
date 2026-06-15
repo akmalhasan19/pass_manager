@@ -23,6 +23,7 @@ export interface FolderState {
   expandFolder: (id: string) => void;
   collapseFolder: (id: string) => void;
   toggleExpandFolder: (id: string) => void;
+  reset: () => void;
 }
 
 function findAndUpdateNode(
@@ -208,4 +209,13 @@ export const useFolderStore = create<FolderState>((set, get) => ({
         }
       }),
     ),
+
+  reset: () =>
+    set({
+      folders: [],
+      selectedFolderId: null,
+      expandedFolderIds: new Set<string>(),
+      isLoading: false,
+      error: null,
+    }),
 }));
