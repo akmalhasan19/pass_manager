@@ -5,7 +5,7 @@ import { useItemStore } from '../../stores/itemStore';
 import TreeNode from '../ui/TreeNode';
 
 export default function Sidebar(): React.ReactElement {
-  const { toggleQuickFind, setActiveView } = useUIStore();
+  const { toggleQuickFind, setActiveView, toggleCenterPanel, centerPanelVisible } = useUIStore();
   const {
     folders,
     selectedFolderId,
@@ -38,11 +38,21 @@ export default function Sidebar(): React.ReactElement {
 
   const handleSelectFolder = useCallback(
     (id: string) => {
-      setSelectedFolder(id);
-      loadItems(id);
-      setActiveView('folder');
+      // If clicking the same folder that's already selected, toggle the center panel
+      if (selectedFolderId === id) {
+        toggleCenterPanel();
+      } else {
+        // If clicking a different folder, select it and show the center panel
+        setSelectedFolder(id);
+        loadItems(id);
+        setActiveView('folder');
+        // Ensure center panel is visible when selecting a new folder
+        if (!centerPanelVisible) {
+          toggleCenterPanel();
+        }
+      }
     },
-    [setSelectedFolder, loadItems, setActiveView],
+    [selectedFolderId, setSelectedFolder, loadItems, setActiveView, toggleCenterPanel, centerPanelVisible],
   );
 
   const handleNewFolder = useCallback((parentId: string | null = null) => {

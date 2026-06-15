@@ -39,7 +39,7 @@ function formatDateShort(ts: number): string {
 }
 
 export default function MainPanel(): React.ReactElement {
-  const { activeView, setActiveView, toggleQuickFind } = useUIStore();
+  const { activeView, setActiveView, toggleQuickFind, centerPanelVisible } = useUIStore();
   const { lock } = useAuthStore();
   const { folders, selectedFolderId, setSelectedFolder } = useFolderStore();
   const {
@@ -242,14 +242,20 @@ export default function MainPanel(): React.ReactElement {
   return (
     <div className="relative flex flex-1 overflow-hidden">
       {/* Center Panel - Folder List */}
-      {showFolderList && (
-        <motion.div
-          className="flex h-full shrink-0 flex-col border-r border-surface-200 bg-white dark:border-surface-700 dark:bg-surface-850"
-          animate={{
-            width: showDetailPanel ? 320 : '100%',
-          }}
-          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        >
+      <AnimatePresence>
+        {showFolderList && (
+          <motion.div
+            key="center-panel"
+            className="flex h-full shrink-0 flex-col border-r border-surface-200 bg-white dark:border-surface-700 dark:bg-surface-850"
+            initial={{ x: '-100%', opacity: 0 }}
+            animate={{
+              x: centerPanelVisible ? 0 : '-100%',
+              opacity: centerPanelVisible ? 1 : 0,
+              width: centerPanelVisible ? (showDetailPanel ? 320 : '100%') : 0,
+            }}
+            exit={{ x: '-100%', opacity: 0 }}
+            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+          >
           {/* Header */}
           <div className="flex h-14 shrink-0 items-center justify-between border-b border-surface-200 px-4 dark:border-surface-700">
             <h1 className="truncate text-lg font-semibold text-surface-800 dark:text-surface-200">
@@ -393,7 +399,8 @@ export default function MainPanel(): React.ReactElement {
             </button>
           </div>
         </motion.div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Right Panel - Detail View (slides in from right) */}
       <AnimatePresence>
@@ -405,7 +412,7 @@ export default function MainPanel(): React.ReactElement {
             exit={{ x: '100%', opacity: 0 }}
             transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
             className="absolute right-0 top-0 flex h-full flex-col overflow-hidden bg-white dark:bg-surface-900"
-            style={{ width: 'calc(100% - 320px)' }}
+            style={{ width: centerPanelVisible ? 'calc(100% - 320px)' : '100%' }}
           >
             {/* Toolbar */}
             <div className="flex h-12 shrink-0 items-center justify-between border-b border-surface-200 bg-white/50 px-4 backdrop-blur-sm dark:border-surface-700 dark:bg-surface-850/50">

@@ -8,6 +8,7 @@ interface UIState {
   darkMode: boolean;
   quickFindOpen: boolean;
   activeView: ActiveView;
+  centerPanelVisible: boolean;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   /** @deprecated Use the Theme setting in settingsStore instead. */
@@ -16,6 +17,8 @@ interface UIState {
   toggleQuickFind: () => void;
   setQuickFindOpen: (open: boolean) => void;
   setActiveView: (view: ActiveView) => void;
+  toggleCenterPanel: () => void;
+  setCenterPanelVisible: (visible: boolean) => void;
 }
 
 function getInitialDarkMode(): boolean {
@@ -28,6 +31,7 @@ export const useUIStore = create<UIState>((set) => ({
   darkMode: getInitialDarkMode(),
   quickFindOpen: false,
   activeView: 'home',
+  centerPanelVisible: true,
 
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 
@@ -42,4 +46,8 @@ export const useUIStore = create<UIState>((set) => ({
   setQuickFindOpen: (open: boolean) => set({ quickFindOpen: open }),
 
   setActiveView: (view: ActiveView) => set({ activeView: view }),
+
+  toggleCenterPanel: () => set((state) => ({ centerPanelVisible: !state.centerPanelVisible })),
+
+  setCenterPanelVisible: (visible: boolean) => set({ centerPanelVisible: visible }),
 }));
