@@ -19,6 +19,7 @@ export default defineConfig({
     rollupOptions: {
       external: [
         'electron',
+        'sql.js',
         ...builtinModules,
         ...builtinModules.map((m) => `node:${m}`),
       ],

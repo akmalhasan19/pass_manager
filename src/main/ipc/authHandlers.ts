@@ -118,10 +118,10 @@ export function registerAuthHandlers(): void {
 
         return { success: true };
       } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error during initialization',
-        };
+        const msg = error instanceof Error
+          ? `${error.message}${error.context?.cause ? ` — ${error.context.cause}` : ''}`
+          : 'Unknown error during initialization';
+        return { success: false, error: msg };
       }
     },
   );

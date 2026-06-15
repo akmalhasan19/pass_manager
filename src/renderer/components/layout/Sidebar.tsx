@@ -140,7 +140,7 @@ export default function Sidebar(): React.ReactElement {
 
   return (
     <motion.aside
-      className="notion-sidebar flex flex-col"
+      className="notion-sidebar flex shrink-0 flex-col"
       initial={false}
       animate={{ width: sidebarOpen ? 260 : 56 }}
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}

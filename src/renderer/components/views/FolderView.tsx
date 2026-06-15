@@ -1,7 +1,6 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { Item, ItemDecrypted } from '../../../shared/types';
 
-type ViewMode = 'list' | 'grid';
 type SortOption = 'name' | 'createdAt' | 'updatedAt' | 'sortOrder';
 
 interface ContextMenuState {
@@ -19,11 +18,21 @@ interface FolderViewProps {
   onToggleFavorite: (id: string) => void;
   onDuplicateItem?: (id: string) => void;
   onEditItem?: (id: string) => void;
-  isCreatingItem: boolean;
-  newItemTitle: string;
-  onNewItemTitleChange: (value: string) => void;
-  onNewItemSubmit: () => void;
-  onNewItemCancel: () => void;
+  onNewItem?: () => void;
+}
+
+function formatDateShort(ts: number): string {
+  if (!ts) return '';
+  const now = Date.now();
+  const diff = now - ts;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 const SORT_LABELS: Record<SortOption, string> = {
@@ -42,15 +51,10 @@ export default function FolderView({
   onToggleFavorite,
   onDuplicateItem,
   onEditItem,
-  isCreatingItem,
-  newItemTitle,
-  onNewItemTitleChange,
-  onNewItemSubmit,
-  onNewItemCancel,
+  onNewItem,
 }: FolderViewProps): React.ReactElement {
   const [sortBy, setSortBy] = useState<SortOption>('sortOrder');
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
@@ -113,74 +117,13 @@ export default function FolderView({
     };
   }, [contextMenu, closeContextMenu]);
 
-  useEffect(() => {
-    if (isCreatingItem) {
-      const timer = setTimeout(() => {
-        const input = document.querySelector<HTMLInputElement>('[data-new-item-input]');
-        input?.focus();
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [isCreatingItem]);
-
   return (
     <div className="flex h-full flex-col">
       {/* Sort controls */}
       <div className="flex shrink-0 items-center gap-2 border-b border-surface-200 bg-white px-4 py-2 dark:border-surface-700 dark:bg-surface-850">
-        <div className="flex items-center gap-1 rounded-lg bg-surface-100 p-0.5 dark:bg-surface-800">
-          <button
-            className={`flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
-              viewMode === 'list'
-                ? 'bg-white text-surface-800 shadow-sm dark:bg-surface-750 dark:text-surface-200'
-                : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
-            }`}
-            onClick={() => setViewMode('list')}
-            aria-label="List view"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-3.5 w-3.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 6h16M4 10h16M4 14h16M4 18h16"
-              />
-            </svg>
-          </button>
-          <button
-            className={`flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
-              viewMode === 'grid'
-                ? 'bg-white text-surface-800 shadow-sm dark:bg-surface-750 dark:text-surface-200'
-                : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
-            }`}
-            onClick={() => setViewMode('grid')}
-            aria-label="Grid view"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-3.5 w-3.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
-              />
-            </svg>
-          </button>
-        </div>
-
         <div className="relative">
           <button
-            className="notion-button-ghost h-7 gap-1.5 text-xs"
+            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium text-surface-500 transition-colors hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800"
             onClick={() => setSortMenuOpen(!sortMenuOpen)}
           >
             <svg
@@ -197,7 +140,7 @@ export default function FolderView({
                 d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
               />
             </svg>
-            <span className="text-surface-500 dark:text-surface-400">{SORT_LABELS[sortBy]}</span>
+            <span>{SORT_LABELS[sortBy]}</span>
           </button>
           {sortMenuOpen && (
             <div
@@ -209,7 +152,7 @@ export default function FolderView({
                   key={option}
                   className={`flex w-full items-center gap-2 px-3 py-1.5 text-sm transition-colors ${
                     sortBy === option
-                      ? 'bg-accent-50 text-accent-600 dark:bg-accent-900/20 dark:text-accent-400'
+                      ? 'bg-primary/5 text-primary dark:bg-primary/10'
                       : 'text-surface-700 hover:bg-surface-100 dark:text-surface-300 dark:hover:bg-surface-700'
                   }`}
                   onClick={() => {
@@ -240,143 +183,67 @@ export default function FolderView({
       {/* Content */}
       <div className="notion-scrollbar flex-1 overflow-y-auto">
         {sortedItemIds.length > 0 ? (
-          viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {sortedItemIds.map((itemId) => {
-                const item = items[itemId];
-                if (!item) return null;
-                return (
-                  <button
-                    key={item.id}
-                    className="notion-card group flex flex-col gap-2 p-4 text-left"
-                    onClick={() => onSelectItem(item.id)}
-                    onContextMenu={(e) => handleContextMenu(e, item.id)}
-                  >
+          <div className="space-y-0.5 p-2">
+            {sortedItemIds.map((itemId) => {
+              const item = items[itemId];
+              if (!item) return null;
+              return (
+                <button
+                  key={item.id}
+                  className="flex w-full items-center gap-4 rounded-xl p-4 text-left transition-all duration-200 hover:bg-surface-50 dark:hover:bg-surface-800/50"
+                  onClick={() => onSelectItem(item.id)}
+                  onContextMenu={(e) => handleContextMenu(e, item.id)}
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-100 text-xl shadow-sm dark:bg-surface-800">
+                    {item.emoji || '🔑'}
+                  </div>
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between">
-                      <span className="text-2xl">{item.emoji || '🔑'}</span>
-                      {item.isFavorite && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 shrink-0 text-yellow-500"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                        </svg>
+                      <h3 className="truncate text-sm font-semibold text-surface-800 dark:text-surface-200">
+                        {item.title || 'Untitled'}
+                      </h3>
+                      {item.updatedAt && (
+                        <span className="ml-2 whitespace-nowrap text-[10px] text-surface-400">
+                          {formatDateShort(item.updatedAt)}
+                        </span>
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-surface-800 dark:text-surface-200">
-                        {item.title}
-                      </p>
-                      {item.username && (
-                        <p className="mt-0.5 truncate text-xs text-surface-500 dark:text-surface-400">
-                          {item.username}
-                        </p>
-                      )}
-                    </div>
-                    {item.url && (
-                      <p className="truncate text-xs text-surface-400 dark:text-surface-500">
-                        {(() => {
-                          try {
-                            return new URL(item.url).hostname;
-                          } catch {
-                            return item.url;
-                          }
-                        })()}
-                      </p>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="divide-y divide-surface-200 dark:divide-surface-700">
-              {sortedItemIds.map((itemId) => {
-                const item = items[itemId];
-                if (!item) return null;
-                return (
-                  <button
-                    key={item.id}
-                    className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-50 dark:hover:bg-surface-800/50"
-                    onClick={() => onSelectItem(item.id)}
-                    onContextMenu={(e) => handleContextMenu(e, item.id)}
-                  >
-                    <span className="shrink-0 text-xl">{item.emoji || '🔑'}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-surface-800 dark:text-surface-200">
-                        {item.title}
-                      </p>
-                      {item.username && (
-                        <p className="truncate text-xs text-surface-500 dark:text-surface-400">
-                          {item.username}
-                        </p>
-                      )}
-                    </div>
-                    {item.url && (
-                      <span className="hidden max-w-[200px] truncate text-xs text-surface-400 dark:text-surface-500 md:block">
-                        {(() => {
-                          try {
-                            return new URL(item.url).hostname;
-                          } catch {
-                            return item.url;
-                          }
-                        })()}
-                      </span>
-                    )}
-                    {item.isFavorite && (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4 shrink-0 text-yellow-500"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                      </svg>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )
+                    <p className="truncate text-sm text-surface-500 dark:text-surface-400">
+                      {item.username || ''}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         ) : (
-          <div className="notion-empty-state h-full">
-            <div className="notion-empty-state-icon">📂</div>
-            <p className="notion-empty-state-title">No items yet</p>
-            <p className="notion-empty-state-description">
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="mb-3 text-4xl">📂</div>
+            <p className="text-sm font-medium text-surface-600 dark:text-surface-400">
+              No items yet
+            </p>
+            <p className="mt-1 text-xs text-surface-400 dark:text-surface-500">
               {currentFolderId
-                ? 'Click "New Item" to add your first password entry.'
+                ? 'Click "+ New Item" to add your first password entry.'
                 : 'Select a folder from the sidebar to view its items.'}
             </p>
-            {isCreatingItem && (
-              <div className="mt-4 flex items-center gap-2">
-                <input
-                  data-new-item-input
-                  className="notion-input h-8 w-56 text-xs"
-                  placeholder="Item title..."
-                  value={newItemTitle}
-                  onChange={(e) => onNewItemTitleChange(e.target.value)}
-                  onBlur={() => {
-                    if (!newItemTitle.trim()) {
-                      onNewItemCancel();
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      onNewItemSubmit();
-                    } else if (e.key === 'Escape') {
-                      onNewItemCancel();
-                    }
-                  }}
-                  autoFocus
-                />
-                <button className="notion-button-primary h-8 text-xs" onClick={onNewItemSubmit}>
-                  Add
-                </button>
-                <button className="notion-button-ghost h-8 text-xs" onClick={onNewItemCancel}>
-                  Cancel
-                </button>
-              </div>
+            {currentFolderId && onNewItem && (
+              <button
+                className="mt-4 flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-container"
+                onClick={onNewItem}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                New Item
+              </button>
             )}
           </div>
         )}

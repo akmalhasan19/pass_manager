@@ -85,7 +85,7 @@ describe('itemStore', () => {
   describe('loadItems', () => {
     it('should load items and populate the store', async () => {
       const items = [makeItem('i1', 'Item One'), makeItem('i2', 'Item Two')];
-      mockElectron.items.getByFolder.mockResolvedValue(items);
+      mockElectron.items.getByFolder.mockResolvedValue({ success: true, data: items });
 
       await useItemStore.getState().loadItems('f1');
 
@@ -98,7 +98,7 @@ describe('itemStore', () => {
     });
 
     it('should handle empty folder', async () => {
-      mockElectron.items.getByFolder.mockResolvedValue([]);
+      mockElectron.items.getByFolder.mockResolvedValue({ success: true, data: [] });
 
       await useItemStore.getState().loadItems('empty');
 
@@ -107,7 +107,7 @@ describe('itemStore', () => {
     });
 
     it('should set error on failure', async () => {
-      mockElectron.items.getByFolder.mockRejectedValue(new Error('DB error'));
+      mockElectron.items.getByFolder.mockResolvedValue({ success: false, error: 'DB error' });
 
       await useItemStore.getState().loadItems('f1');
 
@@ -119,7 +119,7 @@ describe('itemStore', () => {
   describe('loadItemById', () => {
     it('should load single item and add to store', async () => {
       const item = makeItem('single', 'Single Item');
-      mockElectron.items.getById.mockResolvedValue(item);
+      mockElectron.items.getById.mockResolvedValue({ success: true, data: item });
 
       await useItemStore.getState().loadItemById('single');
 
@@ -135,7 +135,7 @@ describe('itemStore', () => {
       });
 
       const updated = { ...makeItem('single', 'Updated Single') };
-      mockElectron.items.getById.mockResolvedValue(updated);
+      mockElectron.items.getById.mockResolvedValue({ success: true, data: updated });
 
       await useItemStore.getState().loadItemById('single');
 
@@ -144,7 +144,7 @@ describe('itemStore', () => {
     });
 
     it('should set error on failure', async () => {
-      mockElectron.items.getById.mockRejectedValue(new Error('Not found'));
+      mockElectron.items.getById.mockResolvedValue({ success: false, error: 'Not found' });
 
       await useItemStore.getState().loadItemById('missing');
 
@@ -155,7 +155,7 @@ describe('itemStore', () => {
   describe('createItem', () => {
     it('should create item and add to store', async () => {
       const created = makeItem('new', 'New Item', 'f1');
-      mockElectron.items.create.mockResolvedValue(created);
+      mockElectron.items.create.mockResolvedValue({ success: true, data: created });
 
       useItemStore.setState({ currentFolderId: 'f1' });
 
@@ -171,7 +171,7 @@ describe('itemStore', () => {
 
     it('should not add to itemIds if current folder differs', async () => {
       const created = makeItem('other', 'Other', 'f2');
-      mockElectron.items.create.mockResolvedValue(created);
+      mockElectron.items.create.mockResolvedValue({ success: true, data: created });
 
       useItemStore.setState({ currentFolderId: 'f1' });
 
@@ -182,7 +182,7 @@ describe('itemStore', () => {
     });
 
     it('should return null and set error on failure', async () => {
-      mockElectron.items.create.mockRejectedValue(new Error('DB error'));
+      mockElectron.items.create.mockResolvedValue({ success: false, error: 'DB error' });
 
       const result = await useItemStore.getState().createItem('f1', { title: 'Fail' });
 
@@ -200,7 +200,7 @@ describe('itemStore', () => {
       });
 
       const updated = { ...original, title: 'Updated', username: 'newuser' };
-      mockElectron.items.update.mockResolvedValue(updated);
+      mockElectron.items.update.mockResolvedValue({ success: true, data: updated });
 
       await useItemStore.getState().updateItem('i1', { title: 'Updated', username: 'newuser' });
 
@@ -210,7 +210,7 @@ describe('itemStore', () => {
     });
 
     it('should set error on failure', async () => {
-      mockElectron.items.update.mockRejectedValue(new Error('DB error'));
+      mockElectron.items.update.mockResolvedValue({ success: false, error: 'DB error' });
 
       await useItemStore.getState().updateItem('i1', { title: 'X' });
 
@@ -224,7 +224,7 @@ describe('itemStore', () => {
         items: { i1: makeItem('i1', 'Delete Me') },
         itemIds: ['i1'],
       });
-      mockElectron.items.delete.mockResolvedValue(undefined);
+      mockElectron.items.delete.mockResolvedValue({ success: true });
 
       await useItemStore.getState().deleteItem('i1');
 
@@ -239,7 +239,7 @@ describe('itemStore', () => {
         itemIds: ['i1'],
         selectedItemId: 'i1',
       });
-      mockElectron.items.delete.mockResolvedValue(undefined);
+      mockElectron.items.delete.mockResolvedValue({ success: true });
 
       await useItemStore.getState().deleteItem('i1');
 
@@ -264,7 +264,7 @@ describe('itemStore', () => {
       });
 
       const toggled = { ...original, isFavorite: true };
-      mockElectron.items.toggleFavorite.mockResolvedValue(toggled);
+      mockElectron.items.toggleFavorite.mockResolvedValue({ success: true, data: toggled });
 
       await useItemStore.getState().toggleFavorite('i1');
 
@@ -272,7 +272,7 @@ describe('itemStore', () => {
     });
 
     it('should set error on failure', async () => {
-      mockElectron.items.toggleFavorite.mockRejectedValue(new Error('DB error'));
+      mockElectron.items.toggleFavorite.mockResolvedValue({ success: false, error: 'DB error' });
 
       await useItemStore.getState().toggleFavorite('i1');
 
@@ -283,7 +283,7 @@ describe('itemStore', () => {
   describe('searchItems', () => {
     it('should search and replace items in store', async () => {
       const results = [makeItem('r1', 'Result One'), makeItem('r2', 'Result Two')];
-      mockElectron.items.search.mockResolvedValue(results);
+      mockElectron.items.search.mockResolvedValue({ success: true, data: results });
 
       await useItemStore.getState().searchItems('query');
 
@@ -297,7 +297,7 @@ describe('itemStore', () => {
     it('should reload items when query is empty', async () => {
       useItemStore.setState({ currentFolderId: 'f1' });
       const items = [makeItem('back', 'Back to folder')];
-      mockElectron.items.getByFolder.mockResolvedValue(items);
+      mockElectron.items.getByFolder.mockResolvedValue({ success: true, data: items });
 
       await useItemStore.getState().searchItems('');
 
@@ -306,7 +306,7 @@ describe('itemStore', () => {
     });
 
     it('should set error on failure', async () => {
-      mockElectron.items.search.mockRejectedValue(new Error('Search failed'));
+      mockElectron.items.search.mockResolvedValue({ success: false, error: 'Search failed' });
 
       await useItemStore.getState().searchItems('fail');
 
@@ -319,7 +319,7 @@ describe('itemStore', () => {
     it('should reload items for current folder', async () => {
       useItemStore.setState({ currentFolderId: 'f1' });
       const items = [makeItem('reloaded', 'Reloaded')];
-      mockElectron.items.getByFolder.mockResolvedValue(items);
+      mockElectron.items.getByFolder.mockResolvedValue({ success: true, data: items });
 
       await useItemStore.getState().clearSearch();
 

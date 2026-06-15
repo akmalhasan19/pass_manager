@@ -7,7 +7,7 @@ describe('uiStore', () => {
       sidebarOpen: true,
       darkMode: false,
       quickFindOpen: false,
-      activeView: 'folder',
+      activeView: 'home',
     });
   });
 
@@ -22,9 +22,9 @@ describe('uiStore', () => {
       expect(state.quickFindOpen).toBe(false);
     });
 
-    it('should start with activeView as folder', () => {
+    it('should start with activeView as home', () => {
       const state = useUIStore.getState();
-      expect(state.activeView).toBe('folder');
+      expect(state.activeView).toBe('home');
     });
   });
 
@@ -99,6 +99,11 @@ describe('uiStore', () => {
   });
 
   describe('setActiveView', () => {
+    it('should set activeView to home', () => {
+      useUIStore.getState().setActiveView('home');
+      expect(useUIStore.getState().activeView).toBe('home');
+    });
+
     it('should set activeView to folder', () => {
       useUIStore.getState().setActiveView('folder');
       expect(useUIStore.getState().activeView).toBe('folder');

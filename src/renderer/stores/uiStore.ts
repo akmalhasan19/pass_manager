@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type ActiveView = 'folder' | 'item' | 'health' | 'trash' | 'settings';
+export type ActiveView = 'home' | 'folder' | 'item' | 'health' | 'trash' | 'settings';
 
 interface UIState {
   sidebarOpen: boolean;
@@ -27,7 +27,7 @@ export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: true,
   darkMode: getInitialDarkMode(),
   quickFindOpen: false,
-  activeView: 'folder',
+  activeView: 'home',
 
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 

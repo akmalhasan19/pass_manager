@@ -122,7 +122,7 @@ describe('folderStore', () => {
       const tree: Folder[] = [
         makeFolder('root', 'Root', null, [makeFolder('child', 'Child', 'root')]),
       ];
-      mockElectron.folders.getTree.mockResolvedValue(tree);
+      mockElectron.folders.getTree.mockResolvedValue({ success: true, data: tree });
 
       await useFolderStore.getState().loadTree();
 
@@ -133,7 +133,7 @@ describe('folderStore', () => {
     });
 
     it('should handle empty tree', async () => {
-      mockElectron.folders.getTree.mockResolvedValue([]);
+      mockElectron.folders.getTree.mockResolvedValue({ success: true, data: [] });
 
       await useFolderStore.getState().loadTree();
 
@@ -141,7 +141,7 @@ describe('folderStore', () => {
     });
 
     it('should set error on failure', async () => {
-      mockElectron.folders.getTree.mockRejectedValue(new Error('DB error'));
+      mockElectron.folders.getTree.mockResolvedValue({ success: false, error: 'DB error' });
 
       await useFolderStore.getState().loadTree();
 
@@ -161,7 +161,7 @@ describe('folderStore', () => {
   describe('createFolder', () => {
     it('should create root folder and insert into state', async () => {
       const newFolder = makeFolder('new-root', 'New Root', null);
-      mockElectron.folders.create.mockResolvedValue(newFolder);
+      mockElectron.folders.create.mockResolvedValue({ success: true, data: newFolder });
 
       const result = await useFolderStore.getState().createFolder(null, 'New Root', '🏠');
 
@@ -174,7 +174,7 @@ describe('folderStore', () => {
       useFolderStore.setState({ folders: [root] });
 
       const child = makeFolder('child', 'Child', 'root');
-      mockElectron.folders.create.mockResolvedValue(child);
+      mockElectron.folders.create.mockResolvedValue({ success: true, data: child });
 
       await useFolderStore.getState().createFolder('root', 'Child');
 
@@ -207,7 +207,7 @@ describe('folderStore', () => {
       const original = makeFolder('f1', 'Original', null);
       useFolderStore.setState({ folders: [original] });
 
-      mockElectron.folders.update.mockResolvedValue({ ...original, name: 'Renamed' });
+      mockElectron.folders.update.mockResolvedValue({ success: true, data: { ...original, name: 'Renamed' } });
 
       await useFolderStore.getState().updateFolder('f1', { name: 'Renamed' });
 
@@ -215,7 +215,7 @@ describe('folderStore', () => {
     });
 
     it('should set error on failure', async () => {
-      mockElectron.folders.update.mockRejectedValue(new Error('DB error'));
+      mockElectron.folders.update.mockResolvedValue({ success: false, error: 'DB error' });
 
       await useFolderStore.getState().updateFolder('f1', { name: 'X' });
 
@@ -226,8 +226,8 @@ describe('folderStore', () => {
   describe('moveFolder', () => {
     it('should move folder and reload tree', async () => {
       const updatedTree: Folder[] = [makeFolder('root', 'Root', null)];
-      mockElectron.folders.move.mockResolvedValue(undefined);
-      mockElectron.folders.getTree.mockResolvedValue(updatedTree);
+      mockElectron.folders.move.mockResolvedValue({ success: true, data: updatedTree });
+      mockElectron.folders.getTree.mockResolvedValue({ success: true, data: updatedTree });
 
       await useFolderStore.getState().moveFolder('child', 'root', 0);
 
@@ -246,7 +246,7 @@ describe('folderStore', () => {
     });
 
     it('should set error on IPC failure', async () => {
-      mockElectron.folders.move.mockRejectedValue(new Error('DB error'));
+      mockElectron.folders.move.mockResolvedValue({ success: false, error: 'DB error' });
 
       await useFolderStore.getState().moveFolder('f1', null, 0);
 
@@ -258,7 +258,7 @@ describe('folderStore', () => {
     it('should delete folder from state', async () => {
       const folder = makeFolder('to-delete', 'Delete Me', null);
       useFolderStore.setState({ folders: [folder] });
-      mockElectron.folders.delete.mockResolvedValue(undefined);
+      mockElectron.folders.delete.mockResolvedValue({ success: true });
 
       await useFolderStore.getState().deleteFolder('to-delete');
 
@@ -271,7 +271,7 @@ describe('folderStore', () => {
         folders: [folder],
         selectedFolderId: 'selected',
       });
-      mockElectron.folders.delete.mockResolvedValue(undefined);
+      mockElectron.folders.delete.mockResolvedValue({ success: true });
 
       await useFolderStore.getState().deleteFolder('selected');
 
@@ -284,7 +284,7 @@ describe('folderStore', () => {
         folders: [folder],
         expandedFolderIds: new Set(['expanded']),
       });
-      mockElectron.folders.delete.mockResolvedValue(undefined);
+      mockElectron.folders.delete.mockResolvedValue({ success: true });
 
       await useFolderStore.getState().deleteFolder('expanded');
 

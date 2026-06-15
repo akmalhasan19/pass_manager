@@ -37,7 +37,8 @@ export default function TrashView(): React.ReactElement {
     setIsLoading(true);
     try {
       const result = await window.electron.trash.get();
-      setEntries(result || []);
+      if (!result.success) throw new Error(result.error || 'Failed to load trash');
+      setEntries(result.data || []);
     } catch {
       setEntries([]);
     } finally {

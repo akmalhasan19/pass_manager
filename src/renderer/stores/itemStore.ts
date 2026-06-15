@@ -56,12 +56,13 @@ export const useItemStore = create<ItemState>((set, get) => ({
   loadItems: async (folderId) => {
     set({ isLoading: true, error: null, currentFolderId: folderId });
     try {
-      const list = await window.electron.items.getByFolder(folderId);
+      const result = await window.electron.items.getByFolder(folderId);
+      if (!result.success) throw new Error(result.error || 'Failed to load items');
       set(
         produce((state: ItemState) => {
           state.items = {};
           state.itemIds = [];
-          for (const item of list) {
+          for (const item of result.data) {
             state.items[item.id] = item;
             state.itemIds.push(item.id);
           }
@@ -76,7 +77,9 @@ export const useItemStore = create<ItemState>((set, get) => ({
 
   loadItemById: async (id) => {
     try {
-      const item = await window.electron.items.getById(id);
+      const result = await window.electron.items.getById(id);
+      if (!result.success) throw new Error(result.error || 'Failed to load item');
+      const item = result.data;
       if (item) {
         set(
           produce((state: ItemState) => {
@@ -96,7 +99,9 @@ export const useItemStore = create<ItemState>((set, get) => ({
   createItem: async (folderId, fields) => {
     set({ error: null });
     try {
-      const item = await window.electron.items.create(folderId, fields);
+      const result = await window.electron.items.create(folderId, fields);
+      if (!result.success) throw new Error(result.error || 'Failed to create item');
+      const item = result.data;
       set(
         produce((state: ItemState) => {
           state.items[item.id] = item;
@@ -116,7 +121,9 @@ export const useItemStore = create<ItemState>((set, get) => ({
   updateItem: async (id, fields) => {
     set({ error: null });
     try {
-      const updated = await window.electron.items.update(id, fields);
+      const result = await window.electron.items.update(id, fields);
+      if (!result.success) throw new Error(result.error || 'Failed to update item');
+      const updated = result.data;
       if (updated) {
         set(
           produce((state: ItemState) => {
@@ -151,7 +158,9 @@ export const useItemStore = create<ItemState>((set, get) => ({
 
   toggleFavorite: async (id) => {
     try {
-      const updated = await window.electron.items.toggleFavorite(id);
+      const result = await window.electron.items.toggleFavorite(id);
+      if (!result.success) throw new Error(result.error || 'Failed to toggle favorite');
+      const updated = result.data;
       if (updated) {
         set(
           produce((state: ItemState) => {
@@ -174,12 +183,13 @@ export const useItemStore = create<ItemState>((set, get) => ({
     }
     set({ isLoading: true, error: null });
     try {
-      const results = await window.electron.items.search(query);
+      const result = await window.electron.items.search(query);
+      if (!result.success) throw new Error(result.error || 'Search failed');
       set(
         produce((state: ItemState) => {
           state.items = {};
           state.itemIds = [];
-          for (const item of results) {
+          for (const item of result.data) {
             state.items[item.id] = item;
             state.itemIds.push(item.id);
           }

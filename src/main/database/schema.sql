@@ -103,29 +103,4 @@ INSERT OR IGNORE INTO settings (key, value) VALUES ('default_password_exclude_am
 INSERT OR IGNORE INTO settings (key, value) VALUES ('trash_auto_purge_days', '30');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '1');
 
--- Full-text search virtual table
-CREATE VIRTUAL TABLE IF NOT EXISTS items_fts USING fts5(
-    title,
-    username,
-    url,
-    content='items',
-    content_rowid='rowid'
-);
 
--- Triggers to keep FTS index in sync
-CREATE TRIGGER IF NOT EXISTS items_ai AFTER INSERT ON items BEGIN
-    INSERT INTO items_fts(rowid, title, username, url)
-    VALUES (new.rowid, new.title, new.username, new.url);
-END;
-
-CREATE TRIGGER IF NOT EXISTS items_ad AFTER DELETE ON items BEGIN
-    INSERT INTO items_fts(items_fts, rowid, title, username, url)
-    VALUES ('delete', old.rowid, old.title, old.username, old.url);
-END;
-
-CREATE TRIGGER IF NOT EXISTS items_au AFTER UPDATE ON items BEGIN
-    INSERT INTO items_fts(items_fts, rowid, title, username, url)
-    VALUES ('delete', old.rowid, old.title, old.username, old.url);
-    INSERT INTO items_fts(rowid, title, username, url)
-    VALUES (new.rowid, new.title, new.username, new.url);
-END;

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
-import { produce } from 'immer';
+import { produce, enableMapSet } from 'immer';
 import type { Folder } from '../../shared/types';
+
+enableMapSet();
 
 export interface FolderState {
   folders: Folder[];
@@ -91,8 +93,9 @@ export const useFolderStore = create<FolderState>((set, get) => ({
   loadTree: async () => {
     set({ isLoading: true, error: null });
     try {
-      const tree = await window.electron.folders.getTree();
-      set({ folders: tree, isLoading: false });
+      const result = await window.electron.folders.getTree();
+      if (!result.success) throw new Error(result.error || 'Failed to load folders');
+      set({ folders: result.data, isLoading: false });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load folders';
       set({ isLoading: false, error: message });
@@ -102,7 +105,9 @@ export const useFolderStore = create<FolderState>((set, get) => ({
   createFolder: async (parentId, name, emoji) => {
     set({ error: null });
     try {
-      const folder = await window.electron.folders.create(parentId, name, emoji);
+      const result = await window.electron.folders.create(parentId, name, emoji);
+      if (!result.success) throw new Error(result.error || 'Failed to create folder');
+      const folder = result.data;
       set(
         produce((state: FolderState) => {
           state.folders = insertNode(state.folders, parentId, folder);
@@ -122,7 +127,9 @@ export const useFolderStore = create<FolderState>((set, get) => ({
   updateFolder: async (id, fields) => {
     set({ error: null });
     try {
-      const updated = await window.electron.folders.update(id, fields);
+      const result = await window.electron.folders.update(id, fields);
+      if (!result.success) throw new Error(result.error || 'Failed to update folder');
+      const updated = result.data;
       if (updated) {
         set(
           produce((state: FolderState) => {
@@ -145,9 +152,11 @@ export const useFolderStore = create<FolderState>((set, get) => ({
     }
     set({ error: null });
     try {
-      await window.electron.folders.move(id, newParentId, sortOrder);
-      const tree = await window.electron.folders.getTree();
-      set({ folders: tree });
+      const moveResult = await window.electron.folders.move(id, newParentId, sortOrder);
+      if (!moveResult.success) throw new Error(moveResult.error || 'Failed to move folder');
+      const treeResult = await window.electron.folders.getTree();
+      if (!treeResult.success) throw new Error(treeResult.error || 'Failed to reload tree');
+      set({ folders: treeResult.data });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to move folder';
       set({ error: message });

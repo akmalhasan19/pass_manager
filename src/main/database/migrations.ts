@@ -1,7 +1,7 @@
 import { readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { app } from 'electron';
-import { runMany } from './connection';
+import { runMany, getDatabase } from './connection';
 
 const CURRENT_VERSION = 1;
 
@@ -38,8 +38,8 @@ export function runSchema(): void {
 
   const statements = schema
     .split(';')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0 && !s.startsWith('--'))
+    .map((s) => s.replace(/--.*$/gm, '').trim())
+    .filter((s) => s.length > 0)
     .map((s) => s + ';');
 
   runMany(statements);
@@ -55,7 +55,6 @@ function getCurrentSchemaVersion(): number {
 }
 
 function runQuery(sql: string, params: unknown[] = []): unknown {
-  const { getDatabase } = require('./connection');
   const db = getDatabase();
   if (!db) throw new Error('Database not open');
   const stmt = db.prepare(sql);
@@ -81,7 +80,6 @@ export function runMigrations(): void {
     // if (currentVersion < 2) { ... }
     // if (currentVersion < 3) { ... }
 
-    const { getDatabase } = require('./connection');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 

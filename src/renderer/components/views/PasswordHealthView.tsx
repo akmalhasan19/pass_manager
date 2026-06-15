@@ -136,7 +136,8 @@ export default function PasswordHealthView({
     setError(null);
     try {
       const result = await window.electron.health.analyze(settings.passwordHealthOldDays);
-      setReport(result);
+      if (!result.success) throw new Error(result.error || 'Failed to analyze password health');
+      setReport(result.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze password health');
     } finally {

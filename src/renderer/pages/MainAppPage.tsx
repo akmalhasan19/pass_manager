@@ -5,9 +5,11 @@ import MainPanel from '../components/layout/MainPanel';
 import QuickFind from '../components/layout/QuickFind';
 import ToastContainer from '../components/ui/ToastContainer';
 import { useAutoLock } from '../hooks/useAutoLock';
+import { useUIStore } from '../stores/uiStore';
 
 export default function MainAppPage(): React.ReactElement {
   const { timeRemaining, showWarning, extendTimer, isEnabled } = useAutoLock();
+  const activeView = useUIStore((s) => s.activeView);
 
   const formatTime = (ms: number): string => {
     if (ms === Infinity) return '';
@@ -24,7 +26,7 @@ export default function MainAppPage(): React.ReactElement {
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-surface-50 dark:bg-surface-900">
       <TitleBar />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+        {activeView !== 'home' && <Sidebar />}
         <MainPanel />
       </div>
       <QuickFind />

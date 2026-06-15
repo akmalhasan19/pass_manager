@@ -130,7 +130,7 @@ export default function QuickFind(): React.ReactElement {
         // Search items via IPC
         try {
           const itemsResult = await window.electron.items.search(searchQuery);
-          for (const item of itemsResult) {
+          for (const item of itemsResult.data) {
             searchResults.push({
               type: 'item',
               id: item.id,

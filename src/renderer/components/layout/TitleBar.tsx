@@ -7,7 +7,7 @@ export default function TitleBar(): React.ReactElement {
   useEffect(() => {
     // Detect platform
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-    setPlatform(isMac ? 'darwin' : process.platform || 'win32');
+    setPlatform(isMac ? 'darwin' : 'win32');
 
     // Check initial maximize state
     window.electron.window.isMaximized().then(setIsMaximized);

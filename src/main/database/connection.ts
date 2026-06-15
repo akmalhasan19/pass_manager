@@ -36,9 +36,8 @@ export async function initializeSqlJs(): Promise<void> {
 
   try {
     const wasmPath = join(app.getAppPath(), 'public', 'sql-wasm.wasm');
-    SQL = await initSqlJs({
-      locateFile: () => wasmPath,
-    });
+    const wasmBinary = readFileSync(wasmPath);
+    SQL = await initSqlJs({ wasmBinary });
   } catch (cause) {
     const isWasm = cause instanceof Error && cause.message?.includes('WASM');
     throw new DatabaseError(

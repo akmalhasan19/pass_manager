@@ -4,6 +4,7 @@ import { useUIStore, type ActiveView } from '../../stores/uiStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useFolderStore } from '../../stores/folderStore';
 import { useItemStore } from '../../stores/itemStore';
+import HomeView from '../views/HomeView';
 import FolderView from '../views/FolderView';
 import ItemDetailView from '../views/ItemDetailView';
 import TrashView from '../views/TrashView';
@@ -28,10 +29,24 @@ function buildBreadcrumbPath(
   return null;
 }
 
+function formatDateShort(ts: number): string {
+  if (!ts) return '';
+  const now = Date.now();
+  const diff = now - ts;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
 export default function MainPanel(): React.ReactElement {
   const { activeView, setActiveView, sidebarOpen, toggleQuickFind } = useUIStore();
   const { lock } = useAuthStore();
-  const { folders, selectedFolderId, setSelectedFolder, createFolder } = useFolderStore();
+  const { folders, selectedFolderId, setSelectedFolder } = useFolderStore();
   const {
     items,
     itemIds,
@@ -48,15 +63,26 @@ export default function MainPanel(): React.ReactElement {
   const [selectedItemDecrypted, setSelectedItemDecrypted] = useState<ItemDecrypted | null>(null);
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [isItemLoading, setIsItemLoading] = useState(false);
-
-  const [newItemTitle, setNewItemTitle] = useState('');
-  const [isCreatingItem, setIsCreatingItem] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [isNewItem, setIsNewItem] = useState(false);
 
   const breadcrumb = useMemo(() => {
     if (!selectedFolderId) return [];
     return buildBreadcrumbPath(folders, selectedFolderId) || [];
+  }, [folders, selectedFolderId]);
+
+  const currentFolder = useMemo(() => {
+    if (!selectedFolderId) return null;
+    const findFolder = (list: Folder[]): Folder | null => {
+      for (const f of list) {
+        if (f.id === selectedFolderId) return f;
+        if (f.children) {
+          const found = findFolder(f.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    return findFolder(folders);
   }, [folders, selectedFolderId]);
 
   const handleBreadcrumbClick = useCallback(
@@ -69,49 +95,24 @@ export default function MainPanel(): React.ReactElement {
     [setSelectedFolder, loadItems],
   );
 
-  const handleNewItemSubmit = useCallback(async () => {
-    const title = newItemTitle.trim();
-    if (!title || !currentFolderId) return;
-    await createItem(currentFolderId, { title });
-    setNewItemTitle('');
-    setIsCreatingItem(false);
-  }, [newItemTitle, currentFolderId, createItem]);
-
-  const handleNewItemKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        handleNewItemSubmit();
-      } else if (e.key === 'Escape') {
-        setIsCreatingItem(false);
-        setNewItemTitle('');
+  const handleNewItem = useCallback(async () => {
+    if (!currentFolderId) return;
+    try {
+      const newItem = await createItem(currentFolderId, { title: 'Untitled' });
+      if (newItem) {
+        setIsNewItem(true);
+        setSelectedItem(newItem.id);
+        setActiveView('item');
+        await loadItems(currentFolderId);
       }
-    },
-    [handleNewItemSubmit],
-  );
-
-  const handleNewFolderSubmit = useCallback(async () => {
-    const name = newFolderName.trim();
-    if (!name) return;
-    const parentId = selectedFolderId || null;
-    await createFolder(parentId, name);
-    setNewFolderName('');
-    setIsCreatingFolder(false);
-  }, [newFolderName, selectedFolderId, createFolder]);
-
-  const handleNewFolderKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        handleNewFolderSubmit();
-      } else if (e.key === 'Escape') {
-        setIsCreatingFolder(false);
-        setNewFolderName('');
-      }
-    },
-    [handleNewFolderSubmit],
-  );
+    } catch (err) {
+      console.error('Failed to create new item:', err);
+    }
+  }, [currentFolderId, createItem, setSelectedItem, setActiveView, loadItems]);
 
   const handleSelectItem = useCallback(
     (id: string) => {
+      setIsNewItem(false);
       setSelectedItem(id);
       setActiveView('item');
     },
@@ -204,7 +205,6 @@ export default function MainPanel(): React.ReactElement {
     [selectedItemId, loadItemById],
   );
 
-  // File attachment operations
   const handleFileAttach = useCallback(async (itemId: string) => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -236,51 +236,29 @@ export default function MainPanel(): React.ReactElement {
     }
   }, []);
 
-  const isFolderView = activeView === 'folder';
+  const showDetailPanel = activeView === 'item' && selectedItemId;
+  const showFolderList = activeView !== 'home';
 
-  const renderActiveView = (): React.ReactNode => {
+  const renderMainContent = (): React.ReactNode => {
     switch (activeView) {
+      case 'home':
+        return <HomeView />;
       case 'folder':
+      case 'item':
         return (
           <FolderView
             items={items}
             itemIds={itemIds}
             currentFolderId={currentFolderId}
             onSelectItem={handleSelectItem}
-            onDeleteItem={(id) => {
-              deleteItem(id);
-            }}
+            onDeleteItem={(id) => deleteItem(id)}
             onToggleFavorite={(id) => {
               const item = items[id];
               if (item) {
                 updateItem(id, { isFavorite: !item.isFavorite });
               }
             }}
-            isCreatingItem={isCreatingItem}
-            newItemTitle={newItemTitle}
-            onNewItemTitleChange={setNewItemTitle}
-            onNewItemSubmit={handleNewItemSubmit}
-            onNewItemCancel={() => {
-              setIsCreatingItem(false);
-              setNewItemTitle('');
-            }}
-          />
-        );
-      case 'item':
-        return (
-          <ItemDetailView
-            item={selectedItemDecrypted}
-            isLoading={isItemLoading}
-            onUpdate={handleItemUpdate}
-            onDelete={handleItemDelete}
-            onBack={handleBackToFolder}
-            allTags={allTags}
-            onCreateTag={handleCreateTag}
-            onAttachTag={handleAttachTag}
-            onDetachTag={handleDetachTag}
-            onFileAttach={handleFileAttach}
-            onFileDownload={handleFileDownload}
-            onFileDelete={handleFileDelete}
+            onNewItem={handleNewItem}
           />
         );
       case 'health':
@@ -296,23 +274,207 @@ export default function MainPanel(): React.ReactElement {
 
   return (
     <motion.main
-      className="flex flex-1 flex-col overflow-hidden"
+      className="flex flex-1 overflow-hidden"
       initial={false}
-      animate={{ marginLeft: sidebarOpen ? 260 : 56 }}
+      animate={{
+        marginLeft: sidebarOpen ? 261 : 57,
+      }}
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
     >
-      {/* Toolbar */}
-      <div className="notion-toolbar h-12 shrink-0 items-center justify-between">
-        <div className="flex min-w-0 items-center gap-2">
-          {/* Breadcrumb */}
-          <nav className="notion-breadcrumb min-w-0" aria-label="Breadcrumb">
+      {/* Center Panel - Folder List */}
+      {showFolderList && (
+        <div
+          className="flex h-full shrink-0 flex-col border-r border-surface-200 bg-white dark:border-surface-700 dark:bg-surface-850"
+          style={{
+            width: showDetailPanel ? 320 : '100%',
+            minWidth: showDetailPanel ? 320 : undefined,
+            maxWidth: showDetailPanel ? 320 : undefined,
+          }}
+        >
+          {/* Header */}
+          <div className="flex h-16 shrink-0 items-center justify-between border-b border-surface-200 px-6 backdrop-blur-sm dark:border-surface-700">
+            <h1 className="truncate text-lg font-semibold text-surface-800 dark:text-surface-200">
+              {currentFolder?.name || 'All Items'}
+            </h1>
+            <div className="flex gap-2">
+              <button
+                className="rounded-lg p-1.5 transition-all hover:bg-surface-100 active:scale-95 dark:hover:bg-surface-800"
+                aria-label="Filter"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-surface-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                  />
+                </svg>
+              </button>
+              <button
+                className="rounded-lg p-1.5 transition-all hover:bg-surface-100 active:scale-95 dark:hover:bg-surface-800"
+                onClick={handleNewItem}
+                aria-label="New Item"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 font-bold text-primary"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="space-y-0.5 p-2">
+              {itemIds.length > 0 ? (
+                itemIds.map((itemId) => {
+                  const item = items[itemId];
+                  if (!item) return null;
+                  const isActive = selectedItemId === itemId;
+                  return (
+                    <button
+                      key={item.id}
+                      className={`flex w-full items-center gap-4 rounded-xl p-4 text-left transition-all duration-200 ${
+                        isActive
+                          ? 'bg-surface-50 dark:bg-surface-800/50'
+                          : 'hover:bg-surface-50 dark:hover:bg-surface-800/50'
+                      }`}
+                      onClick={() => handleSelectItem(item.id)}
+                    >
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xl shadow-sm ${
+                          isActive
+                            ? 'bg-primary/10'
+                            : 'bg-surface-100 dark:bg-surface-800'
+                        }`}
+                      >
+                        {item.emoji || '🔑'}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between">
+                          <h3 className="truncate text-sm font-semibold text-surface-800 dark:text-surface-200">
+                            {item.title || 'Untitled'}
+                          </h3>
+                          {item.updatedAt && (
+                            <span className="ml-2 whitespace-nowrap text-[10px] text-surface-400">
+                              {formatDateShort(item.updatedAt)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="truncate text-sm text-surface-500 dark:text-surface-400">
+                          {item.username || ''}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="mb-3 text-4xl">📂</div>
+                  <p className="text-sm font-medium text-surface-600 dark:text-surface-400">
+                    No items yet
+                  </p>
+                  <p className="mt-1 text-xs text-surface-400 dark:text-surface-500">
+                    Click &quot;+&quot; above to add your first password
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Floating New Item Button */}
+          <div className="border-t border-surface-200/30 p-4 dark:border-surface-700/30">
             <button
-              className={`notion-breadcrumb-item ${!selectedFolderId ? 'current' : ''} flex items-center gap-1`}
-              onClick={() => handleBreadcrumbClick(null)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-white shadow-lg transition-all active:scale-[0.98]"
+              style={{ backgroundColor: '#5E5CE6' }}
+              onClick={handleNewItem}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-3.5 w-3.5 shrink-0"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+                style={{ fontVariationSettings: "'wght' 600" }}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>New Item</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Right Panel - Detail View / Other Views */}
+      <div className="flex flex-1 flex-col overflow-hidden bg-surface-50 dark:bg-surface-900">
+        {/* Toolbar */}
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-surface-200 bg-white/50 px-4 backdrop-blur-sm dark:border-surface-700 dark:bg-surface-850/50">
+          <nav className="min-w-0" aria-label="Breadcrumb">
+            <div className="flex items-center gap-1.5 text-sm">
+              <button
+                className="flex items-center gap-1 text-surface-400 transition-colors hover:text-surface-600 dark:hover:text-surface-300"
+                onClick={() => {
+                  setActiveView('home');
+                  setSelectedFolder(null);
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Home</span>
+              </button>
+              {breadcrumb.map((folder, index) => (
+                <React.Fragment key={folder.id}>
+                  <span className="text-surface-300 dark:text-surface-600">/</span>
+                  <button
+                    className={`max-w-[150px] truncate transition-colors hover:text-surface-600 dark:hover:text-surface-300 ${
+                      index === breadcrumb.length - 1
+                        ? 'font-medium text-surface-700 dark:text-surface-300'
+                        : 'text-surface-400'
+                    }`}
+                    onClick={() => handleBreadcrumbClick(folder.id)}
+                  >
+                    {folder.emoji && <span className="mr-1">{folder.emoji}</span>}
+                    {folder.name}
+                  </button>
+                </React.Fragment>
+              ))}
+            </div>
+          </nav>
+
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+              onClick={toggleQuickFind}
+              aria-label="Quick Find"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -321,213 +483,99 @@ export default function MainPanel(): React.ReactElement {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
-              <span className="hidden sm:inline">Home</span>
+              <span className="hidden text-xs text-surface-400 sm:inline">⌘K</span>
             </button>
-
-            {breadcrumb.map((folder, index) => (
-              <React.Fragment key={folder.id}>
-                <span className="notion-breadcrumb-separator">/</span>
-                <button
-                  className={`notion-breadcrumb-item ${
-                    index === breadcrumb.length - 1 ? 'current' : ''
-                  } flex max-w-[150px] items-center gap-1`}
-                  onClick={() => handleBreadcrumbClick(folder.id)}
-                >
-                  <span className="truncate">
-                    {folder.emoji && <span className="mr-1">{folder.emoji}</span>}
-                    {folder.name}
-                  </span>
-                </button>
-              </React.Fragment>
-            ))}
-          </nav>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1">
-          {/* Quick Find trigger */}
-          <button
-            className="notion-button-ghost h-8 gap-1.5 px-2"
-            onClick={toggleQuickFind}
-            aria-label="Quick Find"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <span className="hidden text-xs text-surface-400 dark:text-surface-500 sm:inline">
-              ⌘K
-            </span>
-          </button>
-
-          {/* Lock button */}
-          <button
-            className="notion-button-ghost h-8 px-2"
-            onClick={() => lock()}
-            aria-label="Lock vault"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Navigation tabs */}
-      <div className="flex border-b border-surface-200 bg-white dark:border-surface-700 dark:bg-surface-850">
-        {(['folder', 'health', 'trash', 'settings'] as const).map((view) => (
-          <button
-            key={view}
-            onClick={() => setActiveView(view)}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors ${
-              activeView === view
-                ? 'border-b-2 border-accent-600 text-accent-600 dark:border-accent-400 dark:text-accent-400'
-                : 'text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-300'
-            }`}
-          >
-            {VIEW_ICONS[view]}
-            <span className="hidden md:inline">{VIEW_LABELS[view]}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Action toolbar (for folder view) */}
-      {isFolderView && (
-        <div className="flex items-center gap-2 border-b border-surface-200 bg-white px-4 py-2 dark:border-surface-700 dark:bg-surface-850">
-          {/* New Item button */}
-          {currentFolderId && (
             <button
-              className="notion-button-primary h-8 gap-1.5 text-xs"
-              onClick={() => {
-                setIsCreatingItem(true);
-                setNewItemTitle('');
-              }}
+              className="flex h-8 items-center rounded-lg px-2 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+              onClick={() => lock()}
+              aria-label="Lock vault"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-3.5 w-3.5"
+                className="h-4 w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
                 strokeWidth={2}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
               </svg>
-              New Item
             </button>
-          )}
-
-          {/* New Folder button */}
-          <button
-            className="notion-button-ghost h-8 gap-1.5 text-xs"
-            onClick={() => {
-              setIsCreatingFolder(true);
-              setNewFolderName('');
-            }}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-3.5 w-3.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-              />
-            </svg>
-            New Folder
-          </button>
-
-          {/* Spacer to push inline inputs to the right */}
-          <div className="ml-auto" />
-
-          {/* Inline new item creation */}
-          {isCreatingItem && (
-            <div className="ml-2 flex items-center gap-2">
-              <input
-                className="notion-input h-8 w-48 text-xs"
-                placeholder="Item title..."
-                value={newItemTitle}
-                onChange={(e) => setNewItemTitle(e.target.value)}
-                onBlur={() => {
-                  if (!newItemTitle.trim()) {
-                    setIsCreatingItem(false);
-                  }
-                }}
-                onKeyDown={handleNewItemKeyDown}
-                autoFocus
-              />
-            </div>
-          )}
-
-          {/* Inline new folder creation */}
-          {isCreatingFolder && (
-            <div className="ml-2 flex items-center gap-2">
-              <input
-                className="notion-input h-8 w-48 text-xs"
-                placeholder="Folder name..."
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                onBlur={() => {
-                  if (!newFolderName.trim()) {
-                    setIsCreatingFolder(false);
-                  }
-                }}
-                onKeyDown={handleNewFolderKeyDown}
-                autoFocus
-              />
-            </div>
-          )}
+          </div>
         </div>
-      )}
 
-      {/* Content area */}
-      <div className="notion-scrollbar relative flex-1 overflow-y-auto">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeView}
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -12 }}
-            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-0"
-          >
-            {renderActiveView()}
-          </motion.div>
-        </AnimatePresence>
+        {/* Navigation tabs */}
+        {!showDetailPanel && activeView !== 'home' && (
+          <div className="flex border-b border-surface-200 bg-white dark:border-surface-700 dark:bg-surface-850">
+            {(['home', 'folder', 'health', 'trash', 'settings'] as const).map((view) => (
+              <button
+                key={view}
+                onClick={() => {
+                  setActiveView(view);
+                  if (view === 'home') {
+                    setSelectedFolder(null);
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors ${
+                  activeView === view
+                    ? 'border-b-2 border-primary text-primary'
+                    : 'text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-300'
+                }`}
+              >
+                {VIEW_ICONS[view]}
+                <span className="hidden md:inline">{VIEW_LABELS[view]}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Content area */}
+        <div className="notion-scrollbar relative flex-1 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={showDetailPanel ? `detail-${selectedItemId}` : activeView}
+              initial={{ opacity: 0, x: showDetailPanel ? 12 : 0 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: showDetailPanel ? -12 : 0 }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute inset-0"
+            >
+              {showDetailPanel ? (
+                <ItemDetailView
+                  item={selectedItemDecrypted}
+                  isLoading={isItemLoading}
+                  isNewItem={isNewItem}
+                  onUpdate={handleItemUpdate}
+                  onDelete={handleItemDelete}
+                  onBack={handleBackToFolder}
+                  allTags={allTags}
+                  onCreateTag={handleCreateTag}
+                  onAttachTag={handleAttachTag}
+                  onDetachTag={handleDetachTag}
+                  onFileAttach={handleFileAttach}
+                  onFileDownload={handleFileDownload}
+                  onFileDelete={handleFileDelete}
+                />
+              ) : (
+                renderMainContent()
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </motion.main>
   );
 }
 
 const VIEW_LABELS: Record<ActiveView, string> = {
+  home: 'Home',
   folder: 'All Items',
   item: 'Item Detail',
   health: 'Password Health',
@@ -536,6 +584,22 @@ const VIEW_LABELS: Record<ActiveView, string> = {
 };
 
 const VIEW_ICONS: Record<ActiveView, React.ReactNode> = {
+  home: (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+      />
+    </svg>
+  ),
   folder: (
     <svg
       xmlns="http://www.w3.org/2000/svg"

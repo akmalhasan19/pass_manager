@@ -10,30 +10,32 @@ import {
   HealthReport,
 } from '../shared/types';
 
+export type IpcResult<T> = { success: boolean; data: T; error?: string };
+
 export interface ElectronAuthAPI {
-  init(masterPassword: string): Promise<void>;
-  unlock(masterPassword: string): Promise<boolean>;
-  lock(): Promise<void>;
-  changePassword(oldPassword: string, newPassword: string): Promise<void>;
-  check(): Promise<boolean>;
+  init(masterPassword: string): Promise<IpcResult<void>>;
+  unlock(masterPassword: string): Promise<IpcResult<void>>;
+  lock(): Promise<IpcResult<void>>;
+  changePassword(oldPassword: string, newPassword: string): Promise<IpcResult<void>>;
+  check(): Promise<{ initialized: boolean }>;
 }
 
 export interface ElectronFoldersAPI {
-  getTree(): Promise<Folder[]>;
-  create(parentId: string | null, name: string, emoji?: string): Promise<Folder>;
+  getTree(): Promise<IpcResult<Folder[]>>;
+  create(parentId: string | null, name: string, emoji?: string): Promise<IpcResult<Folder>>;
   update(
     id: string,
     fields: { name?: string; emoji?: string; coverImage?: string },
-  ): Promise<Folder | null>;
-  move(id: string, newParentId: string | null, sortOrder: number): Promise<Folder | null>;
-  delete(id: string): Promise<void>;
-  restore(id: string): Promise<void>;
+  ): Promise<IpcResult<Folder | null>>;
+  move(id: string, newParentId: string | null, sortOrder: number): Promise<IpcResult<Folder[]>>;
+  delete(id: string): Promise<IpcResult<void>>;
+  restore(id: string): Promise<IpcResult<Folder[]>>;
 }
 
 export interface ElectronItemsAPI {
-  getAll(): Promise<Item[]>;
-  getByFolder(folderId: string): Promise<Item[]>;
-  getById(id: string): Promise<ItemDecrypted | null>;
+  getAll(): Promise<IpcResult<Item[]>>;
+  getByFolder(folderId: string): Promise<IpcResult<Item[]>>;
+  getById(id: string): Promise<IpcResult<ItemDecrypted | null>>;
   create(
     folderId: string,
     fields: {
@@ -45,7 +47,7 @@ export interface ElectronItemsAPI {
       emoji?: string | null;
       coverImage?: string | null;
     },
-  ): Promise<ItemDecrypted>;
+  ): Promise<IpcResult<ItemDecrypted>>;
   update(
     id: string,
     fields: {
@@ -59,12 +61,12 @@ export interface ElectronItemsAPI {
       isFavorite?: boolean;
       sortOrder?: number;
     },
-  ): Promise<ItemDecrypted | null>;
-  delete(id: string): Promise<void>;
-  restore(id: string): Promise<void>;
-  toggleFavorite(id: string): Promise<ItemDecrypted | null>;
-  search(query: string): Promise<Item[]>;
-  searchByTag(tagId: string): Promise<Item[]>;
+  ): Promise<IpcResult<ItemDecrypted | null>>;
+  delete(id: string): Promise<IpcResult<void>>;
+  restore(id: string): Promise<IpcResult<ItemDecrypted>>;
+  toggleFavorite(id: string): Promise<IpcResult<ItemDecrypted | null>>;
+  search(query: string): Promise<IpcResult<Item[]>>;
+  searchByTag(tagId: string): Promise<IpcResult<Item[]>>;
 }
 
 export interface ElectronTagsAPI {
@@ -76,10 +78,10 @@ export interface ElectronTagsAPI {
 }
 
 export interface ElectronFilesAPI {
-  getByItem(itemId: string): Promise<Attachment[]>;
-  attach(itemId: string, filePath: string): Promise<Attachment>;
-  download(attachmentId: string): Promise<string>;
-  delete(attachmentId: string): Promise<Attachment | null>;
+  getByItem(itemId: string): Promise<IpcResult<Attachment[]>>;
+  attach(itemId: string, filePath: string): Promise<IpcResult<Attachment>>;
+  download(attachmentId: string): Promise<IpcResult<{ filePath: string; fileName: string; mimeType: string }>>;
+  delete(attachmentId: string): Promise<IpcResult<Attachment | null>>;
 }
 
 export interface ElectronCoversAPI {
@@ -100,7 +102,7 @@ export interface ElectronSettingsAPI {
 }
 
 export interface ElectronTrashAPI {
-  get(): Promise<TrashEntry[]>;
+  get(): Promise<IpcResult<TrashEntry[]>>;
   restore(originalId: string, originalType: 'folder' | 'item'): Promise<void>;
   permanentDelete(id: string): Promise<void>;
   empty(): Promise<void>;
@@ -115,7 +117,7 @@ export interface ElectronWindowAPI {
 }
 
 export interface ElectronHealthAPI {
-  analyze(oldDays?: number): Promise<HealthReport>;
+  analyze(oldDays?: number): Promise<IpcResult<HealthReport>>;
 }
 
 export interface ElectronAPI {
