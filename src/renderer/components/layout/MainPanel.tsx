@@ -107,11 +107,16 @@ export default function MainPanel(): React.ReactElement {
 
   const handleSelectItem = useCallback(
     (id: string) => {
+      if (id === selectedItemId) {
+        setSelectedItem(null);
+        setActiveView('folder');
+        return;
+      }
       setIsNewItem(false);
       setSelectedItem(id);
       setActiveView('item');
     },
-    [setSelectedItem, setActiveView],
+    [selectedItemId, setSelectedItem, setActiveView],
   );
 
   const handleBackToFolder = useCallback(() => {
@@ -232,20 +237,18 @@ export default function MainPanel(): React.ReactElement {
   }, []);
 
   const showDetailPanel = activeView === 'item' && selectedItemId;
-
   const showFolderList = activeView !== 'home';
 
   return (
-    <main className="flex flex-1 overflow-hidden">
+    <div className="relative flex flex-1 overflow-hidden">
       {/* Center Panel - Folder List */}
       {showFolderList && (
-        <div
+        <motion.div
           className="flex h-full shrink-0 flex-col border-r border-surface-200 bg-white dark:border-surface-700 dark:bg-surface-850"
-          style={{
+          animate={{
             width: showDetailPanel ? 320 : '100%',
-            minWidth: showDetailPanel ? 320 : undefined,
-            maxWidth: showDetailPanel ? 320 : undefined,
           }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         >
           {/* Header */}
           <div className="flex h-14 shrink-0 items-center justify-between border-b border-surface-200 px-4 dark:border-surface-700">
@@ -357,7 +360,7 @@ export default function MainPanel(): React.ReactElement {
                 })
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="mb-3 text-4xl">📂</div>
+                  <div className="mb-3 text-4xl"></div>
                   <p className="text-sm font-medium text-surface-600 dark:text-surface-400">
                     No items yet
                   </p>
@@ -389,159 +392,266 @@ export default function MainPanel(): React.ReactElement {
               <span>New Item</span>
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
 
-      {/* Right Panel - Detail View / Other Views */}
-      <div className="flex flex-1 flex-col overflow-hidden bg-white dark:bg-surface-900">
-        {/* Toolbar */}
-        <div className="flex h-12 shrink-0 items-center justify-between border-b border-surface-200 bg-white/50 px-4 backdrop-blur-sm dark:border-surface-700 dark:bg-surface-850/50">
-          <nav className="min-w-0" aria-label="Breadcrumb">
-            <div className="flex items-center gap-1.5 text-sm">
-              <button
-                className="flex items-center gap-1 text-surface-400 transition-colors hover:text-surface-600 dark:hover:text-surface-300"
-                onClick={() => {
-                  setActiveView('home');
-                  setSelectedFolder(null);
-                }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-3.5 w-3.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                  />
-                </svg>
-                <span className="hidden sm:inline">Home</span>
-              </button>
-              {breadcrumb.map((folder, index) => (
-                <React.Fragment key={folder.id}>
-                  <span className="text-surface-300 dark:text-surface-600">/</span>
+      {/* Right Panel - Detail View (slides in from right) */}
+      <AnimatePresence>
+        {showDetailPanel && (
+          <motion.div
+            key="detail-panel"
+            initial={{ x: '100%', opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: '100%', opacity: 0 }}
+            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute right-0 top-0 flex h-full flex-col overflow-hidden bg-white dark:bg-surface-900"
+            style={{ width: 'calc(100% - 320px)' }}
+          >
+            {/* Toolbar */}
+            <div className="flex h-12 shrink-0 items-center justify-between border-b border-surface-200 bg-white/50 px-4 backdrop-blur-sm dark:border-surface-700 dark:bg-surface-850/50">
+              <nav className="min-w-0" aria-label="Breadcrumb">
+                <div className="flex items-center gap-1.5 text-sm">
                   <button
-                    className={`max-w-[150px] truncate transition-colors hover:text-surface-600 dark:hover:text-surface-300 ${
-                      index === breadcrumb.length - 1
-                        ? 'font-medium text-surface-700 dark:text-surface-300'
-                        : 'text-surface-400'
-                    }`}
-                    onClick={() => handleBreadcrumbClick(folder.id)}
+                    className="flex items-center gap-1 text-surface-400 transition-colors hover:text-surface-600 dark:hover:text-surface-300"
+                    onClick={() => {
+                      setActiveView('home');
+                      setSelectedFolder(null);
+                    }}
                   >
-                    {folder.emoji && <span className="mr-1">{folder.emoji}</span>}
-                    {folder.name}
-                  </button>
-                </React.Fragment>
-              ))}
-            </div>
-          </nav>
-
-          <div className="flex shrink-0 items-center gap-1">
-            <button
-              className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
-              onClick={toggleQuickFind}
-              aria-label="Quick Find"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <span className="hidden text-xs text-surface-400 sm:inline">K</span>
-            </button>
-            <button
-              className="flex h-8 items-center rounded-lg px-2 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
-              onClick={() => lock()}
-              aria-label="Lock vault"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Content area */}
-        <div className="notion-scrollbar relative flex-1 overflow-y-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={showDetailPanel ? `detail-${selectedItemId}` : activeView}
-              initial={{ opacity: 0, x: showDetailPanel ? 12 : 0 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: showDetailPanel ? -12 : 0 }}
-              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute inset-0"
-            >
-              {showDetailPanel ? (
-                <ItemDetailView
-                  item={selectedItemDecrypted}
-                  isLoading={isItemLoading}
-                  isNewItem={isNewItem}
-                  onUpdate={handleItemUpdate}
-                  onDelete={handleItemDelete}
-                  onBack={handleBackToFolder}
-                  allTags={allTags}
-                  onCreateTag={handleCreateTag}
-                  onAttachTag={handleAttachTag}
-                  onDetachTag={handleDetachTag}
-                  onFileAttach={handleFileAttach}
-                  onFileDownload={handleFileDownload}
-                  onFileDelete={handleFileDelete}
-                />
-              ) : (
-                <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-                  <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-surface-100 dark:bg-surface-800">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-10 w-10 text-surface-400 dark:text-surface-500"
+                      className="h-3.5 w-3.5"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
-                      strokeWidth={1.5}
+                      strokeWidth={2}
                     >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
                       />
                     </svg>
-                  </div>
-                  <h2 className="mb-2 text-xl font-semibold text-surface-800 dark:text-surface-200">
-                    Select an item to view details
-                  </h2>
-                  <p className="max-w-xs text-sm text-surface-500 dark:text-surface-400">
-                    Choose a password or secure note from the list to see its full information here.
-                  </p>
+                    <span className="hidden sm:inline">Home</span>
+                  </button>
+                  {breadcrumb.map((folder, index) => (
+                    <React.Fragment key={folder.id}>
+                      <span className="text-surface-300 dark:text-surface-600">/</span>
+                      <button
+                        className={`max-w-[150px] truncate transition-colors hover:text-surface-600 dark:hover:text-surface-300 ${
+                          index === breadcrumb.length - 1
+                            ? 'font-medium text-surface-700 dark:text-surface-300'
+                            : 'text-surface-400'
+                        }`}
+                        onClick={() => handleBreadcrumbClick(folder.id)}
+                      >
+                        {folder.emoji && <span className="mr-1">{folder.emoji}</span>}
+                        {folder.name}
+                      </button>
+                    </React.Fragment>
+                  ))}
                 </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
-    </main>
+              </nav>
+
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+                  onClick={toggleQuickFind}
+                  aria-label="Quick Find"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  <span className="hidden text-xs text-surface-400 sm:inline">K</span>
+                </button>
+                <button
+                  className="flex h-8 items-center rounded-lg px-2 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+                  onClick={() => lock()}
+                  aria-label="Lock vault"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Content area */}
+            <div className="notion-scrollbar relative flex-1 overflow-y-auto">
+              <ItemDetailView
+                item={selectedItemDecrypted}
+                isLoading={isItemLoading}
+                isNewItem={isNewItem}
+                onUpdate={handleItemUpdate}
+                onDelete={handleItemDelete}
+                onBack={handleBackToFolder}
+                allTags={allTags}
+                onCreateTag={handleCreateTag}
+                onAttachTag={handleAttachTag}
+                onDetachTag={handleDetachTag}
+                onFileAttach={handleFileAttach}
+                onFileDownload={handleFileDownload}
+                onFileDelete={handleFileDelete}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Right Panel - Empty State (shown when no detail) */}
+      <AnimatePresence>
+        {!showDetailPanel && showFolderList && (
+          <motion.div
+            key="empty-panel"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-1 flex-col overflow-hidden bg-white dark:bg-surface-900"
+          >
+            {/* Toolbar */}
+            <div className="flex h-12 shrink-0 items-center justify-between border-b border-surface-200 bg-white/50 px-4 backdrop-blur-sm dark:border-surface-700 dark:bg-surface-850/50">
+              <nav className="min-w-0" aria-label="Breadcrumb">
+                <div className="flex items-center gap-1.5 text-sm">
+                  <button
+                    className="flex items-center gap-1 text-surface-400 transition-colors hover:text-surface-600 dark:hover:text-surface-300"
+                    onClick={() => {
+                      setActiveView('home');
+                      setSelectedFolder(null);
+                    }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                      />
+                    </svg>
+                    <span className="hidden sm:inline">Home</span>
+                  </button>
+                  {breadcrumb.map((folder, index) => (
+                    <React.Fragment key={folder.id}>
+                      <span className="text-surface-300 dark:text-surface-600">/</span>
+                      <button
+                        className={`max-w-[150px] truncate transition-colors hover:text-surface-600 dark:hover:text-surface-300 ${
+                          index === breadcrumb.length - 1
+                            ? 'font-medium text-surface-700 dark:text-surface-300'
+                            : 'text-surface-400'
+                        }`}
+                        onClick={() => handleBreadcrumbClick(folder.id)}
+                      >
+                        {folder.emoji && <span className="mr-1">{folder.emoji}</span>}
+                        {folder.name}
+                      </button>
+                    </React.Fragment>
+                  ))}
+                </div>
+              </nav>
+
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+                  onClick={toggleQuickFind}
+                  aria-label="Quick Find"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  <span className="hidden text-xs text-surface-400 sm:inline">K</span>
+                </button>
+                <button
+                  className="flex h-8 items-center rounded-lg px-2 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+                  onClick={() => lock()}
+                  aria-label="Lock vault"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Content area */}
+            <div className="notion-scrollbar relative flex-1 overflow-y-auto">
+              <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-surface-100 dark:bg-surface-800">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-10 w-10 text-surface-400 dark:text-surface-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                    />
+                  </svg>
+                </div>
+                <h2 className="mb-2 text-xl font-semibold text-surface-800 dark:text-surface-200">
+                  Select an item to view details
+                </h2>
+                <p className="max-w-xs text-sm text-surface-500 dark:text-surface-400">
+                  Choose a password or secure note from the list to see its full information here.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
