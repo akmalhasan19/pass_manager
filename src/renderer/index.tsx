@@ -3,6 +3,15 @@ import ReactDOM from 'react-dom/client';
 import App from './pages/App';
 import './styles/globals.css';
 import './styles/notion-theme.css';
+import { captureError } from './stores/errorStore';
+
+window.addEventListener('unhandledrejection', (event) => {
+  captureError(event.reason, 'unhandledrejection');
+});
+
+window.addEventListener('error', (event) => {
+  captureError(event.error ?? event.message, 'window.error');
+});
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -26,7 +35,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     this.setState({ errorInfo });
-    console.error('[SecurePass] Uncaught error:', error, errorInfo);
+    captureError(error, 'ErrorBoundary', errorInfo.componentStack ?? undefined);
   }
 
   handleReload = (): void => {

@@ -35,7 +35,7 @@ export async function initializeSqlJs(): Promise<void> {
   if (SQL) return;
 
   try {
-    const wasmPath = join(__dirname, '..', '..', '..', 'public', 'sql-wasm.wasm');
+    const wasmPath = join(app.getAppPath(), 'public', 'sql-wasm.wasm');
     SQL = await initSqlJs({
       locateFile: () => wasmPath,
     });

@@ -7,44 +7,39 @@ import renderer from 'vite-plugin-electron-renderer';
 export default defineConfig({
   plugins: [
     react(),
-    electron(
-      [
-        {
-          entry: 'src/main/index.ts',
-          vite: {
-            resolve: {
-              alias: {
-                '@shared': resolve(__dirname, 'src/shared'),
-                '@main': resolve(__dirname, 'src/main'),
-              },
-            },
-            build: {
-              outDir: 'dist-electron/main',
-              minify: process.env.NODE_ENV === 'production',
-              sourcemap: true,
-            },
-          },
-        },
-        {
-          entry: 'src/preload/index.ts',
-          vite: {
-            resolve: {
-              alias: {
-                '@shared': resolve(__dirname, 'src/shared'),
-              },
-            },
-            build: {
-              outDir: 'dist-electron/preload',
-              minify: process.env.NODE_ENV === 'production',
-              sourcemap: true,
-            },
-          },
-        },
-      ],
+    electron([
       {
-        sharedPreload: true,
-      }
-    ),
+        entry: 'src/main/index.ts',
+        vite: {
+          resolve: {
+            alias: {
+              '@shared': resolve(__dirname, 'src/shared'),
+              '@main': resolve(__dirname, 'src/main'),
+            },
+          },
+          build: {
+            outDir: 'dist-electron/main',
+            minify: process.env.NODE_ENV === 'production',
+            sourcemap: true,
+          },
+        },
+      },
+      {
+        entry: 'src/preload/index.ts',
+        vite: {
+          resolve: {
+            alias: {
+              '@shared': resolve(__dirname, 'src/shared'),
+            },
+          },
+          build: {
+            outDir: 'dist-electron/preload',
+            minify: process.env.NODE_ENV === 'production',
+            sourcemap: true,
+          },
+        },
+      },
+    ]),
     renderer(),
   ],
   resolve: {

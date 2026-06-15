@@ -66,7 +66,7 @@ describe('authStore', () => {
 
   describe('checkAuth', () => {
     it('should set status to locked when DB exists', async () => {
-      mockElectron.auth.check.mockResolvedValue(true);
+      mockElectron.auth.check.mockResolvedValue({ initialized: true });
       await useAuthStore.getState().checkAuth();
 
       expect(useAuthStore.getState().status).toBe('locked');
@@ -75,7 +75,7 @@ describe('authStore', () => {
     });
 
     it('should set status to setup when DB does not exist', async () => {
-      mockElectron.auth.check.mockResolvedValue(false);
+      mockElectron.auth.check.mockResolvedValue({ initialized: false });
       await useAuthStore.getState().checkAuth();
 
       expect(useAuthStore.getState().status).toBe('setup');
@@ -92,7 +92,7 @@ describe('authStore', () => {
 
   describe('initApp', () => {
     it('should set status to unlocked on success', async () => {
-      mockElectron.auth.init.mockResolvedValue(undefined);
+      mockElectron.auth.init.mockResolvedValue({ success: true });
       await useAuthStore.getState().initApp('strongpassword');
 
       expect(useAuthStore.getState().status).toBe('unlocked');
@@ -120,7 +120,7 @@ describe('authStore', () => {
 
   describe('unlock', () => {
     it('should set status to unlocked on success (true)', async () => {
-      mockElectron.auth.unlock.mockResolvedValue(true);
+      mockElectron.auth.unlock.mockResolvedValue({ success: true });
       await useAuthStore.getState().unlock('masterpw');
 
       expect(useAuthStore.getState().status).toBe('unlocked');
@@ -129,7 +129,7 @@ describe('authStore', () => {
     });
 
     it('should set error on unlock failure (false)', async () => {
-      mockElectron.auth.unlock.mockResolvedValue(false);
+      mockElectron.auth.unlock.mockResolvedValue({ success: false, error: 'Incorrect master password' });
       await useAuthStore.getState().unlock('wrong');
 
       expect(useAuthStore.getState().status).toBe('locked');

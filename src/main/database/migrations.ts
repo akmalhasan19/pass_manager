@@ -33,7 +33,7 @@ export function isInitialized(): boolean {
 }
 
 export function runSchema(): void {
-  const schemaPath = join(__dirname, 'schema.sql');
+  const schemaPath = join(app.getAppPath(), 'src', 'main', 'database', 'schema.sql');
   const schema = readFileSync(schemaPath, 'utf-8');
 
   const statements = schema

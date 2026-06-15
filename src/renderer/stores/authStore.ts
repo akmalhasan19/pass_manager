@@ -30,8 +30,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   checkAuth: async () => {
     set({ status: 'checking', error: null, ...deriveFlags('checking') });
     try {
-      const dbExists = await window.electron.auth.check();
-      const next = dbExists ? 'locked' : 'setup';
+      const result = await window.electron.auth.check();
+      const next: AuthStatus = result.initialized ? 'locked' : 'setup';
       set({ status: next, ...deriveFlags(next) });
     } catch {
       const next: AuthStatus = 'setup';
@@ -42,7 +42,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   initApp: async (password: string) => {
     set({ status: 'checking', error: null, ...deriveFlags('checking') });
     try {
-      await window.electron.auth.init(password);
+      if (!window.electron) {
+        throw new Error('Electron IPC not available. Please restart the application.');
+      }
+      const result = await window.electron.auth.init(password);
+      if (!result.success) {
+        set({ status: 'setup', error: result.error || 'Failed to initialize', ...deriveFlags('setup') });
+        return;
+      }
       set({ status: 'unlocked', error: null, ...deriveFlags('unlocked') });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to initialize';
@@ -53,12 +60,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   unlock: async (password: string) => {
     set({ status: 'checking', error: null, ...deriveFlags('checking') });
     try {
-      const success = await window.electron.auth.unlock(password);
-      if (success) {
-        set({ status: 'unlocked', error: null, ...deriveFlags('unlocked') });
-      } else {
-        set({ status: 'locked', error: 'Incorrect master password', ...deriveFlags('locked') });
+      if (!window.electron) {
+        throw new Error('Electron IPC not available. Please restart the application.');
       }
+      const result = await window.electron.auth.unlock(password);
+      if (!result.success) {
+        set({ status: 'locked', error: result.error || 'Incorrect master password', ...deriveFlags('locked') });
+        return;
+      }
+      set({ status: 'unlocked', error: null, ...deriveFlags('unlocked') });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to unlock';
       set({ status: 'locked', error: message, ...deriveFlags('locked') });
@@ -68,7 +78,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   lock: async () => {
     set({ status: 'checking', ...deriveFlags('checking') });
     try {
-      await window.electron.auth.lock();
+      if (window.electron) {
+        await window.electron.auth.lock();
+      }
     } catch {
       // Lock should always proceed even if IPC fails
     } finally {
@@ -79,6 +91,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   changePassword: async (oldPassword: string, newPassword: string) => {
     set({ error: null });
     try {
+      if (!window.electron) {
+        throw new Error('Electron IPC not available. Please restart the application.');
+      }
       await window.electron.auth.changePassword(oldPassword, newPassword);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to change password';
