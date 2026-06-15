@@ -5,7 +5,7 @@ import { useItemStore } from '../../stores/itemStore';
 import TreeNode from '../ui/TreeNode';
 
 export default function Sidebar(): React.ReactElement {
-  const { toggleQuickFind, setActiveView, toggleCenterPanel, centerPanelVisible } = useUIStore();
+  const { toggleQuickFind, setActiveView, toggleCenterPanel, centerPanelVisible, setCenterPanelVisible } = useUIStore();
   const {
     folders,
     selectedFolderId,
@@ -18,7 +18,7 @@ export default function Sidebar(): React.ReactElement {
     moveFolder,
     loadTree,
   } = useFolderStore();
-  const { loadItems } = useItemStore();
+  const { loadItems, selectedItemId, setSelectedItem } = useItemStore();
 
   const [newFolderName, setNewFolderName] = useState('');
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -38,21 +38,50 @@ export default function Sidebar(): React.ReactElement {
 
   const handleSelectFolder = useCallback(
     (id: string) => {
-      // If clicking the same folder that's already selected, toggle the center panel
       if (selectedFolderId === id) {
-        toggleCenterPanel();
+        if (selectedItemId !== null) {
+          setSelectedItem(null);
+          setCenterPanelVisible(false);
+          setTimeout(() => {
+            setSelectedFolder(null);
+            setActiveView('home');
+          }, 320);
+        } else {
+          setSelectedFolder(null);
+          setActiveView('home');
+        }
       } else {
-        // If clicking a different folder, select it and show the center panel
-        setSelectedFolder(id);
-        loadItems(id);
-        setActiveView('folder');
-        // Ensure center panel is visible when selecting a new folder
-        if (!centerPanelVisible) {
-          toggleCenterPanel();
+        const isItemOpen = selectedItemId !== null;
+        if (isItemOpen) {
+          setSelectedItem(null);
+          setCenterPanelVisible(false);
+          setTimeout(() => {
+            setSelectedFolder(id);
+            loadItems(id);
+            setActiveView('folder');
+            setCenterPanelVisible(true);
+          }, 320);
+        } else {
+          setSelectedFolder(id);
+          loadItems(id);
+          setActiveView('folder');
+          if (!centerPanelVisible) {
+            toggleCenterPanel();
+          }
         }
       }
     },
-    [selectedFolderId, setSelectedFolder, loadItems, setActiveView, toggleCenterPanel, centerPanelVisible],
+    [
+      selectedFolderId,
+      selectedItemId,
+      setSelectedFolder,
+      loadItems,
+      setActiveView,
+      toggleCenterPanel,
+      centerPanelVisible,
+      setSelectedItem,
+      setCenterPanelVisible,
+    ],
   );
 
   const handleNewFolder = useCallback((parentId: string | null = null) => {

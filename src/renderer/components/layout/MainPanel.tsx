@@ -253,7 +253,7 @@ export default function MainPanel(): React.ReactElement {
           {/* Header */}
           <div className="flex shrink-0 flex-col">
             {/* Breadcrumb */}
-            <div className="flex h-10 shrink-0 items-center px-4">
+            <div className="flex h-12 shrink-0 items-center px-4">
               <Breadcrumb
                 folders={folders}
                 selectedFolderId={selectedFolderId}
