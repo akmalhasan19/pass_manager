@@ -35,26 +35,6 @@
 }
 
 @layer components {
-  .notion-sidebar {
-    @apply fixed left-0 top-0 h-full w-[var(--sidebar-width)] border-r;
-    @apply bg-white dark:bg-surface-850;
-    @apply transition-all duration-200 ease-out;
-    @apply z-30;
-  }
-
-  .notion-sidebar.collapsed {
-    @apply w-[var(--sidebar-collapsed-width)];
-  }
-
-  .notion-main {
-    @apply ml-[var(--sidebar-width)];
-    @apply transition-all duration-200 ease-out;
-  }
-
-  .notion-main.expanded {
-    @apply ml-[var(--sidebar-collapsed-width)];
-  }
-
   .notion-card {
     @apply rounded-lg border bg-white dark:bg-surface-800;
     @apply hover:shadow-sm dark:hover:bg-surface-750;

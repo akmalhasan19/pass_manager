@@ -121,7 +121,11 @@ export default function TreeNode({
   return (
     <div ref={nodeRef}>
       <div
-        className={`notion-tree-node group ${isSelected ? 'selected' : ''} ${isDragOver ? 'drag-over' : ''}`}
+        className={`group flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm transition-colors duration-100 ${
+          isSelected
+            ? 'bg-surface-200/80 text-surface-800 dark:bg-surface-700/80 dark:text-surface-100'
+            : 'text-surface-700 hover:bg-surface-200/60 dark:text-surface-300 dark:hover:bg-surface-700/60'
+        } ${isDragOver ? 'ring-2 ring-accent-400' : ''}`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
@@ -161,18 +165,6 @@ export default function TreeNode({
           </svg>
         </button>
 
-        {/* Drag handle */}
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-3.5 w-3.5 shrink-0 cursor-grab text-surface-300 opacity-0 transition-opacity active:cursor-grabbing group-hover:opacity-100 dark:text-surface-600"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
-        </svg>
-
         {/* Emoji or folder icon */}
         <span className="shrink-0 text-base leading-none" onClick={(e) => e.stopPropagation()}>
           {onEmojiChange ? (
@@ -183,7 +175,7 @@ export default function TreeNode({
               placement="bottom-start"
               ariaLabel={`Change emoji for ${folder.name}`}
             >
-              <span className="flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors hover:bg-surface-200 dark:hover:bg-surface-700">
+              <span className="flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors hover:bg-surface-300/50 dark:hover:bg-surface-600/50">
                 {folder.emoji || '📁'}
               </span>
             </EmojiPicker>

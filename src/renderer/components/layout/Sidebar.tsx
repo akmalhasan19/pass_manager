@@ -1,14 +1,11 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useUIStore } from '../../stores/uiStore';
-import { useAuthStore } from '../../stores/authStore';
 import { useFolderStore } from '../../stores/folderStore';
 import { useItemStore } from '../../stores/itemStore';
 import TreeNode from '../ui/TreeNode';
 
 export default function Sidebar(): React.ReactElement {
-  const { sidebarOpen, toggleSidebar, toggleQuickFind, setActiveView } = useUIStore();
-  const { lock } = useAuthStore();
+  const { toggleQuickFind, setActiveView } = useUIStore();
   const {
     folders,
     selectedFolderId,
@@ -139,305 +136,239 @@ export default function Sidebar(): React.ReactElement {
   }, []);
 
   return (
-    <motion.aside
-      className="notion-sidebar flex shrink-0 flex-col"
-      initial={false}
-      animate={{ width: sidebarOpen ? 260 : 56 }}
-      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-      role="navigation"
-      aria-label="Folder navigation"
-    >
-      {/* Header */}
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-surface-200 px-3 dark:border-surface-700">
-        {sidebarOpen && (
-          <span className="truncate text-sm font-semibold text-surface-800 dark:text-surface-200">
-            SecurePass
-          </span>
-        )}
-        <div className={`flex items-center gap-1 ${sidebarOpen ? '' : 'w-full justify-center'}`}>
-          {sidebarOpen && (
-            <>
-              <button
-                onClick={() => handleNewFolder()}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
-                aria-label="New Folder"
-                title="New Folder"
+    <aside className="flex h-full w-[220px] shrink-0 flex-col bg-[#f5f5f7] dark:bg-surface-850">
+      {/* User Profile */}
+      <div className="flex shrink-0 items-center gap-3 px-4 pt-4 pb-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-400 to-blue-600">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5 text-white"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+            />
+          </svg>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-surface-800 dark:text-surface-100">
+            Alex Riverside
+          </p>
+          <p className="text-xs text-surface-500 dark:text-surface-400">Pro Plan</p>
+        </div>
+      </div>
+
+      {/* Quick Find */}
+      <div className="px-3 pb-2">
+        <button
+          onClick={toggleQuickFind}
+          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-surface-500 transition-colors hover:bg-surface-200/60 dark:text-surface-400 dark:hover:bg-surface-700/60"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <span>Quick Find</span>
+        </button>
+      </div>
+
+      {/* Content area */}
+      <div className="relative flex-1 overflow-y-auto px-3 pb-2">
+        {/* VAULTS Section */}
+        <div className="mb-1">
+          <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">
+            Vaults
+          </p>
+          <div className="space-y-0.5" role="tree">
+            {folders.map((folder) => (
+              <TreeNode
+                key={folder.id}
+                folder={folder}
+                depth={0}
+                selectedFolderId={selectedFolderId}
+                expandedFolderIds={expandedFolderIds}
+                onSelect={handleSelectFolder}
+                onToggleExpand={toggleExpandFolder}
+                onRename={handleRename}
+                onDelete={handleDelete}
+                onNewSubfolder={handleNewSubfolder}
+                onEmojiChange={handleEmojiChange}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onDragLeave={handleDragLeave}
+                dragOverId={dragOverId}
+              />
+            ))}
+
+            {folders.length === 0 && !isCreatingFolder && (
+              <p className="px-2 py-2 text-xs italic text-surface-400 dark:text-surface-500">
+                No vaults yet
+              </p>
+            )}
+
+            {/* Inline new folder creation */}
+            {isCreatingFolder && (
+              <div
+                className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm"
+                style={{ paddingLeft: `${(newFolderParentId ? 20 : 0) + 8}px` }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-              </button>
-              <button
-                onClick={toggleQuickFind}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
-                aria-label="Quick Find"
-                title="Quick Find (Ctrl+K)"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </button>
-            </>
-          )}
+                <span className="shrink-0 text-base leading-none">📁</span>
+                <input
+                  ref={newFolderInputRef}
+                  className="min-w-0 flex-1 rounded border border-accent-400 bg-white px-1 py-0 text-sm outline-none ring-1 ring-accent-400/50 dark:bg-surface-800"
+                  placeholder="Vault name..."
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  onBlur={handleCreateFolderSubmit}
+                  onKeyDown={handleCreateFolderKeyDown}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* SHARED Section */}
+        <div className="mb-1">
+          <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">
+            Shared
+          </p>
           <button
-            onClick={toggleSidebar}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
-            aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-surface-700 transition-colors hover:bg-surface-200/60 dark:text-surface-300 dark:hover:bg-surface-700/60"
+            onClick={() => setActiveView('folder')}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
+              className="h-4 w-4 shrink-0 text-surface-500 dark:text-surface-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
               strokeWidth={2}
             >
-              {sidebarOpen ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-                />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-              )}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
+              />
             </svg>
+            <span className="flex-1 truncate text-left">Marketing Team</span>
+            <span className="rounded bg-accent-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-accent-700 dark:bg-accent-900/40 dark:text-accent-300">
+              Team
+            </span>
           </button>
         </div>
-      </div>
 
-      {/* Content area */}
-      <div className="notion-scrollbar relative flex-1 overflow-y-auto p-2">
-        <AnimatePresence mode="wait">
-          {sidebarOpen ? (
-            <motion.div
-              key="expanded"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="space-y-0.5"
-              role="tree"
-            >
-              <p className="px-2 py-1 text-xs font-medium uppercase tracking-wider text-surface-400 dark:text-surface-500">
-                Folders
-              </p>
+        {/* Password Health */}
+        <button
+          className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-surface-700 transition-colors hover:bg-surface-200/60 dark:text-surface-300 dark:hover:bg-surface-700/60"
+          onClick={() => setActiveView('health')}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 shrink-0 text-blue-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+            />
+          </svg>
+          <span className="flex-1 truncate text-left">Password Health</span>
+          <span className="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-green-700 dark:bg-green-900/40 dark:text-green-300">
+            Good
+          </span>
+        </button>
 
-              {folders.length === 0 && !isCreatingFolder && (
-                <p className="px-2 py-3 text-xs italic text-surface-400 dark:text-surface-500">
-                  No folders yet
-                </p>
-              )}
-
-              {folders.map((folder) => (
-                <TreeNode
-                  key={folder.id}
-                  folder={folder}
-                  depth={0}
-                  selectedFolderId={selectedFolderId}
-                  expandedFolderIds={expandedFolderIds}
-                  onSelect={handleSelectFolder}
-                  onToggleExpand={toggleExpandFolder}
-                  onRename={handleRename}
-                  onDelete={handleDelete}
-                  onNewSubfolder={handleNewSubfolder}
-                  onEmojiChange={handleEmojiChange}
-                  onDragStart={handleDragStart}
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                  onDragLeave={handleDragLeave}
-                  dragOverId={dragOverId}
-                />
-              ))}
-
-              {/* Inline new folder creation */}
-              {isCreatingFolder && (
-                <div
-                  className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm"
-                  style={{ paddingLeft: `${(newFolderParentId ? 24 : 0) + 8}px` }}
-                >
-                  <span className="shrink-0 text-base leading-none">📁</span>
-                  <input
-                    ref={newFolderInputRef}
-                    className="min-w-0 flex-1 rounded border border-accent-400 bg-white px-1 py-0 text-sm outline-none ring-1 ring-accent-400/50 dark:bg-surface-800"
-                    placeholder="Folder name..."
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    onBlur={handleCreateFolderSubmit}
-                    onKeyDown={handleCreateFolderKeyDown}
-                  />
-                </div>
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="collapsed"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="flex flex-col items-center gap-2 pt-2"
-            >
-              <button
-                className="flex h-8 w-8 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
-                aria-label="New Folder"
-                onClick={() => handleNewFolder()}
-                title="New Folder"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-              </button>
-              <button
-                className="flex h-8 w-8 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
-                aria-label="Quick Find"
-                onClick={toggleQuickFind}
-                title="Quick Find"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Trash */}
+        <button
+          className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-surface-700 transition-colors hover:bg-surface-200/60 dark:text-surface-300 dark:hover:bg-surface-700/60"
+          onClick={() => setActiveView('trash')}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 shrink-0 text-surface-500 dark:text-surface-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+          <span className="truncate">Trash</span>
+        </button>
       </div>
 
       {/* Footer */}
-      <div className="shrink-0 space-y-1 border-t border-surface-200 p-2 dark:border-surface-700">
-        {sidebarOpen ? (
-          <>
-            <button className="notion-tree-node w-full" onClick={() => setActiveView('settings')}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-              <span className="truncate">Settings</span>
-            </button>
-            <button
-              className="notion-tree-node w-full text-danger-500 hover:text-danger-600 dark:text-danger-400 dark:hover:text-danger-500"
-              onClick={() => lock()}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-              <span className="truncate">Lock</span>
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              className="mx-auto flex h-8 w-8 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
-              aria-label="Settings"
-              onClick={() => setActiveView('settings')}
-              title="Settings"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            </button>
-            <button
-              className="mx-auto flex h-8 w-8 items-center justify-center rounded-md text-danger-500 transition-colors hover:bg-danger-50 dark:hover:bg-danger-500/10"
-              onClick={() => lock()}
-              aria-label="Lock"
-              title="Lock"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-            </button>
-          </>
-        )}
+      <div className="shrink-0 space-y-0.5 border-t border-surface-200/80 px-3 py-2 dark:border-surface-700/80">
+        <button
+          className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-surface-700 transition-colors hover:bg-surface-200/60 dark:text-surface-300 dark:hover:bg-surface-700/60"
+          onClick={() => {}}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 shrink-0 text-surface-500 dark:text-surface-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"
+            />
+          </svg>
+          <span className="truncate">Help Center</span>
+        </button>
+        <button
+          className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-surface-700 transition-colors hover:bg-surface-200/60 dark:text-surface-300 dark:hover:bg-surface-700/60"
+          onClick={() => setActiveView('settings')}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 shrink-0 text-surface-500 dark:text-surface-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+          <span className="truncate">Settings</span>
+        </button>
       </div>
-    </motion.aside>
+    </aside>
   );
 }

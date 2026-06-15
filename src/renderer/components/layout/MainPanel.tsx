@@ -1,15 +1,10 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useUIStore, type ActiveView } from '../../stores/uiStore';
+import { useUIStore } from '../../stores/uiStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useFolderStore } from '../../stores/folderStore';
 import { useItemStore } from '../../stores/itemStore';
-import HomeView from '../views/HomeView';
-import FolderView from '../views/FolderView';
 import ItemDetailView from '../views/ItemDetailView';
-import TrashView from '../views/TrashView';
-import SettingsView from '../views/SettingsView';
-import PasswordHealthView from '../views/PasswordHealthView';
 import type { Folder, Tag, ItemDecrypted } from '../../../shared/types';
 
 function buildBreadcrumbPath(
@@ -44,7 +39,7 @@ function formatDateShort(ts: number): string {
 }
 
 export default function MainPanel(): React.ReactElement {
-  const { activeView, setActiveView, sidebarOpen, toggleQuickFind } = useUIStore();
+  const { activeView, setActiveView, toggleQuickFind } = useUIStore();
   const { lock } = useAuthStore();
   const { folders, selectedFolderId, setSelectedFolder } = useFolderStore();
   const {
@@ -237,50 +232,11 @@ export default function MainPanel(): React.ReactElement {
   }, []);
 
   const showDetailPanel = activeView === 'item' && selectedItemId;
+
   const showFolderList = activeView !== 'home';
 
-  const renderMainContent = (): React.ReactNode => {
-    switch (activeView) {
-      case 'home':
-        return <HomeView />;
-      case 'folder':
-      case 'item':
-        return (
-          <FolderView
-            items={items}
-            itemIds={itemIds}
-            currentFolderId={currentFolderId}
-            onSelectItem={handleSelectItem}
-            onDeleteItem={(id) => deleteItem(id)}
-            onToggleFavorite={(id) => {
-              const item = items[id];
-              if (item) {
-                updateItem(id, { isFavorite: !item.isFavorite });
-              }
-            }}
-            onNewItem={handleNewItem}
-          />
-        );
-      case 'health':
-        return <PasswordHealthView onSelectItem={handleSelectItem} />;
-      case 'trash':
-        return <TrashView />;
-      case 'settings':
-        return <SettingsView />;
-      default:
-        return null;
-    }
-  };
-
   return (
-    <motion.main
-      className="flex flex-1 overflow-hidden"
-      initial={false}
-      animate={{
-        marginLeft: sidebarOpen ? 261 : 57,
-      }}
-      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-    >
+    <main className="flex flex-1 overflow-hidden">
       {/* Center Panel - Folder List */}
       {showFolderList && (
         <div
@@ -292,18 +248,37 @@ export default function MainPanel(): React.ReactElement {
           }}
         >
           {/* Header */}
-          <div className="flex h-16 shrink-0 items-center justify-between border-b border-surface-200 px-6 backdrop-blur-sm dark:border-surface-700">
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-surface-200 px-4 dark:border-surface-700">
             <h1 className="truncate text-lg font-semibold text-surface-800 dark:text-surface-200">
               {currentFolder?.name || 'All Items'}
             </h1>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-1">
               <button
-                className="rounded-lg p-1.5 transition-all hover:bg-surface-100 active:scale-95 dark:hover:bg-surface-800"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+                aria-label="Share"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
+                  />
+                </svg>
+              </button>
+              <button
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-surface-500 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
                 aria-label="Filter"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-surface-500"
+                  className="h-4 w-4"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -317,13 +292,13 @@ export default function MainPanel(): React.ReactElement {
                 </svg>
               </button>
               <button
-                className="rounded-lg p-1.5 transition-all hover:bg-surface-100 active:scale-95 dark:hover:bg-surface-800"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-accent-600 transition-colors hover:bg-accent-50 dark:text-accent-400 dark:hover:bg-accent-900/20"
                 onClick={handleNewItem}
                 aria-label="New Item"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 font-bold text-primary"
+                  className="h-4 w-4"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -346,17 +321,17 @@ export default function MainPanel(): React.ReactElement {
                   return (
                     <button
                       key={item.id}
-                      className={`flex w-full items-center gap-4 rounded-xl p-4 text-left transition-all duration-200 ${
+                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-all duration-200 ${
                         isActive
-                          ? 'bg-surface-50 dark:bg-surface-800/50'
+                          ? 'bg-surface-100 dark:bg-surface-800'
                           : 'hover:bg-surface-50 dark:hover:bg-surface-800/50'
                       }`}
                       onClick={() => handleSelectItem(item.id)}
                     >
                       <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xl shadow-sm ${
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xl ${
                           isActive
-                            ? 'bg-primary/10'
+                            ? 'bg-white shadow-sm dark:bg-surface-700'
                             : 'bg-surface-100 dark:bg-surface-800'
                         }`}
                       >
@@ -368,7 +343,7 @@ export default function MainPanel(): React.ReactElement {
                             {item.title || 'Untitled'}
                           </h3>
                           {item.updatedAt && (
-                            <span className="ml-2 whitespace-nowrap text-[10px] text-surface-400">
+                            <span className="ml-2 shrink-0 whitespace-nowrap text-[11px] text-surface-400">
                               {formatDateShort(item.updatedAt)}
                             </span>
                           )}
@@ -394,21 +369,20 @@ export default function MainPanel(): React.ReactElement {
             </div>
           </div>
 
-          {/* Floating New Item Button */}
-          <div className="border-t border-surface-200/30 p-4 dark:border-surface-700/30">
+          {/* New Item Button */}
+          <div className="border-t border-surface-200 p-3 dark:border-surface-700">
             <button
-              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-white shadow-lg transition-all active:scale-[0.98]"
+              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium text-white shadow-lg transition-all active:scale-[0.98]"
               style={{ backgroundColor: '#5E5CE6' }}
               onClick={handleNewItem}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
+                className="h-4 w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
                 strokeWidth={2.5}
-                style={{ fontVariationSettings: "'wght' 600" }}
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
@@ -419,7 +393,7 @@ export default function MainPanel(): React.ReactElement {
       )}
 
       {/* Right Panel - Detail View / Other Views */}
-      <div className="flex flex-1 flex-col overflow-hidden bg-surface-50 dark:bg-surface-900">
+      <div className="flex flex-1 flex-col overflow-hidden bg-white dark:bg-surface-900">
         {/* Toolbar */}
         <div className="flex h-12 shrink-0 items-center justify-between border-b border-surface-200 bg-white/50 px-4 backdrop-blur-sm dark:border-surface-700 dark:bg-surface-850/50">
           <nav className="min-w-0" aria-label="Breadcrumb">
@@ -486,7 +460,7 @@ export default function MainPanel(): React.ReactElement {
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
-              <span className="hidden text-xs text-surface-400 sm:inline">⌘K</span>
+              <span className="hidden text-xs text-surface-400 sm:inline">K</span>
             </button>
             <button
               className="flex h-8 items-center rounded-lg px-2 transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
@@ -510,31 +484,6 @@ export default function MainPanel(): React.ReactElement {
             </button>
           </div>
         </div>
-
-        {/* Navigation tabs */}
-        {!showDetailPanel && activeView !== 'home' && (
-          <div className="flex border-b border-surface-200 bg-white dark:border-surface-700 dark:bg-surface-850">
-            {(['home', 'folder', 'health', 'trash', 'settings'] as const).map((view) => (
-              <button
-                key={view}
-                onClick={() => {
-                  setActiveView(view);
-                  if (view === 'home') {
-                    setSelectedFolder(null);
-                  }
-                }}
-                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors ${
-                  activeView === view
-                    ? 'border-b-2 border-primary text-primary'
-                    : 'text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-300'
-                }`}
-              >
-                {VIEW_ICONS[view]}
-                <span className="hidden md:inline">{VIEW_LABELS[view]}</span>
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Content area */}
         <div className="notion-scrollbar relative flex-1 overflow-y-auto">
@@ -564,121 +513,35 @@ export default function MainPanel(): React.ReactElement {
                   onFileDelete={handleFileDelete}
                 />
               ) : (
-                renderMainContent()
+                <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+                  <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-surface-100 dark:bg-surface-800">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-10 w-10 text-surface-400 dark:text-surface-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                      />
+                    </svg>
+                  </div>
+                  <h2 className="mb-2 text-xl font-semibold text-surface-800 dark:text-surface-200">
+                    Select an item to view details
+                  </h2>
+                  <p className="max-w-xs text-sm text-surface-500 dark:text-surface-400">
+                    Choose a password or secure note from the list to see its full information here.
+                  </p>
+                </div>
               )}
             </motion.div>
           </AnimatePresence>
         </div>
       </div>
-    </motion.main>
+    </main>
   );
 }
-
-const VIEW_LABELS: Record<ActiveView, string> = {
-  home: 'Home',
-  folder: 'All Items',
-  item: 'Item Detail',
-  health: 'Password Health',
-  trash: 'Trash',
-  settings: 'Settings',
-};
-
-const VIEW_ICONS: Record<ActiveView, React.ReactNode> = {
-  home: (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-      />
-    </svg>
-  ),
-  folder: (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-      />
-    </svg>
-  ),
-  item: (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-      />
-    </svg>
-  ),
-  health: (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-      />
-    </svg>
-  ),
-  trash: (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-      />
-    </svg>
-  ),
-  settings: (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-      />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  ),
-};
