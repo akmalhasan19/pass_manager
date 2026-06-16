@@ -500,15 +500,15 @@ export default function MainPanel(): React.ReactElement {
         )}
       </AnimatePresence>
 
-      {/* Right Panel - Empty State (shown when no detail) */}
+      {/* Right Panel - Empty State (shown when no detail item is selected) */}
       <AnimatePresence>
         {!showDetailPanel && (
           <motion.div
             key="empty-panel"
-            initial={{ opacity: 0 }}
+            initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-1 flex-col overflow-hidden bg-white dark:bg-surface-900"
           >
             {/* Toolbar */}

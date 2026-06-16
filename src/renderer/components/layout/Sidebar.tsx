@@ -39,17 +39,11 @@ export default function Sidebar(): React.ReactElement {
   const handleSelectFolder = useCallback(
     (id: string) => {
       if (selectedFolderId === id) {
-        if (selectedItemId !== null) {
-          setSelectedItem(null);
-          setCenterPanelVisible(false);
-          setTimeout(() => {
-            setSelectedFolder(null);
-            setActiveView('home');
-          }, 320);
-        } else {
+        setCenterPanelVisible(false);
+        setTimeout(() => {
           setSelectedFolder(null);
           setActiveView('home');
-        }
+        }, 320);
       } else {
         const isItemOpen = selectedItemId !== null;
         if (isItemOpen) {
