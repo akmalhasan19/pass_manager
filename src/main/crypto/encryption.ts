@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+import { secureClear } from '../../shared/secureMemory';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_BYTES = 12;
@@ -34,13 +35,23 @@ export function decryptAES256GCM(data: EncryptedData, key: Buffer): Buffer {
 }
 
 export function encryptString(value: string, key: Buffer): Buffer {
-  const encrypted = encryptAES256GCM(Buffer.from(value, 'utf-8'), key);
-  return serializeEncrypted(encrypted);
+  const plaintextBuf = Buffer.from(value, 'utf-8');
+  try {
+    const encrypted = encryptAES256GCM(plaintextBuf, key);
+    return serializeEncrypted(encrypted);
+  } finally {
+    // SECURITY: Wipe plaintext buffer after encryption
+    secureClear(plaintextBuf);
+  }
 }
 
 export function decryptString(encryptedBlob: Buffer, key: Buffer): string {
   const data = deserializeEncrypted(encryptedBlob);
-  return decryptAES256GCM(data, key).toString('utf-8');
+  const decrypted = decryptAES256GCM(data, key);
+  const result = decrypted.toString('utf-8');
+  // SECURITY: Wipe decrypted buffer before returning the string
+  secureClear(decrypted);
+  return result;
 }
 
 export function encryptJSON(value: unknown, key: Buffer): Buffer {
@@ -49,8 +60,12 @@ export function encryptJSON(value: unknown, key: Buffer): Buffer {
 }
 
 export function decryptJSON<T>(encryptedBlob: Buffer, key: Buffer): T {
-  const json = decryptString(encryptedBlob, key);
-  return JSON.parse(json) as T;
+  const data = deserializeEncrypted(encryptedBlob);
+  const decrypted = decryptAES256GCM(data, key);
+  const result = decrypted.toString('utf-8');
+  // SECURITY: Wipe decrypted buffer before returning the parsed result
+  secureClear(decrypted);
+  return JSON.parse(result) as T;
 }
 
 function serializeEncrypted(data: EncryptedData): Buffer {

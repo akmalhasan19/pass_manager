@@ -14,6 +14,7 @@ import {
   deserializeEncrypted,
 } from '../../crypto/encryption';
 import { validateEncryptedFileStructure, validateExportPayloadSchema } from '../schemaValidator';
+import { secureClear } from '../../../shared/secureMemory';
 import type {
   ExportPayload,
   ExportItem,
@@ -23,24 +24,30 @@ import type {
 
 function exportItemToImportItem(exportItem: ExportItem, masterKey: Buffer): ImportItem {
   let password = '';
+  let passwordBuf: Buffer | null = null;
   if (exportItem.passwordEncrypted) {
     try {
-      const buf = Buffer.from(exportItem.passwordEncrypted, 'base64');
-      password = decryptString(buf, masterKey);
+      passwordBuf = Buffer.from(exportItem.passwordEncrypted, 'base64');
+      password = decryptString(passwordBuf, masterKey);
     } catch {
       password = '';
     }
   }
 
   let notes: string | null = null;
+  let notesBuf: Buffer | null = null;
   if (exportItem.notesEncrypted) {
     try {
-      const buf = Buffer.from(exportItem.notesEncrypted, 'base64');
-      notes = decryptString(buf, masterKey);
+      notesBuf = Buffer.from(exportItem.notesEncrypted, 'base64');
+      notes = decryptString(notesBuf, masterKey);
     } catch {
       notes = null;
     }
   }
+
+  // SECURITY: Wipe temporary buffers containing encrypted data
+  secureClear(passwordBuf);
+  secureClear(notesBuf);
 
   return {
     id: exportItem.id,
@@ -89,8 +96,9 @@ export class EncryptedJsonImporter implements Importer {
     const ciphertext = Buffer.from(encryptedFile.ciphertext, 'base64');
 
     let decryptedPayload: ExportPayload;
+    let plaintextBuffer: Buffer | null = null;
     try {
-      const plaintextBuffer = decryptAES256GCM({ ciphertext, iv, tag }, masterKey);
+      plaintextBuffer = decryptAES256GCM({ ciphertext, iv, tag }, masterKey);
       const payloadJson = plaintextBuffer.toString('utf-8');
       const parsedPayload = JSON.parse(payloadJson);
       decryptedPayload = validateExportPayloadSchema(parsedPayload);
@@ -103,6 +111,12 @@ export class EncryptedJsonImporter implements Importer {
         undefined,
         { cause },
       );
+    } finally {
+      // SECURITY: Wipe sensitive material before leaving scope
+      secureClear(plaintextBuffer);
+      secureClear(iv);
+      secureClear(tag);
+      secureClear(ciphertext);
     }
 
     const payload = createImportPayload();
@@ -152,13 +166,16 @@ export class EncryptedJsonImporter implements Importer {
 
     for (const exportAtt of decryptedPayload.attachments) {
       let rawData: Buffer;
+      let encryptedDataBuf: Buffer | null = null;
       try {
-        const encryptedData = deserializeEncrypted(
-          Buffer.from(exportAtt.dataEncrypted, 'base64'),
-        );
+        encryptedDataBuf = Buffer.from(exportAtt.dataEncrypted, 'base64');
+        const encryptedData = deserializeEncrypted(encryptedDataBuf);
         rawData = decryptAES256GCM(encryptedData, masterKey);
       } catch {
         rawData = Buffer.alloc(0);
+      } finally {
+        // SECURITY: Wipe temporary buffer containing encrypted data
+        secureClear(encryptedDataBuf);
       }
 
       payload.attachments.push({

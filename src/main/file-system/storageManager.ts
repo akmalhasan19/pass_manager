@@ -14,6 +14,7 @@ import {
 import { join, basename } from 'node:path';
 import { app } from 'electron';
 import { containsPathTraversal, isPathWithinDirectory } from '../../shared/fileSecurity';
+import { secureClear } from '../../shared/secureMemory';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_BYTES = 12;
@@ -60,9 +61,13 @@ export async function encryptAndStoreFile(sourcePath: string, key: Buffer): Prom
       .pipe(cipher)
       .pipe(writeStream)
       .on('finish', () => {
+        // SECURITY: Wipe IV after encryption stream completes
+        secureClear(iv);
         resolve(storagePath);
       })
       .on('error', (err) => {
+        // SECURITY: Wipe IV on error too
+        secureClear(iv);
         reject(
           new Error(
             `Encryption stream failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -136,9 +141,15 @@ export async function decryptAndRetrieveFile(storagePath: string, key: Buffer): 
       .pipe(decipher)
       .pipe(writeStream)
       .on('finish', () => {
+        // SECURITY: Wipe iv and tag after decryption is complete
+        secureClear(iv);
+        secureClear(tag);
         resolve(tempPath);
       })
       .on('error', (err) => {
+        // SECURITY: Wipe iv and tag on error too
+        secureClear(iv);
+        secureClear(tag);
         reject(
           new Error(
             `Decryption stream failed: ${err instanceof Error ? err.message : String(err)}`,

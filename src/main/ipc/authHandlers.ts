@@ -1,6 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
+import { secureClear } from '../../shared/secureMemory';
 import type { AuthMetadata } from '../../shared/types';
 import {
   generateSalt,
@@ -65,6 +66,11 @@ function writeAuthMetadata(metadata: AuthMetadata): void {
 }
 
 function clearKeys(): void {
+  // Security: securely overwrite buffers before releasing references
+  // This prevents sensitive key material from lingering in memory after
+  // the application is locked or the key is no longer needed.
+  secureClear(masterKey);
+  secureClear(currentSalt);
   masterKey = null;
   currentSalt = null;
   currentKdfAlgorithm = 'pbkdf2';
@@ -245,13 +251,19 @@ export function registerAuthHandlers(): void {
           let newNotesEnc: Uint8Array | null = null;
 
           if (row.password_encrypted) {
-            const decrypted = decryptString(Buffer.from(row.password_encrypted), oldKey);
+            const encryptedBuf = Buffer.from(row.password_encrypted);
+            const decrypted = decryptString(encryptedBuf, oldKey);
             newPasswordEnc = encryptString(decrypted, newKey);
+            // SECURITY: Wipe sensitive material before leaving scope
+            secureClear(encryptedBuf);
           }
 
           if (row.notes_encrypted) {
-            const decrypted = decryptString(Buffer.from(row.notes_encrypted), oldKey);
+            const encryptedBuf = Buffer.from(row.notes_encrypted);
+            const decrypted = decryptString(encryptedBuf, oldKey);
             newNotesEnc = encryptString(decrypted, newKey);
+            // SECURITY: Wipe sensitive material before leaving scope
+            secureClear(encryptedBuf);
           }
 
           updateStmt.bind([newPasswordEnc, newNotesEnc, row.id]);
@@ -280,8 +292,8 @@ export function registerAuthHandlers(): void {
         currentKdfAlgorithm = 'pbkdf2';
         currentKdfIterations = DEFAULT_PBKDF2_ITERATIONS;
 
-        // Security: zero out the old key buffer to minimize key material in memory
-        oldKey.fill(0);
+        // Security: securely overwrite the old key buffer to minimize key material in memory
+        secureClear(oldKey);
 
         return { success: true };
       } catch (error) {

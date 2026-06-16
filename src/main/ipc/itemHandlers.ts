@@ -2,6 +2,7 @@ import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
 import { MAX_FIELD_LENGTHS } from '../../shared/constants';
 import { sanitizeField, validateCharacters } from '../../shared/validation';
+import { secureClear } from '../../shared/secureMemory';
 import type { Item, ItemDecrypted } from '../../shared/types';
 import { FolderRepository } from '../database/repositories/FolderRepository';
 import { ItemRepository } from '../database/repositories/ItemRepository';
@@ -18,14 +19,33 @@ const trashRepo = new TrashRepository();
 
 function decryptItem(item: Item, key: Buffer): ItemDecrypted {
   const tags = tagRepo.getByItem(item.id);
+
+  let password = '';
+  let passwordBuf: Buffer | null = null;
+  if (item.passwordEncrypted) {
+    passwordBuf = Buffer.from(item.passwordEncrypted);
+    password = decryptString(passwordBuf, key);
+  }
+
+  let notes: string | null = null;
+  let notesBuf: Buffer | null = null;
+  if (item.notesEncrypted) {
+    notesBuf = Buffer.from(item.notesEncrypted);
+    notes = decryptString(notesBuf, key);
+  }
+
+  // SECURITY: Wipe temporary buffers containing encrypted data
+  secureClear(passwordBuf);
+  secureClear(notesBuf);
+
   return {
     id: item.id,
     folderId: item.folderId,
     title: item.title,
     username: item.username,
-    password: item.passwordEncrypted ? decryptString(Buffer.from(item.passwordEncrypted), key) : '',
+    password,
     url: item.url,
-    notes: item.notesEncrypted ? decryptString(Buffer.from(item.notesEncrypted), key) : null,
+    notes,
     emoji: item.emoji,
     coverImage: item.coverImage,
     createdAt: item.createdAt,
@@ -37,18 +57,32 @@ function decryptItem(item: Item, key: Buffer): ItemDecrypted {
 }
 
 function serializeItemForTrash(item: Item): string {
+  let passwordBase64: string | null = null;
+  let passwordBuf: Buffer | null = null;
+  if (item.passwordEncrypted) {
+    passwordBuf = Buffer.from(item.passwordEncrypted);
+    passwordBase64 = passwordBuf.toString('base64');
+  }
+
+  let notesBase64: string | null = null;
+  let notesBuf: Buffer | null = null;
+  if (item.notesEncrypted) {
+    notesBuf = Buffer.from(item.notesEncrypted);
+    notesBase64 = notesBuf.toString('base64');
+  }
+
+  // SECURITY: Wipe temporary buffers containing encrypted data
+  secureClear(passwordBuf);
+  secureClear(notesBuf);
+
   return JSON.stringify({
     id: item.id,
     folderId: item.folderId,
     title: item.title,
     username: item.username,
-    passwordEncrypted: item.passwordEncrypted
-      ? Buffer.from(item.passwordEncrypted).toString('base64')
-      : null,
+    passwordEncrypted: passwordBase64,
     url: item.url,
-    notesEncrypted: item.notesEncrypted
-      ? Buffer.from(item.notesEncrypted).toString('base64')
-      : null,
+    notesEncrypted: notesBase64,
     emoji: item.emoji,
     coverImage: item.coverImage,
     createdAt: item.createdAt,
@@ -60,12 +94,25 @@ function serializeItemForTrash(item: Item): string {
 
 function deserializeItemFromTrash(json: string) {
   const parsed = JSON.parse(json);
+
+  let passwordEncrypted: Buffer | null = null;
+  if (parsed.passwordEncrypted) {
+    passwordEncrypted = Buffer.from(parsed.passwordEncrypted, 'base64');
+  }
+
+  let notesEncrypted: Buffer | null = null;
+  if (parsed.notesEncrypted) {
+    notesEncrypted = Buffer.from(parsed.notesEncrypted, 'base64');
+  }
+
+  // Note: The base64 strings in parsed are now sensitive and should ideally
+  // be cleared too, but JavaScript strings are immutable. The Buffers above
+  // are the primary concern and are wiped by the caller after use.
+
   return {
     ...parsed,
-    passwordEncrypted: parsed.passwordEncrypted
-      ? Buffer.from(parsed.passwordEncrypted, 'base64')
-      : null,
-    notesEncrypted: parsed.notesEncrypted ? Buffer.from(parsed.notesEncrypted, 'base64') : null,
+    passwordEncrypted,
+    notesEncrypted,
   };
 }
 
@@ -445,6 +492,8 @@ export function registerItemHandlers(): void {
       const serialized = serializeItemForTrash(item);
       const encrypted = encryptString(serialized, key) as unknown as ArrayBuffer;
       trashRepo.add('item', id, item.folderId, encrypted);
+      // SECURITY: Wipe encrypted buffer after storing in trash
+      secureClear(encrypted as Buffer);
 
       itemRepo.delete(id);
 
@@ -479,7 +528,11 @@ export function registerItemHandlers(): void {
         return { success: false, error: 'No data in trash entry.' };
       }
 
-      const decrypted = decryptString(Buffer.from(entry.dataEncrypted), key);
+      const encryptedBuf = Buffer.from(entry.dataEncrypted);
+      const decrypted = decryptString(encryptedBuf, key);
+      // SECURITY: Wipe sensitive material before leaving scope
+      secureClear(encryptedBuf);
+
       const itemData = deserializeItemFromTrash(decrypted);
 
       const db = getDatabase();

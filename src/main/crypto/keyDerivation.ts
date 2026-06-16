@@ -1,4 +1,5 @@
 import { randomBytes, pbkdf2Sync, createHash } from 'node:crypto';
+import { secureClear } from '../../shared/secureMemory';
 
 export const SALT_BYTES = 32;
 export const KEY_BYTES = 32;
@@ -25,7 +26,13 @@ export function deriveKeyPBKDF2(
   salt: Buffer,
   iterations: number = DEFAULT_PBKDF2_ITERATIONS,
 ): Buffer {
-  return pbkdf2Sync(Buffer.from(password, 'utf-8'), salt, iterations, KEY_BYTES, PBKDF2_DIGEST);
+  const passwordBuffer = Buffer.from(password, 'utf-8');
+  try {
+    return pbkdf2Sync(passwordBuffer, salt, iterations, KEY_BYTES, PBKDF2_DIGEST);
+  } finally {
+    // SECURITY: Wipe password material immediately after use
+    secureClear(passwordBuffer);
+  }
 }
 
 export async function deriveKeyArgon2id(

@@ -1,6 +1,7 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
+import { secureClear } from '../../shared/secureMemory';
 import {
   EXPORT_FORMAT_VERSION,
   EXPORT_MAGIC,
@@ -97,7 +98,11 @@ function readAllAttachments(): ExportAttachment[] {
       if (key) {
         const encrypted = encryptString(fileBuffer.toString('base64'), key);
         dataEncrypted = encrypted.toString('base64');
+        // SECURITY: Wipe encrypted buffer after converting to base64
+        secureClear(encrypted);
       }
+      // SECURITY: Wipe plaintext file data after encryption
+      secureClear(fileBuffer);
     } catch {
       // Skip attachments that cannot be read
     }
@@ -190,12 +195,24 @@ function buildPlainTextItems(): PlainTextExportItemRich[] {
   const folderMap = new Map(folders.map((f) => [f.id, f.name]));
 
   return allItems.map((item): PlainTextExportItemRich => {
-    const password = item.passwordEncrypted
-      ? decryptString(Buffer.from(item.passwordEncrypted), key)
-      : '';
-    const notes = item.notesEncrypted
-      ? decryptString(Buffer.from(item.notesEncrypted), key)
-      : null;
+    let passwordBuf: Buffer | null = null;
+    let password = '';
+    if (item.passwordEncrypted) {
+      passwordBuf = Buffer.from(item.passwordEncrypted);
+      password = decryptString(passwordBuf, key);
+    }
+
+    let notesBuf: Buffer | null = null;
+    let notes: string | null = null;
+    if (item.notesEncrypted) {
+      notesBuf = Buffer.from(item.notesEncrypted);
+      notes = decryptString(notesBuf, key);
+    }
+
+    // SECURITY: Wipe temporary buffers containing encrypted data
+    secureClear(passwordBuf);
+    secureClear(notesBuf);
+
     const tags = tagRepo.getByItem(item.id).map((t) => t.name);
 
     return {
@@ -220,12 +237,24 @@ function buildPlainTextItemsForCsv(): Array<{ title: string; username: string; p
   const allItems = itemRepo.getAll();
 
   return allItems.map((item) => {
-    const password = item.passwordEncrypted
-      ? decryptString(Buffer.from(item.passwordEncrypted), key)
-      : '';
-    const notes = item.notesEncrypted
-      ? decryptString(Buffer.from(item.notesEncrypted), key)
-      : '';
+    let passwordBuf: Buffer | null = null;
+    let password = '';
+    if (item.passwordEncrypted) {
+      passwordBuf = Buffer.from(item.passwordEncrypted);
+      password = decryptString(passwordBuf, key);
+    }
+
+    let notesBuf: Buffer | null = null;
+    let notes = '';
+    if (item.notesEncrypted) {
+      notesBuf = Buffer.from(item.notesEncrypted);
+      notes = decryptString(notesBuf, key);
+    }
+
+    // SECURITY: Wipe temporary buffers containing encrypted data
+    secureClear(passwordBuf);
+    secureClear(notesBuf);
+
     const tags = tagRepo.getByItem(item.id).map((t) => t.name);
 
     return {
@@ -241,9 +270,16 @@ function buildPlainTextItemsForCsv(): Array<{ title: string; username: string; p
 
 export function serializeEncryptedExport(payload: ExportPayload, key: Buffer): EncryptedExportFile {
   const jsonString = JSON.stringify(payload);
-  const encrypted = encryptAES256GCM(Buffer.from(jsonString, 'utf-8'), key);
+  const plaintextBuf = Buffer.from(jsonString, 'utf-8');
+  let encrypted;
+  try {
+    encrypted = encryptAES256GCM(plaintextBuf, key);
+  } finally {
+    // SECURITY: Wipe plaintext buffer after encryption
+    secureClear(plaintextBuf);
+  }
 
-  return {
+  const result: EncryptedExportFile = {
     magic: EXPORT_MAGIC,
     formatVersion: EXPORT_FORMAT_VERSION,
     encryptionAlgorithm: 'aes-256-gcm',
@@ -251,6 +287,13 @@ export function serializeEncryptedExport(payload: ExportPayload, key: Buffer): E
     authTag: encrypted.tag.toString('base64'),
     ciphertext: encrypted.ciphertext.toString('base64'),
   };
+
+  // SECURITY: Wipe encrypted buffers after serialization
+  secureClear(encrypted.iv);
+  secureClear(encrypted.tag);
+  secureClear(encrypted.ciphertext);
+
+  return result;
 }
 
 export function registerExportHandlers(): void {

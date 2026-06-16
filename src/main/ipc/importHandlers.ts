@@ -19,6 +19,7 @@ import { ItemRepository } from '../database/repositories/ItemRepository';
 import { isDatabaseOpen, getDatabase } from '../database/connection';
 import { getMasterKey } from './authHandlers';
 import { encryptString } from '../crypto/encryption';
+import { secureClear } from '../../shared/secureMemory';
 
 const itemRepo = new ItemRepository();
 
@@ -284,6 +285,10 @@ export function registerImportHandlers(): void {
               emoji: item.emoji ?? null,
               coverImage: item.coverImage ?? null,
             });
+
+            // SECURITY: Wipe encrypted buffers after storing in database
+            if (passwordEncrypted) secureClear(passwordEncrypted as Buffer);
+            if (notesEncrypted) secureClear(notesEncrypted as Buffer);
 
             importedCount++;
           }

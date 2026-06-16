@@ -13,6 +13,7 @@ import {
   validateFileUpload,
   FILE_SIZE_LIMITS,
 } from '../../shared/fileSecurity';
+import { secureClear } from '../../shared/secureMemory';
 
 const fileRepo = new FileAttachmentRepository();
 
@@ -87,7 +88,7 @@ function decryptFileData(encryptedBlob: Buffer, key: Buffer): Buffer {
   offset += tagLength;
   const ciphertext = encryptedBlob.subarray(offset);
 
-  return decryptAES256GCM({ ciphertext: Buffer.from(ciphertext), iv, tag }, key);
+  return decryptAES256GCM({ ciphertext, iv, tag }, key);
 }
 
 export function registerFileHandlers(): void {
@@ -144,11 +145,17 @@ export function registerFileHandlers(): void {
         const fileBuffer = readFileSync(filePath);
         const encrypted = encryptFileData(fileBuffer, key);
 
+        // SECURITY: Wipe plaintext file data after encryption
+        secureClear(fileBuffer);
+
         const attachmentsDir = getAttachmentsDir();
         const storageName = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}.enc`;
         const storagePath = join(attachmentsDir, storageName);
 
         writeFileSync(storagePath, encrypted);
+
+        // SECURITY: Wipe encrypted buffer after writing to disk
+        secureClear(encrypted);
 
         const attachment = fileRepo.create(
           itemId,
@@ -199,11 +206,17 @@ export function registerFileHandlers(): void {
         const encryptedBlob = readFileSync(attachment.storagePath);
         const decrypted = decryptFileData(encryptedBlob, key);
 
+        // SECURITY: Wipe encrypted data after decryption
+        secureClear(encryptedBlob);
+
         const tempDir = getTempDir();
         const safeFileName = sanitizeFileName(attachment.fileName);
         const tempPath = join(tempDir, safeFileName);
 
         writeFileSync(tempPath, decrypted);
+
+        // SECURITY: Wipe decrypted data after writing to temp file
+        secureClear(decrypted);
 
         return {
           success: true,

@@ -5,6 +5,7 @@ import { isDatabaseOpen } from '../database/connection';
 import { getMasterKey } from './authHandlers';
 import { decryptString } from '../crypto/encryption';
 import { analyzeHealth } from '../crypto/passwordHealth';
+import { secureClearString } from '../../shared/secureMemory';
 
 const itemRepo = new ItemRepository();
 
@@ -35,6 +36,15 @@ export function registerHealthHandlers(): void {
       }
 
       const report = analyzeHealth(items, passwords, { oldDays });
+
+      // SECURITY: Clear passwords map to release references to plaintext strings.
+      // JavaScript strings are immutable, so we cannot guarantee complete memory wipe,
+      // but clearing the map ensures no references are held longer than necessary.
+      for (const [, value] of passwords) {
+        secureClearString(value);
+      }
+      passwords.clear();
+
       return { success: true, data: report };
     } catch (error) {
       return {

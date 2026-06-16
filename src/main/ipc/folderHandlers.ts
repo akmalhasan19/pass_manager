@@ -7,6 +7,7 @@ import { TrashRepository } from '../database/repositories/TrashRepository';
 import { isDatabaseOpen, getDatabase } from '../database/connection';
 import { getMasterKey } from './authHandlers';
 import { encryptString, decryptString } from '../crypto/encryption';
+import { secureClear } from '../../shared/secureMemory';
 
 const folderRepo = new FolderRepository();
 const trashRepo = new TrashRepository();
@@ -231,6 +232,8 @@ export function registerFolderHandlers(): void {
           });
           const encrypted = encryptString(folderJson, key);
           trashRepo.add('folder', childFolder.id, childFolder.parentId, encrypted);
+          // SECURITY: Wipe encrypted buffer after storing in trash
+          secureClear(encrypted);
         }
       }
 
@@ -285,7 +288,10 @@ export function registerFolderHandlers(): void {
       };
 
       if (entry.dataEncrypted) {
-        const decrypted = decryptString(Buffer.from(entry.dataEncrypted), key);
+        const dataBuf = Buffer.from(entry.dataEncrypted);
+        const decrypted = decryptString(dataBuf, key);
+        // SECURITY: Wipe temporary buffer containing encrypted data
+        secureClear(dataBuf);
         folderData = JSON.parse(decrypted);
       } else {
         return { success: false, error: 'No data in trash entry.' };
@@ -316,7 +322,10 @@ export function registerFolderHandlers(): void {
       for (const desc of allDescendants) {
         if (!desc.dataEncrypted) continue;
 
-        const decrypted = decryptString(Buffer.from(desc.dataEncrypted), key);
+        const descDataBuf = Buffer.from(desc.dataEncrypted);
+        const decrypted = decryptString(descDataBuf, key);
+        // SECURITY: Wipe temporary buffer containing encrypted data
+        secureClear(descDataBuf);
         const childData = JSON.parse(decrypted);
 
         const parentStillExists = folderRepo.getById(childData.parentId);

@@ -25,14 +25,14 @@ Security audit dan memory wipe adalah fondasi integritas zero-knowledge. Jika ku
 - [ ] Task 1 Complete
 
 ### Sub-Task 1.1: Identifikasi Semua Buffer Kunci
-- [ ] Audit seluruh code path yang menyimpan kunci dekripsi (AES key, master key, derived key) dalam variabel `Buffer`, `ArrayBuffer`, `Uint8Array`, atau typed arrays lainnya.
-- [ ] Buat daftar referensi (file, fungsi, nama variabel) yang menampung data sensitif di `main` process dan `renderer` process.
-- [ ] Pastikan kunci tidak disalin ke variabel sementara tanpa diperlukan (minimisasi surface area).
+- [x] Audit seluruh code path yang menyimpan kunci dekripsi (AES key, master key, derived key) dalam variabel `Buffer`, `ArrayBuffer`, `Uint8Array`, atau typed arrays lainnya.
+- [x] Buat daftar referensi (file, fungsi, nama variabel) yang menampung data sensitif di `main` process dan `renderer` process.
+- [x] Pastikan kunci tidak disalin ke variabel sementara tanpa diperlukan (minimisasi surface area).
 
 ### Sub-Task 1.2: Implementasi Secure Overwrite
-- [ ] Sebelum `Buffer` atau `ArrayBuffer` di-dispose (`= null` atau out-of-scope), overwrite kontennya dengan nilai zero (`0x00`) atau random bytes.
-- [ ] Pastikan overwrite benar-benar tertulis ke memory (tidak dioptimasi compiler/JIT menjadi no-op). Gunakan `crypto` secure clear jika tersedia.
-- [ ] Lakukan overwrite untuk setiap instance buffer yang berisi kunci, termasuk buffer hasil pembacaan dari file vault atau input password.
+- [x] Sebelum `Buffer` atau `ArrayBuffer` di-dispose (`= null` atau out-of-scope), overwrite kontennya dengan nilai zero (`0x00`) atau random bytes.
+- [x] Pastikan overwrite benar-benar tertulis ke memory (tidak dioptimasi compiler/JIT menjadi no-op). Gunakan `crypto` secure clear jika tersedia.
+- [x] Lakukan overwrite untuk setiap instance buffer yang berisi kunci, termasuk buffer hasil pembacaan dari file vault atau input password.
 
 ### Sub-Task 1.3: String Kunci di Memory
 - [ ] Verifikasi bahwa kunci dekripsi tidak pernah di-*convert* ke `String` (terutama dari `ArrayBuffer`/`Buffer`) untuk menghindari immutable interning di V8.
@@ -132,8 +132,8 @@ Security audit dan memory wipe adalah fondasi integritas zero-knowledge. Jika ku
 
 ## Summary Checklist Implementasi
 
-- [ ] Sub-Task 1.1: Identifikasi Semua Buffer Kunci (file, fungsi, variabel)
-- [ ] Sub-Task 1.2: Implementasi Secure Overwrite (fill zero/random, prevent optimization)
+- [x] Sub-Task 1.1: Identifikasi Semua Buffer Kunci (file, fungsi, variabel)
+- [x] Sub-Task 1.2: Implementasi Secure Overwrite (fill zero/random, prevent optimization)
 - [ ] Sub-Task 1.3: String Kunci di Memory (avoid .toString(), handle IPC strings)
 - [ ] Sub-Task 2.1: Verifikasi Referensi Kunci Tidak Bertahan (closure, listener, callback)
 - [ ] Sub-Task 2.2: Handle Lock Screen State (wipe on lock, state management cleanup)
