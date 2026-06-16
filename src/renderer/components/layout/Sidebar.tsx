@@ -2,6 +2,8 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useUIStore } from '../../stores/uiStore';
 import { useFolderStore } from '../../stores/folderStore';
 import { useItemStore } from '../../stores/itemStore';
+import { MAX_FIELD_LENGTHS } from '../../../shared/constants';
+import { validateCharacters } from '../../../shared/validation';
 import TreeNode from '../ui/TreeNode';
 
 export default function Sidebar(): React.ReactElement {
@@ -90,6 +92,12 @@ export default function Sidebar(): React.ReactElement {
       setIsCreatingFolder(false);
       return;
     }
+
+    const charError = validateCharacters('folderName', name);
+    if (charError) {
+      return;
+    }
+
     const folder = await createFolder(newFolderParentId, name);
     if (folder) {
       setSelectedFolder(folder.id);
@@ -267,6 +275,7 @@ export default function Sidebar(): React.ReactElement {
                   className="min-w-0 flex-1 rounded border border-accent-400 bg-white px-1 py-0 text-sm outline-none ring-1 ring-accent-400/50 dark:bg-surface-800"
                   placeholder="Vault name..."
                   value={newFolderName}
+                  maxLength={MAX_FIELD_LENGTHS.FOLDER_NAME}
                   onChange={(e) => setNewFolderName(e.target.value)}
                   onBlur={handleCreateFolderSubmit}
                   onKeyDown={handleCreateFolderKeyDown}

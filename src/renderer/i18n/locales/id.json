@@ -106,5 +106,15 @@
   "dropZone.supportedFormats": "Didukung: .csv, .json, .xml, .spm",
   "dropZone.error.unsupported": "Format file tidak didukung. Format yang diharapkan: {extensions}",
   "dropZone.error.empty": "File kosong.",
-  "dropZone.error.readFailed": "Gagal membaca file."
+  "dropZone.error.readFailed": "Gagal membaca file.",
+  "validation.maxLength": "Maksimum {max} karakter diperbolehkan.",
+  "validation.required": "Bidang ini wajib diisi.",
+  "validation.folderNameRequired": "Nama folder wajib diisi.",
+  "validation.itemTitleRequired": "Judul item wajib diisi.",
+  "validation.tagNameRequired": "Nama tag wajib diisi.",
+  "validation.charCount": "{current}/{max}",
+  "validation.emailWarning": "Ini tidak terlihat seperti alamat email yang valid.",
+  "validation.urlWarning": "Ini tidak terlihat seperti URL yang valid.",
+  "validation.whitespaceOnly": "Bidang ini tidak boleh kosong atau hanya berisi spasi.",
+  "validation.invalidCharacters": "Bidang ini berisi karakter yang tidak valid. Hanya karakter yang dapat dicetak yang diperbolehkan."
 }

@@ -2,6 +2,8 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useFolderStore } from '../../stores/folderStore';
 import { useItemStore } from '../../stores/itemStore';
 import { useUIStore } from '../../stores/uiStore';
+import { MAX_FIELD_LENGTHS } from '../../../shared/constants';
+import { useTranslation } from '../../i18n/useTranslation';
 import type { Folder } from '../../../shared/types';
 
 function flattenFolders(folders: Folder[]): Folder[] {
@@ -19,9 +21,11 @@ export default function HomeView(): React.ReactElement {
   const { folders, createFolder, setSelectedFolder } = useFolderStore();
   const { loadItems } = useItemStore();
   const { setActiveView } = useUIStore();
+  const { t } = useTranslation();
 
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
+  const [nameError, setNameError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -44,6 +48,10 @@ export default function HomeView(): React.ReactElement {
   const handleCreateFolder = useCallback(async () => {
     const name = newName.trim();
     if (!name) {
+      if (newName.length > 0) {
+        setNameError(t('validation.whitespaceOnly'));
+        return;
+      }
       setIsCreating(false);
       return;
     }
@@ -55,7 +63,8 @@ export default function HomeView(): React.ReactElement {
     }
     setIsCreating(false);
     setNewName('');
-  }, [newName, createFolder, setSelectedFolder, loadItems, setActiveView]);
+    setNameError('');
+  }, [newName, createFolder, setSelectedFolder, loadItems, setActiveView, t]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -103,7 +112,15 @@ export default function HomeView(): React.ReactElement {
               className="notion-input h-8 w-56 text-xs"
               placeholder="Folder name..."
               value={newName}
-              onChange={(e) => setNewName(e.target.value)}
+              maxLength={MAX_FIELD_LENGTHS.FOLDER_NAME}
+              onChange={(e) => {
+                const val = e.target.value;
+                setNewName(val);
+                setNameError('');
+                if (val.length > MAX_FIELD_LENGTHS.FOLDER_NAME) {
+                  setNameError(t('validation.maxLength', { max: MAX_FIELD_LENGTHS.FOLDER_NAME }));
+                }
+              }}
               onBlur={() => {
                 if (!newName.trim()) {
                   setIsCreating(false);
@@ -111,6 +128,9 @@ export default function HomeView(): React.ReactElement {
               }}
               onKeyDown={handleKeyDown}
             />
+            {nameError && (
+              <p className="ml-8 mt-1 text-xs text-danger-500">{nameError}</p>
+            )}
             <button className="notion-button-primary h-8 text-xs" onClick={handleCreateFolder}>
               Create
             </button>

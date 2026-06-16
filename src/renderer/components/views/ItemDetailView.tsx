@@ -1,11 +1,14 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import type { ItemDecrypted, Tag, Attachment } from '../../../shared/types';
+import { MAX_FIELD_LENGTHS } from '../../../shared/constants';
+import { validateField as validateFieldUtil } from '../../../shared/validation';
 import PasswordGenerator from '../widgets/PasswordGenerator';
 import RichTextEditor from '../editor/RichTextEditor';
 import EmojiPicker from '../ui/EmojiPicker';
 import CoverImage from '../ui/CoverImage';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../hooks/useToast';
+import { useTranslation } from '../../i18n/useTranslation';
 
 interface ItemDetailViewProps {
   item: ItemDecrypted | null;
@@ -78,8 +81,11 @@ export default function ItemDetailView({
   const [editMode, setEditMode] = useState(isNewItem);
 
   const { showSuccess } = useToast();
+  const { t } = useTranslation();
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tagDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const itemTags = useMemo(() => {
     if (!item?.tags) return [];
@@ -129,6 +135,47 @@ export default function ItemDetailView({
     // Dirty tracking is handled by auto-save debouncing
   }, []);
 
+  const validateField = useCallback(
+    (field: string, value: string): string | null => {
+      const fieldMap: Record<string, 'itemTitle' | 'username' | 'password' | 'url' | 'notes'> = {
+        title: 'itemTitle',
+        username: 'username',
+        password: 'password',
+        url: 'url',
+        notes: 'notes',
+      };
+
+      const mappedField = fieldMap[field];
+      if (mappedField) {
+        const errorKey = validateFieldUtil(mappedField, value);
+        if (errorKey) {
+          const limits: Record<string, number> = {
+            title: MAX_FIELD_LENGTHS.ITEM_TITLE,
+            username: MAX_FIELD_LENGTHS.USERNAME,
+            password: MAX_FIELD_LENGTHS.PASSWORD,
+            url: MAX_FIELD_LENGTHS.URL,
+            notes: MAX_FIELD_LENGTHS.NOTES,
+          };
+          const max = limits[field];
+          if (errorKey === 'validation.maxLength' && max !== undefined) {
+            return t('validation.maxLength', { max });
+          }
+          return t(errorKey);
+        }
+      }
+
+      if (field === 'username' && value.length > 0) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+          return t('validation.emailWarning');
+        }
+      }
+
+      return null;
+    },
+    [t],
+  );
+
   const scheduleAutoSave = useCallback(
     (field: string, value: unknown) => {
       if (!item) return;
@@ -143,17 +190,33 @@ export default function ItemDetailView({
   const handleFieldChange = useCallback(
     (field: string, value: unknown, setter: (v: string) => void) => {
       setter(value as string);
+      const error = validateField(field, value as string);
+      setFieldErrors((prev) => {
+        if (error) return { ...prev, [field]: error };
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
       markDirty(field);
       scheduleAutoSave(field, value);
     },
-    [markDirty, scheduleAutoSave],
+    [markDirty, scheduleAutoSave, validateField],
   );
 
   const handleBlur = useCallback(
     (field: string, value: unknown) => {
       if (!item) return;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      onUpdate(item.id, { [field]: value });
+      const trimmedValue = typeof value === 'string' ? value.trim() : value;
+      if (field === 'title' && typeof value === 'string' && trimmedValue !== value) {
+        setTitle(trimmedValue as string);
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next[field];
+          return next;
+        });
+      }
+      onUpdate(item.id, { [field]: trimmedValue });
     },
     [item, onUpdate],
   );
@@ -327,14 +390,25 @@ export default function ItemDetailView({
         <div className="mb-10 flex items-start justify-between">
           <div className="flex-1">
             {editMode ? (
-              <input
-                className="w-full border-0 bg-transparent text-3xl font-semibold text-surface-900 placeholder:text-surface-300 focus:outline-none focus:ring-0 dark:text-surface-50 dark:placeholder:text-surface-600"
-                placeholder="Untitled"
-                value={title}
-                onChange={(e) => handleFieldChange('title', e.target.value, setTitle)}
-                onBlur={() => handleBlur('title', title)}
-                autoFocus={isNewItem}
-              />
+              <div>
+                <input
+                  className="w-full border-0 bg-transparent text-3xl font-semibold text-surface-900 placeholder:text-surface-300 focus:outline-none focus:ring-0 dark:text-surface-50 dark:placeholder:text-surface-600"
+                  placeholder="Untitled"
+                  value={title}
+                  maxLength={MAX_FIELD_LENGTHS.ITEM_TITLE}
+                  onChange={(e) => handleFieldChange('title', e.target.value, setTitle)}
+                  onBlur={() => handleBlur('title', title)}
+                  autoFocus={isNewItem}
+                />
+                {fieldErrors.title && (
+                  <p className="mt-1 text-xs text-danger-500">{fieldErrors.title}</p>
+                )}
+                {title.length > MAX_FIELD_LENGTHS.ITEM_TITLE * 0.8 && !fieldErrors.title && (
+                  <p className="mt-1 text-xs text-surface-400">
+                    {t('validation.charCount', { current: title.length, max: MAX_FIELD_LENGTHS.ITEM_TITLE })}
+                  </p>
+                )}
+              </div>
             ) : (
               <h2 className="text-3xl font-semibold text-surface-900 dark:text-surface-50">
                 {item.title || 'Untitled'}
@@ -388,13 +462,19 @@ export default function ItemDetailView({
             </label>
             <div className="flex items-center justify-between border-b border-surface-200 py-1 transition-colors group-focus-within:border-primary dark:border-surface-700">
               {editMode ? (
-                <input
-                  className="min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
-                  placeholder="https://example.com"
-                  value={url}
-                  onChange={(e) => handleFieldChange('url', e.target.value, setUrl)}
-                  onBlur={() => handleBlur('url', url)}
-                />
+                <div className="min-w-0 flex-1">
+                  <input
+                    className="w-full border-0 bg-transparent p-0 text-base text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
+                    placeholder="https://example.com"
+                    value={url}
+                    maxLength={MAX_FIELD_LENGTHS.URL}
+                    onChange={(e) => handleFieldChange('url', e.target.value, setUrl)}
+                    onBlur={() => handleBlur('url', url)}
+                  />
+                  {fieldErrors.url && (
+                    <p className="mt-1 text-xs text-danger-500">{fieldErrors.url}</p>
+                  )}
+                </div>
               ) : (
                 <span
                   className="cursor-pointer text-base text-surface-800 hover:text-primary dark:text-surface-200"
@@ -451,13 +531,19 @@ export default function ItemDetailView({
             </label>
             <div className="flex items-center justify-between border-b border-surface-200 py-1 transition-colors group-focus-within:border-primary dark:border-surface-700">
               {editMode ? (
-                <input
-                  className="min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
-                  placeholder="username@example.com"
-                  value={username}
-                  onChange={(e) => handleFieldChange('username', e.target.value, setUsername)}
-                  onBlur={() => handleBlur('username', username)}
-                />
+                <div className="min-w-0 flex-1">
+                  <input
+                    className="w-full border-0 bg-transparent p-0 text-base text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
+                    placeholder="username@example.com"
+                    value={username}
+                    maxLength={MAX_FIELD_LENGTHS.USERNAME}
+                    onChange={(e) => handleFieldChange('username', e.target.value, setUsername)}
+                    onBlur={() => handleBlur('username', username)}
+                  />
+                  {fieldErrors.username && (
+                    <p className="mt-1 text-xs text-danger-500">{fieldErrors.username}</p>
+                  )}
+                </div>
               ) : (
                 <span className="text-base text-surface-800 dark:text-surface-200">
                   {username || '-'}
@@ -495,14 +581,20 @@ export default function ItemDetailView({
             </label>
             <div className="flex items-center justify-between border-b border-surface-200 py-1 transition-colors group-focus-within:border-primary dark:border-surface-700">
               {editMode ? (
-                <input
-                  className="min-w-0 flex-1 border-0 bg-transparent p-0 font-mono text-lg tracking-widest text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => handleFieldChange('password', e.target.value, setPassword)}
-                  onBlur={() => handleBlur('password', password)}
-                />
+                <div className="min-w-0 flex-1">
+                  <input
+                    className="w-full border-0 bg-transparent p-0 font-mono text-lg tracking-widest text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter password"
+                    value={password}
+                    maxLength={MAX_FIELD_LENGTHS.PASSWORD}
+                    onChange={(e) => handleFieldChange('password', e.target.value, setPassword)}
+                    onBlur={() => handleBlur('password', password)}
+                  />
+                  {fieldErrors.password && (
+                    <p className="mt-1 text-xs text-danger-500">{fieldErrors.password}</p>
+                  )}
+                </div>
               ) : (
                 <span className="font-mono text-lg tracking-widest text-surface-800 dark:text-surface-200">
                   {password ? '\u2022'.repeat(Math.min(password.length, 12)) : '-'}
@@ -712,6 +804,7 @@ export default function ItemDetailView({
                           className="h-8 w-full rounded-lg border border-surface-200 px-2 text-xs focus:border-primary focus:outline-none dark:border-surface-700 dark:bg-surface-800"
                           placeholder="Tag name..."
                           value={newTagName}
+                          maxLength={MAX_FIELD_LENGTHS.TAG_NAME}
                           onChange={(e) => setNewTagName(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') handleCreateTag();

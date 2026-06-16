@@ -22,30 +22,30 @@ Validasi form dan penanganan edge cases adalah fondasi stabilitas aplikasi. Tanp
 ---
 
 ## 1. Task: Validasi Input Dasar
-- [ ] Task 1 Complete
+- [x] Task 1 Complete
 
 ### Sub-Task 1.1: Pembatasan Panjang Maksimum
-- [ ] Definisikan batas karakter untuk setiap field berdasarkan use case dan batas database.
-- [ ] **Folder Name**: Maksimum 100 karakter.
-- [ ] **Item Title**: Maksimum 255 karakter.
-- [ ] **Username**: Maksimum 500 karakter (email bisa sangat panjang).
-- [ ] **Password**: Maksimum 4096 karakter (support passphrase panjang).
-- [ ] **URL**: Maksimum 2048 karakter (batas praktis browser).
-- [ ] **Notes / Rich Text**: Maksimum 100,000 karakter (~100KB) untuk mencegah abuse storage.
-- [ ] **Tags**: Maksimum 50 karakter per tag, maksimum 10 tags per item.
-- [ ] Tampilkan pesan error real-time: "Maximum X characters allowed."
+- [x] Definisikan batas karakter untuk setiap field berdasarkan use case dan batas database.
+- [x] **Folder Name**: Maksimum 100 karakter.
+- [x] **Item Title**: Maksimum 255 karakter.
+- [x] **Username**: Maksimum 500 karakter (email bisa sangat panjang).
+- [x] **Password**: Maksimum 4096 karakter (support passphrase panjang).
+- [x] **URL**: Maksimum 2048 karakter (batas praktis browser).
+- [x] **Notes / Rich Text**: Maksimum 100,000 karakter (~100KB) untuk mencegah abuse storage.
+- [x] **Tags**: Maksimum 50 karakter per tag, maksimum 10 tags per item.
+- [x] Tampilkan pesan error real-time: "Maximum X characters allowed."
 
 ### Sub-Task 1.2: Validasi Format
-- [ ] **Email/Username**: Validasi format email opsional (banyak pengguna menggunakan username arbitrer, jangan terlalu ketat).
-- [ ] **URL**: Validasi format URL valid (protocol http/https). Tampilkan warning jika URL tidak valid, tapi tetap izinkan simpan (user bisa pakai URL internal).
-- [ ] **Required Fields**: title (item), name (folder) tidak boleh kosong atau whitespace-only.
-- [ ] **Whitespace Handling**: Trim leading/trailing whitespace secara otomatis sebelum validasi.
+- [x] **Email/Username**: Validasi format email opsional (banyak pengguna menggunakan username arbitrer, jangan terlalu ketat).
+- [x] **URL**: Validasi format URL valid (protocol http/https). Tampilkan warning jika URL tidak valid, tapi tetap izinkan simpan (user bisa pakai URL internal).
+- [x] **Required Fields**: title (item), name (folder) tidak boleh kosong atau whitespace-only.
+- [x] **Whitespace Handling**: Trim leading/trailing whitespace secara otomatis sebelum validasi.
 
 ### Sub-Task 1.3: Validasi Karakter yang Diizinkan
-- [ ] Izinkan Unicode/Emoji untuk nama folder dan item (pengguna internasional perlu ini).
-- [ ] Blok karakter kontrol ASCII non-printable (`\x00` - `\x1F`) kecuali newline/tab untuk notes.
-- [ ] Untuk field teknis seperti username: perbolehkan semua karakter printable Unicode.
-- [ ] Untuk field URL: encode/decode URI components dengan benar.
+- [x] Izinkan Unicode/Emoji untuk nama folder dan item (pengguna internasional perlu ini).
+- [x] Blok karakter kontrol ASCII non-printable (`\x00` - `\x1F`) kecuali newline/tab untuk notes.
+- [x] Untuk field teknis seperti username: perbolehkan semua karakter printable Unicode.
+- [x] Untuk field URL: encode/decode URI components dengan benar.
 
 ---
 
@@ -171,9 +171,9 @@ Validasi form dan penanganan edge cases adalah fondasi stabilitas aplikasi. Tanp
 
 ## Summary Checklist Implementasi
 
-- [ ] Sub-Task 1.1: Pembatasan Panjang Maksimum Semua Field
-- [ ] Sub-Task 1.2: Validasi Format (Email, URL, Required, Whitespace)
-- [ ] Sub-Task 1.3: Validasi Karakter yang Diizinkan (Unicode, kontrol chars)
+- [x] Sub-Task 1.1: Pembatasan Panjang Maksimum Semua Field
+- [x] Sub-Task 1.2: Validasi Format (Email, URL, Required, Whitespace)
+- [x] Sub-Task 1.3: Validasi Karakter yang Diizinkan (Unicode, kontrol chars)
 - [ ] Sub-Task 2.1: Cek Duplikat di Database Level (folder, item, case-insensitive)
 - [ ] Sub-Task 2.2: UX untuk Konflik Duplikat (inline error, auto-suggest)
 - [ ] Sub-Task 2.3: Edge Cases Duplikat (casing, whitespace, Unicode normalization)

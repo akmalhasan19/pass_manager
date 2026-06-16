@@ -14,3 +14,14 @@ export const TRASH_AUTO_PURGE_DAYS = 30;
 export const SIDEBAR_WIDTH = 260;
 export const SIDEBAR_COLLAPSED_WIDTH = 56;
 export const QUICK_FIND_MAX_RESULTS = 20;
+
+export const MAX_FIELD_LENGTHS = {
+  FOLDER_NAME: 100,
+  ITEM_TITLE: 255,
+  USERNAME: 500,
+  PASSWORD: 4096,
+  URL: 2048,
+  NOTES: 100000,
+  TAG_NAME: 50,
+  MAX_TAGS_PER_ITEM: 10,
+} as const;

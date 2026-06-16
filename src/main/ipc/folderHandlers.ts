@@ -1,5 +1,7 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
+import { MAX_FIELD_LENGTHS } from '../../shared/constants';
+import { validateCharacters } from '../../shared/validation';
 import { FolderRepository } from '../database/repositories/FolderRepository';
 import { TrashRepository } from '../database/repositories/TrashRepository';
 import { isDatabaseOpen, getDatabase } from '../database/connection';
@@ -40,7 +42,20 @@ export function registerFolderHandlers(): void {
           return { success: false, error: 'Folder name is required.' };
         }
 
-        const data = folderRepo.create(parentId, name.trim(), emoji ?? null);
+        const trimmedName = name.trim();
+        if (trimmedName.length > MAX_FIELD_LENGTHS.FOLDER_NAME) {
+          return {
+            success: false,
+            error: `Folder name must be ${MAX_FIELD_LENGTHS.FOLDER_NAME} characters or less.`,
+          };
+        }
+
+        const charError = validateCharacters('folderName', trimmedName);
+        if (charError) {
+          return { success: false, error: 'Folder name contains invalid characters.' };
+        }
+
+        const data = folderRepo.create(parentId, trimmedName, emoji ?? null);
         return { success: true, data };
       } catch (error) {
         return {
@@ -70,6 +85,23 @@ export function registerFolderHandlers(): void {
         const existing = folderRepo.getById(id);
         if (!existing) {
           return { success: false, error: 'Folder not found.' };
+        }
+
+        if (name !== undefined) {
+          const trimmedName = name.trim();
+          if (trimmedName.length === 0) {
+            return { success: false, error: 'Folder name is required.' };
+          }
+          if (trimmedName.length > MAX_FIELD_LENGTHS.FOLDER_NAME) {
+            return {
+              success: false,
+              error: `Folder name must be ${MAX_FIELD_LENGTHS.FOLDER_NAME} characters or less.`,
+            };
+          }
+          const charError = validateCharacters('folderName', trimmedName);
+          if (charError) {
+            return { success: false, error: 'Folder name contains invalid characters.' };
+          }
         }
 
         const data = folderRepo.update(id, { name: name?.trim(), emoji, coverImage });

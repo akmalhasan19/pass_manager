@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Folder } from '../../../shared/types';
+import { MAX_FIELD_LENGTHS } from '../../../shared/constants';
+import { validateCharacters } from '../../../shared/validation';
 import EmojiPicker from './EmojiPicker';
 
 interface TreeNodeProps {
@@ -79,6 +81,10 @@ export default function TreeNode({
   const handleRenameSubmit = useCallback(() => {
     const trimmed = renameValue.trim();
     if (trimmed && trimmed !== folder.name) {
+      const charError = validateCharacters('folderName', trimmed);
+      if (charError) {
+        return;
+      }
       onRename(folder.id, trimmed);
     }
     setIsRenaming(false);
@@ -190,6 +196,7 @@ export default function TreeNode({
             ref={inputRef}
             className="min-w-0 flex-1 rounded border border-accent-400 bg-white px-1 py-0 text-sm outline-none ring-1 ring-accent-400/50 dark:bg-surface-800"
             value={renameValue}
+            maxLength={MAX_FIELD_LENGTHS.FOLDER_NAME}
             onChange={(e) => setRenameValue(e.target.value)}
             onBlur={handleRenameSubmit}
             onKeyDown={handleRenameKeyDown}

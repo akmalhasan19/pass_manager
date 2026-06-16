@@ -106,5 +106,15 @@
   "dropZone.supportedFormats": "Supported: .csv, .json, .xml, .spm",
   "dropZone.error.unsupported": "Unsupported file format. Expected: {extensions}",
   "dropZone.error.empty": "File is empty.",
-  "dropZone.error.readFailed": "Failed to read file."
+  "dropZone.error.readFailed": "Failed to read file.",
+  "validation.maxLength": "Maximum {max} characters allowed.",
+  "validation.required": "This field is required.",
+  "validation.folderNameRequired": "Folder name is required.",
+  "validation.itemTitleRequired": "Item title is required.",
+  "validation.tagNameRequired": "Tag name is required.",
+  "validation.charCount": "{current}/{max}",
+  "validation.emailWarning": "This does not look like a valid email address.",
+  "validation.urlWarning": "This does not look like a valid URL.",
+  "validation.whitespaceOnly": "This field cannot be empty or contain only whitespace.",
+  "validation.invalidCharacters": "This field contains invalid characters. Only printable characters are allowed."
 }

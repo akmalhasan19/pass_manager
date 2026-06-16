@@ -1,5 +1,7 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
+import { MAX_FIELD_LENGTHS } from '../../shared/constants';
+import { validateCharacters } from '../../shared/validation';
 import type { Item, ItemDecrypted } from '../../shared/types';
 import { FolderRepository } from '../database/repositories/FolderRepository';
 import { ItemRepository } from '../database/repositories/ItemRepository';
@@ -142,6 +144,68 @@ export function registerItemHandlers(): void {
           return { success: false, error: 'Item title is required.' };
         }
 
+        const trimmedTitle = fields.title.trim();
+        if (trimmedTitle.length > MAX_FIELD_LENGTHS.ITEM_TITLE) {
+          return {
+            success: false,
+            error: `Item title must be ${MAX_FIELD_LENGTHS.ITEM_TITLE} characters or less.`,
+          };
+        }
+
+        const titleCharError = validateCharacters('itemTitle', trimmedTitle);
+        if (titleCharError) {
+          return { success: false, error: 'Item title contains invalid characters.' };
+        }
+
+        if (fields.username && fields.username.length > MAX_FIELD_LENGTHS.USERNAME) {
+          return {
+            success: false,
+            error: `Username must be ${MAX_FIELD_LENGTHS.USERNAME} characters or less.`,
+          };
+        }
+        if (fields.username) {
+          const usernameCharError = validateCharacters('username', fields.username);
+          if (usernameCharError) {
+            return { success: false, error: 'Username contains invalid characters.' };
+          }
+        }
+        if (fields.password && fields.password.length > MAX_FIELD_LENGTHS.PASSWORD) {
+          return {
+            success: false,
+            error: `Password must be ${MAX_FIELD_LENGTHS.PASSWORD} characters or less.`,
+          };
+        }
+        if (fields.password) {
+          const passwordCharError = validateCharacters('password', fields.password);
+          if (passwordCharError) {
+            return { success: false, error: 'Password contains invalid characters.' };
+          }
+        }
+        if (fields.url && fields.url.length > MAX_FIELD_LENGTHS.URL) {
+          return {
+            success: false,
+            error: `URL must be ${MAX_FIELD_LENGTHS.URL} characters or less.`,
+          };
+        }
+        if (fields.url) {
+          const urlCharError = validateCharacters('url', fields.url);
+          if (urlCharError) {
+            return { success: false, error: 'URL contains invalid characters.' };
+          }
+        }
+        if (fields.notes && fields.notes.length > MAX_FIELD_LENGTHS.NOTES) {
+          return {
+            success: false,
+            error: `Notes must be ${MAX_FIELD_LENGTHS.NOTES} characters or less.`,
+          };
+        }
+        if (fields.notes) {
+          const notesCharError = validateCharacters('notes', fields.notes);
+          if (notesCharError) {
+            return { success: false, error: 'Notes contain invalid characters.' };
+          }
+        }
+
         const key = getMasterKey();
         if (!key) {
           return { success: false, error: 'No master key available. Unlock first.' };
@@ -237,6 +301,67 @@ export function registerItemHandlers(): void {
           updateFields.notesEncrypted = fields.notes
             ? (encryptString(fields.notes, key) as unknown as ArrayBuffer)
             : null;
+        }
+
+        if (updateFields.title !== undefined && updateFields.title.length > MAX_FIELD_LENGTHS.ITEM_TITLE) {
+          return {
+            success: false,
+            error: `Item title must be ${MAX_FIELD_LENGTHS.ITEM_TITLE} characters or less.`,
+          };
+        }
+        if (updateFields.title !== undefined) {
+          const titleCharError = validateCharacters('itemTitle', updateFields.title);
+          if (titleCharError) {
+            return { success: false, error: 'Item title contains invalid characters.' };
+          }
+        }
+        if (updateFields.username !== undefined && updateFields.username.length > MAX_FIELD_LENGTHS.USERNAME) {
+          return {
+            success: false,
+            error: `Username must be ${MAX_FIELD_LENGTHS.USERNAME} characters or less.`,
+          };
+        }
+        if (updateFields.username !== undefined) {
+          const usernameCharError = validateCharacters('username', updateFields.username);
+          if (usernameCharError) {
+            return { success: false, error: 'Username contains invalid characters.' };
+          }
+        }
+        if (fields.password && fields.password.length > MAX_FIELD_LENGTHS.PASSWORD) {
+          return {
+            success: false,
+            error: `Password must be ${MAX_FIELD_LENGTHS.PASSWORD} characters or less.`,
+          };
+        }
+        if (fields.password) {
+          const passwordCharError = validateCharacters('password', fields.password);
+          if (passwordCharError) {
+            return { success: false, error: 'Password contains invalid characters.' };
+          }
+        }
+        if (updateFields.url !== undefined && updateFields.url.length > MAX_FIELD_LENGTHS.URL) {
+          return {
+            success: false,
+            error: `URL must be ${MAX_FIELD_LENGTHS.URL} characters or less.`,
+          };
+        }
+        if (updateFields.url !== undefined) {
+          const urlCharError = validateCharacters('url', updateFields.url);
+          if (urlCharError) {
+            return { success: false, error: 'URL contains invalid characters.' };
+          }
+        }
+        if (fields.notes && fields.notes.length > MAX_FIELD_LENGTHS.NOTES) {
+          return {
+            success: false,
+            error: `Notes must be ${MAX_FIELD_LENGTHS.NOTES} characters or less.`,
+          };
+        }
+        if (fields.notes) {
+          const notesCharError = validateCharacters('notes', fields.notes);
+          if (notesCharError) {
+            return { success: false, error: 'Notes contain invalid characters.' };
+          }
         }
         if (fields.emoji !== undefined) updateFields.emoji = fields.emoji;
         if (fields.coverImage !== undefined) updateFields.coverImage = fields.coverImage;

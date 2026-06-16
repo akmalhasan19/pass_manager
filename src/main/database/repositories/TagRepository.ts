@@ -1,5 +1,6 @@
 import { getDatabase } from '../connection';
 import { Tag } from '../../../shared/types';
+import { MAX_FIELD_LENGTHS } from '../../../shared/constants';
 import { nanoid } from 'nanoid';
 
 export class TagRepository {
@@ -7,9 +8,17 @@ export class TagRepository {
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
+    const trimmedName = name.trim();
+    if (trimmedName.length === 0) {
+      throw new Error('Tag name is required.');
+    }
+    if (trimmedName.length > MAX_FIELD_LENGTHS.TAG_NAME) {
+      throw new Error(`Tag name must be ${MAX_FIELD_LENGTHS.TAG_NAME} characters or less.`);
+    }
+
     const id = nanoid();
-    db.run('INSERT INTO tags (id, name, color) VALUES (?, ?, ?)', [id, name, color]);
-    return { id, name, color };
+    db.run('INSERT INTO tags (id, name, color) VALUES (?, ?, ?)', [id, trimmedName, color]);
+    return { id, name: trimmedName, color };
   }
 
   getAll(): Tag[] {
