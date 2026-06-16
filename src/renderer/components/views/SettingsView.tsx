@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useAuthStore } from '../../stores/authStore';
 import { APP_NAME, APP_VERSION } from '../../../shared/constants';
+import ImportDialog from '../import-export/ImportDialog';
 
 const AUTO_LOCK_OPTIONS = [
   { value: 60000, label: '1 minute' },
@@ -24,6 +25,7 @@ export default function SettingsView(): React.ReactElement {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -78,11 +80,7 @@ export default function SettingsView(): React.ReactElement {
   }, []);
 
   const handleImportBackup = useCallback(async () => {
-    try {
-      await (window.electron.settings as { importBackup?: () => Promise<void> }).importBackup?.();
-    } catch {
-      // Feature not yet available
-    }
+    setShowImportDialog(true);
   }, []);
 
   const handlePurgeTrash = useCallback(async () => {
@@ -609,6 +607,11 @@ export default function SettingsView(): React.ReactElement {
           )}
         </div>
       </div>
+
+      <ImportDialog
+        isOpen={showImportDialog}
+        onClose={() => setShowImportDialog(false)}
+      />
     </div>
   );
 }

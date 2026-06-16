@@ -1,7 +1,27 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '../shared/ipcChannels';
+import type { ImportFormat } from '../shared/types';
 
 const api = {
+  import: {
+    openFileDialog: (format: ImportFormat) =>
+      ipcRenderer.invoke(IPC_CHANNELS.IMPORT_OPEN_FILE_DIALOG, { format }),
+    parseFile: (params: { format: ImportFormat; filePath: string; content: string }) =>
+      ipcRenderer.invoke(IPC_CHANNELS.IMPORT_PARSE_FILE, params),
+    getCsvHeaders: (content: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.IMPORT_GET_CSV_HEADERS, { content }),
+    parseGenericCsv: (params: {
+      content: string;
+      columnMapping: import('../shared/types').CsvColumnMapping;
+    }) => ipcRenderer.invoke(IPC_CHANNELS.IMPORT_PARSE_GENERIC_CSV, params),
+    checkDuplicates: (payload: import('../shared/types').ImportPayload) =>
+      ipcRenderer.invoke(IPC_CHANNELS.IMPORT_CHECK_DUPLICATES, { payload }),
+    commitImport: (params: {
+      payload: import('../shared/types').ImportPayload;
+      resolutionMap: import('../shared/types').DuplicateResolutionMap;
+    }) => ipcRenderer.invoke(IPC_CHANNELS.IMPORT_COMMIT, params),
+  },
+
   auth: {
     init: (masterPassword: string) =>
       ipcRenderer.invoke(IPC_CHANNELS.AUTH_INIT, { masterPassword }),

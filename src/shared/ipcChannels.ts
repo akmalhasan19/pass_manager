@@ -53,6 +53,13 @@ export const IPC_CHANNELS = {
   TRASH_EMPTY: 'trash:empty',
   TRASH_PURGE: 'trash:purge',
 
+  IMPORT_OPEN_FILE_DIALOG: 'import:openFileDialog',
+  IMPORT_PARSE_FILE: 'import:parseFile',
+  IMPORT_GET_CSV_HEADERS: 'import:getCsvHeaders',
+  IMPORT_PARSE_GENERIC_CSV: 'import:parseGenericCsv',
+  IMPORT_CHECK_DUPLICATES: 'import:checkDuplicates',
+  IMPORT_COMMIT: 'import:commit',
+
   WINDOW_MINIMIZE: 'window:minimize',
   WINDOW_MAXIMIZE: 'window:maximize',
   WINDOW_CLOSE: 'window:close',

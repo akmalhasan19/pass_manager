@@ -276,3 +276,144 @@ export interface PlainTextExportItemRich {
 
 export const CSV_COLUMNS = ['title', 'username', 'password', 'url', 'notes', 'tags'] as const;
 export type CsvColumn = (typeof CSV_COLUMNS)[number];
+
+export type ImportFormat = 'keepass-xml' | 'bitwarden-json' | '1password-csv' | 'generic-csv' | 'encrypted-json';
+
+export const IMPORT_FORMATS: ImportFormat[] = [
+  'keepass-xml',
+  'bitwarden-json',
+  '1password-csv',
+  'generic-csv',
+  'encrypted-json',
+];
+
+export const IMPORT_FORMAT_LABELS: Record<ImportFormat, string> = {
+  'keepass-xml': 'KeePass XML',
+  'bitwarden-json': 'Bitwarden JSON',
+  '1password-csv': '1Password CSV',
+  'generic-csv': 'Generic CSV',
+  'encrypted-json': 'Encrypted JSON (.spm)',
+};
+
+export const IMPORT_FORMAT_EXTENSIONS: Record<ImportFormat, string[]> = {
+  'keepass-xml': ['.xml'],
+  'bitwarden-json': ['.json'],
+  '1password-csv': ['.csv'],
+  'generic-csv': ['.csv'],
+  'encrypted-json': ['.spm', '.json.encr'],
+};
+
+export const IMPORT_FORMAT_MIME_TYPES: Record<ImportFormat, string[]> = {
+  'keepass-xml': ['text/xml', 'application/xml'],
+  'bitwarden-json': ['application/json'],
+  '1password-csv': ['text/csv', 'text/comma-separated-values'],
+  'generic-csv': ['text/csv', 'text/comma-separated-values'],
+  'encrypted-json': ['application/octet-stream', 'application/json'],
+};
+
+export interface FilePickResult {
+  filePath: string;
+  fileName: string;
+  content: string;
+  detectedFormat: ImportFormat | null;
+}
+
+export interface ImportDialogResult {
+  format: ImportFormat;
+  filePath: string;
+  content: string;
+}
+
+export type CsvColumnMapping = Partial<Record<CsvColumn, string>>;
+
+export interface GenericCsvParseRequest {
+  format: 'generic-csv';
+  filePath: string;
+  content: string;
+  columnMapping: CsvColumnMapping;
+}
+
+export interface CsvHeaderResult {
+  headers: string[];
+  sampleRow: string[];
+}
+
+export type DuplicateResolution = 'skip' | 'replace' | 'rename';
+
+export interface DuplicateInfo {
+  importItemIndex: number;
+  importItemTitle: string;
+  importItemUrl: string;
+  existingItemId: string;
+  existingItemTitle: string;
+  existingItemUrl: string;
+}
+
+export interface DuplicateReport {
+  duplicates: DuplicateInfo[];
+  totalImportItems: number;
+  uniqueItems: number;
+}
+
+export interface DuplicateResolutionMap {
+  items: DuplicateInfo[];
+  globalResolution: DuplicateResolution;
+  perItemResolutions: Record<number, DuplicateResolution>;
+}
+
+export interface ImportCommitRequest {
+  payload: ImportPayload;
+  resolutionMap: DuplicateResolutionMap;
+}
+
+export interface ImportFolder {
+  id: string;
+  parentId: string | null;
+  name: string;
+  emoji: string | null;
+  coverImage: string | null;
+  createdAt: number;
+  updatedAt: number;
+  sortOrder: number;
+}
+
+export interface ImportItem {
+  id: string;
+  folderId: string;
+  title: string;
+  username: string;
+  password: string;
+  url: string;
+  notes: string | null;
+  emoji: string | null;
+  coverImage: string | null;
+  createdAt: number;
+  updatedAt: number;
+  isFavorite: boolean;
+  sortOrder: number;
+  tagIds: string[];
+}
+
+export interface ImportTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface ImportAttachment {
+  id: string;
+  itemId: string | null;
+  folderId: string | null;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  rawData: Buffer;
+  createdAt: number;
+}
+
+export interface ImportPayload {
+  folders: ImportFolder[];
+  items: ImportItem[];
+  tags: ImportTag[];
+  attachments: ImportAttachment[];
+}

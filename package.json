@@ -51,6 +51,7 @@
     "@tiptap/starter-kit": "^2.10.0",
     "ajv": "^8.20.0",
     "emoji-picker-react": "^4.19.1",
+    "fast-xml-parser": "^5.9.0",
     "framer-motion": "11.18.2",
     "immer": "^10.1.1",
     "nanoid": "^5.0.9",

@@ -8,6 +8,13 @@ import {
   AppSettings,
   SearchResultItem,
   HealthReport,
+  ImportFormat,
+  ImportDialogResult,
+  ImportPayload,
+  CsvColumnMapping,
+  CsvHeaderResult,
+  DuplicateReport,
+  DuplicateResolutionMap,
 } from '../shared/types';
 
 export type IpcResult<T> = { success: boolean; data: T; error?: string };
@@ -116,12 +123,28 @@ export interface ElectronWindowAPI {
   isMaximized(): Promise<boolean>;
 }
 
+export interface ElectronImportAPI {
+  openFileDialog(format: ImportFormat): Promise<IpcResult<ImportDialogResult>>;
+  parseFile(params: ImportDialogResult): Promise<IpcResult<ImportPayload>>;
+  getCsvHeaders(content: string): Promise<IpcResult<CsvHeaderResult>>;
+  parseGenericCsv(params: {
+    content: string;
+    columnMapping: CsvColumnMapping;
+  }): Promise<IpcResult<ImportPayload>>;
+  checkDuplicates(payload: ImportPayload): Promise<IpcResult<DuplicateReport>>;
+  commitImport(params: {
+    payload: ImportPayload;
+    resolutionMap: DuplicateResolutionMap;
+  }): Promise<IpcResult<{ importedCount: number; replacedCount: number }>>;
+}
+
 export interface ElectronHealthAPI {
   analyze(oldDays?: number): Promise<IpcResult<HealthReport>>;
 }
 
 export interface ElectronAPI {
   auth: ElectronAuthAPI;
+  import: ElectronImportAPI;
   folders: ElectronFoldersAPI;
   items: ElectronItemsAPI;
   tags: ElectronTagsAPI;

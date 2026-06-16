@@ -6,6 +6,7 @@ import {
   getStrengthTextColor,
   type StrengthResult,
 } from '../utils/passwordStrength';
+import ImportDialog from '../components/import-export/ImportDialog';
 
 export default function LockScreenPage(): React.ReactElement {
   const { status, error, initApp, unlock, clearError } = useAuthStore();
@@ -107,6 +108,7 @@ export default function LockScreenPage(): React.ReactElement {
   );
 
   const isLoading = status === 'checking';
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-surface-50 dark:bg-surface-900">
@@ -392,13 +394,43 @@ export default function LockScreenPage(): React.ReactElement {
           </button>
         </form>
 
-        {/* Footer hint */}
-        <p className="mt-6 text-center text-xs text-surface-400 dark:text-surface-500">
-          {isSetup
-            ? 'Your master password encrypts all data locally. It cannot be recovered.'
-            : 'Press Esc to clear the form'}
-        </p>
+        {/* Footer */}
+        <div className="mt-6 flex flex-col items-center gap-3">
+          <p className="text-center text-xs text-surface-400 dark:text-surface-500">
+            {isSetup
+              ? 'Your master password encrypts all data locally. It cannot be recovered.'
+              : 'Press Esc to clear the form'}
+          </p>
+          {!isSetup && (
+            <button
+              type="button"
+              onClick={() => setShowImportDialog(true)}
+              className="flex items-center gap-1.5 text-xs text-accent-500 transition-colors hover:text-accent-600 dark:text-accent-400 dark:hover:text-accent-300"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 16v-4a1 1 0 011-1h4m6 0h4a1 1 0 011 1v4m-5-5l-3-3m0 0l3-3m-3 3h12"
+                />
+              </svg>
+              Import Data
+            </button>
+          )}
+        </div>
       </div>
+
+      <ImportDialog
+        isOpen={showImportDialog}
+        onClose={() => setShowImportDialog(false)}
+      />
     </div>
   );
 }

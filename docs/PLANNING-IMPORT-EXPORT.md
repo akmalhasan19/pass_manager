@@ -21,7 +21,7 @@ Pengguna SecurePass Manager harus dapat melakukan migrasi data masuk dan keluar 
 ---
 
 ## 1. Task: Design Format Internal
-- [ ] Task 1 Complete
+- [x] Task 1 Complete
 
 ### Sub-Task 1.1: Definisikan JSON Schema untuk Export Terenkripsi
 - [x] Buat schema JSON yang mendefinisikan struktur vault (metadata, folders, items, tags, attachments).
@@ -32,7 +32,7 @@ Pengguna SecurePass Manager harus dapat melakukan migrasi data masuk dan keluar 
 - [x] **JSON Plain**: Array of objects sama seperti CSV tapi nested untuk notes rich text.
 
 ### Sub-Task 1.3: UUID Mapping
-- [ ] Pastikan ID internal (UUID) tetap konsisten saat import/export agar tidak terjadi duplikat jika import kembali ke vault lain.
+- [x] Pastikan ID internal (UUID) tetap konsisten saat import/export agar tidak terjadi duplikat jika import kembali ke vault lain.
 
 ---
 
@@ -40,37 +40,37 @@ Pengguna SecurePass Manager harus dapat melakukan migrasi data masuk dan keluar 
 - [ ] Task 2 Complete
 
 ### Sub-Task 2.1: UI Import Dialog
-- [ ] Tombol "Import Data" di halaman Lock Screen atau di Settings.
-- [ ] Dialog untuk memilih format importer (KeePass XML, Bitwarden JSON, 1Password CSV, Generic CSV).
-- [ ] File picker untuk memilih file.
-- [ ] Validasi file extension dan MIME type sebelum parsing.
+- [x] Tombol "Import Data" di halaman Lock Screen atau di Settings.
+- [x] Dialog untuk memilih format importer (KeePass XML, Bitwarden JSON, 1Password CSV, Generic CSV).
+- [x] File picker untuk memilih file.
+- [x] Validasi file extension dan MIME type sebelum parsing.
 
 ### Sub-Task 2.2: Parser & Transformer Umum
-- [ ] Buat interface `Importer` dan factory `ImporterFactory` yang mengembalikan instance parser yang sesuai.
-- [ ] Semua parser harus menghasilkan struktur internal yang sama: `ImportPayload { folders[], items[], tags[] }`.
+- [x] Buat interface `Importer` dan factory `ImporterFactory` yang mengembalikan instance parser yang sesuai.
+- [x] Semua parser harus menghasilkan struktur internal yang sama: `ImportPayload { folders[], items[], tags[] }`.
 
 ### Sub-Task 2.3: Implementasi Parser KeePass XML
-- [ ] Parse `.kdbx` atau ekspor ke `.xml`. Acuan: KeePass XML schema.
-- [ ] Mapping struktur hierarki folder (Groups) ke SecurePass Manager.
-- [ ] Handle custom fields KeePass yang tidak punya padanan exact (masukkan ke field notes atau buat structured fields).
+- [x] Parse `.kdbx` atau ekspor ke `.xml`. Acuan: KeePass XML schema.
+- [x] Mapping struktur hierarki folder (Groups) ke SecurePass Manager.
+- [x] Handle custom fields KeePass yang tidak punya padanan exact (masukkan ke field notes atau buat structured fields).
 
 ### Sub-Task 2.4: Implementasi Parser Bitwarden JSON
-- [ ] Parse file `.json` Bitwarden.
-- [ ] Mapping folder (Collections) ke SecurePass Manager.
-- [ ] Extract TOTP seeds jika ada (dan simpan untuk Rank 5).
+- [x] Parse file `.json` Bitwarden.
+- [x] Mapping folder (Collections) ke SecurePass Manager.
+- [x] Extract TOTP seeds jika ada (dan simpan untuk Rank 5).
 
 ### Sub-Task 2.5: Implementasi Parser 1Password CSV
-- [ ] Parse `.csv` 1Password (standar kolom 1Password biasanya: `title`, `username`, `password`, `url`, `notes`, `tags`).
-- [ ] Handle field `tags` yang bisa jadi multiple (comma-separated).
+- [x] Parse `.csv` 1Password (standar kolom 1Password biasanya: `title`, `username`, `password`, `url`, `notes`, `tags`).
+- [x] Handle field `tags` yang bisa jadi multiple (comma-separated).
 
 ### Sub-Task 2.6: Generic CSV Parser
-- [ ] User memberikan file CSV dengan header apapun.
-- [ ] UI Pre-mapping: User melakukan drag-and-drop / map kolom mereka ke field SecurePass Manager sebelum import.
+- [x] User memberikan file CSV dengan header apapun.
+- [x] UI Pre-mapping: User melakukan drag-and-drop / map kolom mereka ke field SecurePass Manager sebelum import.
 
 ### Sub-Task 2.7: Handling Duplikat & Merge
-- [ ] Detect duplikat berdasarkan kombinasi `title` + `url`.
-- [ ] Pilihan user: Skip, Replace, atau Rename (append suffix).
-- [ ] Tampilkan preview sebelum commit import.
+- [x] Detect duplikat berdasarkan kombinasi `title` + `url`.
+- [x] Pilihan user: Skip, Replace, atau Rename (append suffix).
+- [x] Tampilkan preview sebelum commit import.
 
 ### Sub-Task 2.8: Encrypted JSON Import
 - [ ] Parse JSON schema internal (Task 1.1).
@@ -148,14 +148,14 @@ Pengguna SecurePass Manager harus dapat melakukan migrasi data masuk dan keluar 
 ## Summary Checklist Implementasi
 - [x] Sub-Task 1.1: JSON Schema Export
 - [x] Sub-Task 1.2: Plain Text Format Specs
-- [ ] Sub-Task 1.3: UUID Mapping Strategy
-- [ ] Sub-Task 2.1: UI Import Dialog
-- [ ] Sub-Task 2.2: Importer Factory
-- [ ] Sub-Task 2.3: KeePass XML Parser
-- [ ] Sub-Task 2.4: Bitwarden JSON Parser
-- [ ] Sub-Task 2.5: 1Password CSV Parser
-- [ ] Sub-Task 2.6: Generic CSV Parser + Mapper
-- [ ] Sub-Task 2.7: Duplicate Handling
+- [x] Sub-Task 1.3: UUID Mapping Strategy
+- [x] Sub-Task 2.1: UI Import Dialog
+- [x] Sub-Task 2.2: Importer Factory
+- [x] Sub-Task 2.3: KeePass XML Parser
+- [x] Sub-Task 2.4: Bitwarden JSON Parser
+- [x] Sub-Task 2.5: 1Password CSV Parser
+- [x] Sub-Task 2.6: Generic CSV Parser + Mapper
+- [x] Sub-Task 2.7: Duplicate Handling
 - [ ] Sub-Task 2.8: Encrypted JSON Import
 - [ ] Sub-Task 3.1: UI Export Dialog
 - [ ] Sub-Task 3.2: Encrypted JSON Export
