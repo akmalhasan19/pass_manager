@@ -169,3 +169,110 @@ export interface HealthReport {
   }>;
   oldPasswords: Array<{ itemId: string; title: string; daysSinceChange: number }>;
 }
+
+export const EXPORT_FORMAT_VERSION = 1;
+export const EXPORT_MAGIC = 'SPM';
+export const EXPORT_FILE_EXTENSION = '.spm';
+
+export interface ExportMetadata {
+  appName: string;
+  appVersion: string;
+  exportedAt: number;
+  formatVersion: number;
+  schemaVersion: number;
+  itemCount: number;
+  folderCount: number;
+  tagCount: number;
+  attachmentCount: number;
+}
+
+export interface ExportFolder {
+  id: string;
+  parentId: string | null;
+  name: string;
+  emoji: string | null;
+  coverImage: string | null;
+  createdAt: number;
+  updatedAt: number;
+  sortOrder: number;
+}
+
+export interface ExportItem {
+  id: string;
+  folderId: string;
+  title: string;
+  username: string;
+  passwordEncrypted: string | null;
+  url: string;
+  notesEncrypted: string | null;
+  emoji: string | null;
+  coverImage: string | null;
+  createdAt: number;
+  updatedAt: number;
+  isFavorite: boolean;
+  sortOrder: number;
+  tagIds: string[];
+}
+
+export interface ExportTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface ExportAttachment {
+  id: string;
+  itemId: string | null;
+  folderId: string | null;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  dataEncrypted: string;
+  createdAt: number;
+}
+
+export interface ExportPayload {
+  formatVersion: number;
+  metadata: ExportMetadata;
+  folders: ExportFolder[];
+  items: ExportItem[];
+  tags: ExportTag[];
+  attachments: ExportAttachment[];
+}
+
+export interface EncryptedExportFile {
+  magic: string;
+  formatVersion: number;
+  encryptionAlgorithm: 'aes-256-gcm';
+  iv: string;
+  authTag: string;
+  ciphertext: string;
+}
+
+export interface PlainTextExportItem {
+  title: string;
+  username: string;
+  password: string;
+  url: string;
+  notes: string;
+  tags: string[];
+}
+
+export interface PlainTextExportItemRich {
+  title: string;
+  username: string;
+  password: string;
+  url: string;
+  notes: {
+    html: string;
+    text: string;
+  } | null;
+  tags: string[];
+  folder?: string;
+  isFavorite?: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export const CSV_COLUMNS = ['title', 'username', 'password', 'url', 'notes', 'tags'] as const;
+export type CsvColumn = (typeof CSV_COLUMNS)[number];

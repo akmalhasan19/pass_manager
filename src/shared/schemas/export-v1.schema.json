@@ -1,0 +1,303 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://securepass.manager/schemas/export-v1.schema.json",
+  "title": "SecurePass Manager Encrypted Export v1",
+  "description": "JSON Schema for SecurePass Manager vault export payload (formatVersion 1). This schema validates the decrypted inner payload of an .spm export file.",
+  "type": "object",
+  "required": ["formatVersion", "metadata", "folders", "items", "tags", "attachments"],
+  "additionalProperties": false,
+  "properties": {
+    "formatVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Export format version number. Used for forward-compatible migration."
+    },
+    "metadata": {
+      "$ref": "#/definitions/ExportMetadata"
+    },
+    "folders": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ExportFolder" },
+      "default": []
+    },
+    "items": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ExportItem" },
+      "default": []
+    },
+    "tags": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ExportTag" },
+      "default": []
+    },
+    "attachments": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ExportAttachment" },
+      "default": []
+    }
+  },
+  "definitions": {
+    "ExportMetadata": {
+      "type": "object",
+      "required": [
+        "appName",
+        "appVersion",
+        "exportedAt",
+        "formatVersion",
+        "schemaVersion",
+        "itemCount",
+        "folderCount",
+        "tagCount",
+        "attachmentCount"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "appName": {
+          "type": "string",
+          "const": "SecurePass Manager",
+          "description": "Name of the application that produced this export."
+        },
+        "appVersion": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?$",
+          "description": "Semantic version of the application (e.g. 0.1.0)."
+        },
+        "exportedAt": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Unix timestamp in milliseconds when the export was created."
+        },
+        "formatVersion": {
+          "type": "integer",
+          "const": 1,
+          "description": "Must match the top-level formatVersion."
+        },
+        "schemaVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Internal database schema version at time of export."
+        },
+        "itemCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of items in this export."
+        },
+        "folderCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of folders in this export."
+        },
+        "tagCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of tags in this export."
+        },
+        "attachmentCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of attachments in this export."
+        }
+      }
+    },
+    "ExportFolder": {
+      "type": "object",
+      "required": ["id", "parentId", "name", "createdAt", "updatedAt", "sortOrder"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier (UUID/nanoid) for this folder."
+        },
+        "parentId": {
+          "type": ["string", "null"],
+          "description": "ID of the parent folder, or null for root-level folders."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name of the folder."
+        },
+        "emoji": {
+          "type": ["string", "null"],
+          "description": "Optional emoji icon for the folder."
+        },
+        "coverImage": {
+          "type": ["string", "null"],
+          "description": "Optional cover image path or data reference."
+        },
+        "createdAt": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Unix timestamp in milliseconds when the folder was created."
+        },
+        "updatedAt": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Unix timestamp in milliseconds when the folder was last updated."
+        },
+        "sortOrder": {
+          "type": "integer",
+          "description": "Display sort order within the parent folder."
+        }
+      }
+    },
+    "ExportItem": {
+      "type": "object",
+      "required": [
+        "id",
+        "folderId",
+        "title",
+        "username",
+        "passwordEncrypted",
+        "url",
+        "notesEncrypted",
+        "createdAt",
+        "updatedAt",
+        "isFavorite",
+        "sortOrder",
+        "tagIds"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier (UUID/nanoid) for this item."
+        },
+        "folderId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ID of the folder this item belongs to."
+        },
+        "title": {
+          "type": "string",
+          "description": "Display title of the item."
+        },
+        "username": {
+          "type": "string",
+          "description": "Username or login identifier."
+        },
+        "passwordEncrypted": {
+          "type": ["string", "null"],
+          "description": "Base64-encoded AES-256-GCM encrypted password blob, or null if no password is set."
+        },
+        "url": {
+          "type": "string",
+          "description": "Associated URL or website."
+        },
+        "notesEncrypted": {
+          "type": ["string", "null"],
+          "description": "Base64-encoded AES-256-GCM encrypted notes (rich text HTML), or null if no notes."
+        },
+        "emoji": {
+          "type": ["string", "null"],
+          "description": "Optional emoji icon for the item."
+        },
+        "coverImage": {
+          "type": ["string", "null"],
+          "description": "Optional cover image path or data reference."
+        },
+        "createdAt": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Unix timestamp in milliseconds when the item was created."
+        },
+        "updatedAt": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Unix timestamp in milliseconds when the item was last updated."
+        },
+        "isFavorite": {
+          "type": "boolean",
+          "description": "Whether this item is marked as a favorite."
+        },
+        "sortOrder": {
+          "type": "integer",
+          "description": "Display sort order within the folder."
+        },
+        "tagIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Array of tag IDs associated with this item."
+        }
+      }
+    },
+    "ExportTag": {
+      "type": "object",
+      "required": ["id", "name", "color"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier (UUID/nanoid) for this tag."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name of the tag."
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Hex color code for the tag (e.g. #6366f1)."
+        }
+      }
+    },
+    "ExportAttachment": {
+      "type": "object",
+      "required": [
+        "id",
+        "itemId",
+        "folderId",
+        "fileName",
+        "mimeType",
+        "fileSize",
+        "dataEncrypted",
+        "createdAt"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier (UUID/nanoid) for this attachment."
+        },
+        "itemId": {
+          "type": ["string", "null"],
+          "description": "ID of the item this attachment belongs to, or null."
+        },
+        "folderId": {
+          "type": ["string", "null"],
+          "description": "ID of the folder this attachment belongs to, or null."
+        },
+        "fileName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Original file name of the attachment."
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "MIME type of the file (e.g. application/pdf)."
+        },
+        "fileSize": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Original file size in bytes (before encryption)."
+        },
+        "dataEncrypted": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Base64-encoded AES-256-GCM encrypted file data."
+        },
+        "createdAt": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Unix timestamp in milliseconds when the attachment was created."
+        }
+      }
+    }
+  }
+}

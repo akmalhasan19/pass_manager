@@ -24,12 +24,12 @@ Pengguna SecurePass Manager harus dapat melakukan migrasi data masuk dan keluar 
 - [ ] Task 1 Complete
 
 ### Sub-Task 1.1: Definisikan JSON Schema untuk Export Terenkripsi
-- [ ] Buat schema JSON yang mendefinisikan struktur vault (metadata, folders, items, tags, attachments).
-- [ ] Tambahkan field versioning (`formatVersion`) untuk kemampuan migrasi format masa depan.
+- [x] Buat schema JSON yang mendefinisikan struktur vault (metadata, folders, items, tags, attachments).
+- [x] Tambahkan field versioning (`formatVersion`) untuk kemampuan migrasi format masa depan.
 
 ### Sub-Task 1.2: Definisikan Plain Text Export Format
-- [ ] **CSV**: Kolom `title`, `username`, `password`, `url`, `notes`, `tags`.
-- [ ] **JSON Plain**: Array of objects sama seperti CSV tapi nested untuk notes rich text.
+- [x] **CSV**: Kolom `title`, `username`, `password`, `url`, `notes`, `tags`.
+- [x] **JSON Plain**: Array of objects sama seperti CSV tapi nested untuk notes rich text.
 
 ### Sub-Task 1.3: UUID Mapping
 - [ ] Pastikan ID internal (UUID) tetap konsisten saat import/export agar tidak terjadi duplikat jika import kembali ke vault lain.
@@ -146,8 +146,8 @@ Pengguna SecurePass Manager harus dapat melakukan migrasi data masuk dan keluar 
 ---
 
 ## Summary Checklist Implementasi
-- [ ] Sub-Task 1.1: JSON Schema Export
-- [ ] Sub-Task 1.2: Plain Text Format Specs
+- [x] Sub-Task 1.1: JSON Schema Export
+- [x] Sub-Task 1.2: Plain Text Format Specs
 - [ ] Sub-Task 1.3: UUID Mapping Strategy
 - [ ] Sub-Task 2.1: UI Import Dialog
 - [ ] Sub-Task 2.2: Importer Factory
