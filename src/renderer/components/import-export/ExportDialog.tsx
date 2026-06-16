@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Modal from '../ui/Modal';
 import { useToast } from '../../hooks/useToast';
+import { useTranslation } from '../../i18n/useTranslation';
 
 type ExportFormat = 'encrypted-json' | 'json-plain' | 'csv';
 
@@ -11,16 +12,8 @@ interface ExportDialogProps {
   onClose: () => void;
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  preparing: 'Preparing...',
-  'reading-data': 'Reading vault data...',
-  serializing: 'Processing and serializing...',
-  encrypting: 'Encrypting...',
-  writing: 'Writing file...',
-  done: 'Finishing up...',
-};
-
 export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): React.ReactElement {
+  const { t } = useTranslation();
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('encrypted-json');
   const [step, setStep] = useState<DialogStep>('select-format');
   const [errorMessage, setErrorMessage] = useState('');
@@ -98,7 +91,7 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
 
       setExportedFilePath(result.data.filePath);
       setStep('success');
-      showSuccess(`Exported to ${result.data.filePath}`);
+      showSuccess(t('export.toast.success', { path: result.data.filePath }));
     } catch (err) {
       if (cleanupRef.current) {
         cleanupRef.current();
@@ -109,30 +102,30 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
       setStep('error');
       showError(msg);
     }
-  }, [showSuccess, showError]);
+  }, [showSuccess, showError, t]);
 
   const handleExportAnother = useCallback(() => {
     resetDialog();
   }, [resetDialog]);
 
-  const formatOptions: Array<{ value: ExportFormat; label: string; description: string; icon: string }> = [
+  const formatOptions: Array<{ value: ExportFormat; labelKey: string; descKey: string; icon: string }> = [
     {
       value: 'encrypted-json',
-      label: 'Encrypted JSON (.spm)',
-      description: 'Secure, encrypted backup using your vault key. Recommended.',
-      icon: '🔒',
+      labelKey: 'export.format.encrypted-json.label',
+      descKey: 'export.format.encrypted-json.description',
+      icon: '\u{1F512}',
     },
     {
       value: 'json-plain',
-      label: 'JSON Plain Text',
-      description: 'Human-readable JSON. Passwords will be visible in plain text.',
-      icon: '📄',
+      labelKey: 'export.format.json-plain.label',
+      descKey: 'export.format.json-plain.description',
+      icon: '\u{1F4C4}',
     },
     {
       value: 'csv',
-      label: 'CSV Plain Text',
-      description: 'Spreadsheet-compatible CSV. Passwords will be visible in plain text.',
-      icon: '📊',
+      labelKey: 'export.format.csv.label',
+      descKey: 'export.format.csv.description',
+      icon: '\u{1F4CA}',
     },
   ];
 
@@ -141,20 +134,19 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
       isOpen={isOpen}
       onClose={handleClose}
       className="max-w-lg"
-      ariaLabel="Export data dialog"
+      ariaLabel={t('export.dialog.ariaLabel')}
       closeOnOverlayClick={step !== 'exporting'}
     >
       <div className="p-6">
-        {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-surface-900 dark:text-surface-50">
-            Export Data
+            {t('export.dialog.title')}
           </h2>
           <button
             type="button"
             onClick={handleClose}
             className="rounded p-1 text-surface-400 transition-colors hover:text-surface-600 dark:hover:text-surface-300"
-            aria-label="Close dialog"
+            aria-label={t('export.dialog.ariaLabelClose')}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -162,11 +154,10 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
           </button>
         </div>
 
-        {/* Step: Select Format */}
         {step === 'select-format' && (
           <div className="space-y-3">
             <p className="text-sm text-surface-500 dark:text-surface-400">
-              Choose the format you want to export your data to:
+              {t('export.selectFormat.title')}
             </p>
             <div className="grid gap-2">
               {formatOptions.map((fmt) => (
@@ -185,10 +176,10 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
                   </span>
                   <div className="flex-1">
                     <span className="text-sm font-medium text-surface-800 dark:text-surface-200">
-                      {fmt.label}
+                      {t(fmt.labelKey)}
                     </span>
                     <p className="mt-0.5 text-xs text-surface-400 dark:text-surface-500">
-                      {fmt.description}
+                      {t(fmt.descKey)}
                     </p>
                   </div>
                   {selectedFormat === fmt.value && (
@@ -202,7 +193,6 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
           </div>
         )}
 
-        {/* Step: Security Warning */}
         {step === 'warning' && (
           <div className="space-y-4">
             <div className="rounded-lg border border-warning-300 bg-warning-50 p-4 dark:border-warning-700 dark:bg-warning-900/20">
@@ -212,17 +202,16 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
                 </svg>
                 <div>
                   <h3 className="text-sm font-semibold text-warning-700 dark:text-warning-300">
-                    Security Warning
+                    {t('export.warning.title')}
                   </h3>
-                  <p className="mt-1 text-xs text-warning-600 dark:text-warning-400">
-                    You are about to export your data in <strong>plain text</strong>. Your passwords and
-                    notes will be stored unencrypted in the file. Anyone with access to this file can read
-                    your credentials.
-                  </p>
+                  <p
+                    className="mt-1 text-xs text-warning-600 dark:text-warning-400"
+                    dangerouslySetInnerHTML={{ __html: t('export.warning.body') }}
+                  />
                   <ul className="mt-2 list-inside list-disc text-xs text-warning-600 dark:text-warning-400">
-                    <li>Do not share this file with anyone.</li>
-                    <li>Delete the file as soon as you no longer need it.</li>
-                    <li>Consider using Encrypted JSON for safer backups.</li>
+                    <li>{t('export.warning.list.share')}</li>
+                    <li>{t('export.warning.list.delete')}</li>
+                    <li>{t('export.warning.list.encrypted')}</li>
                   </ul>
                 </div>
               </div>
@@ -234,20 +223,19 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
                 onClick={handleBackToFormat}
                 className="notion-button-ghost rounded-lg px-4 py-2 text-sm"
               >
-                Cancel
+                {t('export.warning.cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmWarning}
                 className="notion-button-danger rounded-lg px-4 py-2 text-sm"
               >
-                I understand — Export Plain Text
+                {t('export.warning.confirm')}
               </button>
             </div>
           </div>
         )}
 
-        {/* Step: Exporting */}
         {step === 'exporting' && (
           <div className="flex flex-col items-center justify-center py-8">
             <svg className="mb-4 h-8 w-8 animate-spin text-accent-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -255,12 +243,12 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             <p className="mb-3 text-sm text-surface-500 dark:text-surface-400">
-              {PHASE_LABELS[progress.phase] ?? 'Exporting your data...'}
+              {t(`export.phase.${progress.phase}` as any) || t('export.phase.default')}
             </p>
             <div className="w-full max-w-xs">
               <div className="mb-1 flex items-center justify-between">
                 <span className="text-xs text-surface-400 dark:text-surface-500">
-                  Progress
+                  {t('export.progress.label')}
                 </span>
                 <span className="text-xs font-medium text-accent-500">
                   {progress.percent}%
@@ -276,7 +264,6 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
           </div>
         )}
 
-        {/* Step: Success */}
         {step === 'success' && (
           <div className="space-y-4">
             <div className="flex flex-col items-center justify-center rounded-lg border border-success-200 bg-success-50 p-6 dark:border-success-800 dark:bg-success-900/20">
@@ -284,7 +271,7 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-sm font-medium text-success-700 dark:text-success-300">
-                Export completed successfully
+                {t('export.success.title')}
               </p>
               {exportedFilePath && (
                 <p className="mt-1 max-w-full truncate text-xs text-success-500" title={exportedFilePath}>
@@ -298,20 +285,19 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
                 onClick={handleClose}
                 className="notion-button-ghost rounded-lg px-4 py-2 text-sm"
               >
-                Done
+                {t('export.success.done')}
               </button>
               <button
                 type="button"
                 onClick={handleExportAnother}
                 className="notion-button-primary rounded-lg px-4 py-2 text-sm"
               >
-                Export Another
+                {t('export.success.exportAnother')}
               </button>
             </div>
           </div>
         )}
 
-        {/* Step: Error */}
         {step === 'error' && (
           <div className="space-y-4">
             <div className="flex flex-col items-center justify-center rounded-lg border border-danger-200 bg-danger-50 p-6 dark:border-danger-800 dark:bg-danger-900/20">
@@ -319,7 +305,7 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-sm font-medium text-danger-700 dark:text-danger-300">
-                Export Failed
+                {t('export.error.title')}
               </p>
               <p className="mt-1 text-xs text-danger-500">{errorMessage}</p>
             </div>
@@ -329,14 +315,14 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
                 onClick={handleClose}
                 className="notion-button-ghost rounded-lg px-4 py-2 text-sm"
               >
-                Cancel
+                {t('export.error.cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleExportAnother}
                 className="notion-button-primary rounded-lg px-4 py-2 text-sm"
               >
-                Try Again
+                {t('export.error.tryAgain')}
               </button>
             </div>
           </div>

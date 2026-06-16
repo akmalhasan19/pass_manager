@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Modal from '../ui/Modal';
 import ColumnMapper from './ColumnMapper';
 import DuplicatePreview from './DuplicatePreview';
 import { useToast } from '../../hooks/useToast';
+import { useTranslation } from '../../i18n/useTranslation';
 import {
   IMPORT_FORMATS,
   IMPORT_FORMAT_LABELS,
@@ -16,6 +17,11 @@ import type { CsvColumnMapping } from '../../../shared/types';
 interface ImportDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  initialFile?: {
+    format: ImportFormat;
+    filePath: string;
+    content: string;
+  } | null;
 }
 
 type DialogStep =
@@ -28,7 +34,8 @@ type DialogStep =
   | 'success'
   | 'error';
 
-export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): React.ReactElement {
+export default function ImportDialog({ isOpen, onClose, initialFile }: ImportDialogProps): React.ReactElement {
+  const { t } = useTranslation();
   const [step, setStep] = useState<DialogStep>('select-format');
   const [selectedFormat, setSelectedFormat] = useState<ImportFormat | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -40,6 +47,7 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
   const [errorMessage, setErrorMessage] = useState('');
   const [importResult, setImportResult] = useState<{ itemCount?: number }>({});
   const { showSuccess, showError } = useToast();
+  const initialFileProcessedRef = useRef(false);
 
   const resetDialog = useCallback(() => {
     setStep('select-format');
@@ -52,12 +60,117 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
     setDuplicateReport(null);
     setErrorMessage('');
     setImportResult({});
+    initialFileProcessedRef.current = false;
   }, []);
 
   const handleClose = useCallback(() => {
     resetDialog();
     onClose();
   }, [onClose, resetDialog]);
+
+  useEffect(() => {
+    if (!isOpen || !initialFile || initialFileProcessedRef.current) return;
+    initialFileProcessedRef.current = true;
+
+    const fmt = initialFile.format;
+    const fPath = initialFile.filePath;
+    const content = initialFile.content;
+
+    setSelectedFormat(fmt);
+    setSelectedFile(fPath);
+    setFileContent(content);
+
+    if (fmt === 'generic-csv') {
+      const parseGeneric = async () => {
+        setStep('importing');
+        try {
+          const headersResult = await window.electron.import.getCsvHeaders(content);
+          if (!headersResult.success) {
+            setErrorMessage(headersResult.error ?? 'Failed to read CSV headers.');
+            setStep('error');
+            showError(headersResult.error ?? 'Failed to read CSV headers.');
+            return;
+          }
+          setCsvHeaders(headersResult.data.headers);
+          setCsvSampleRow(headersResult.data.sampleRow);
+          setStep('column-mapping');
+        } catch (err) {
+          setErrorMessage(err instanceof Error ? err.message : 'Unknown error.');
+          setStep('error');
+          showError(err instanceof Error ? err.message : 'Failed to process file.');
+        }
+      };
+      parseGeneric();
+    } else {
+      const parseFile = async () => {
+        setStep('importing');
+        try {
+          const parseResult = await window.electron.import.parseFile({
+            format: fmt,
+            filePath: fPath,
+            content,
+          });
+
+          if (!parseResult.success) {
+            setErrorMessage(parseResult.error ?? 'Failed to parse file.');
+            setStep('error');
+            showError(parseResult.error ?? 'Failed to parse file.');
+            return;
+          }
+
+          const payload = parseResult.data;
+          setParsedPayload(payload);
+
+          const dupResult = await window.electron.import.checkDuplicates(payload);
+
+          if (!dupResult.success) {
+            setErrorMessage(dupResult.error ?? 'Failed to check duplicates.');
+            setStep('error');
+            showError(dupResult.error ?? 'Failed to check duplicates.');
+            return;
+          }
+
+          const report = dupResult.data;
+
+          if (report.duplicates.length > 0) {
+            setDuplicateReport(report);
+            setStep('duplicate-preview');
+          } else {
+            setStep('committing');
+            const commitResult = await window.electron.import.commitImport({
+              payload,
+              resolutionMap: {
+                items: [],
+                globalResolution: 'skip',
+                perItemResolutions: {},
+              },
+            });
+
+            if (!commitResult.success) {
+              setErrorMessage(commitResult.error ?? 'Failed to import data.');
+              setStep('error');
+              showError(commitResult.error ?? 'Failed to import data.');
+              return;
+            }
+
+            setImportResult({ itemCount: commitResult.data.importedCount });
+            setStep('success');
+            if (commitResult.data.importedCount > 0) {
+              showSuccess(t('import.toast.success', { count: commitResult.data.importedCount }));
+            } else {
+              showSuccess(t('import.toast.noCount'));
+            }
+          }
+        } catch (err) {
+          setErrorMessage(err instanceof Error ? err.message : 'Unknown error.');
+          setStep('error');
+          showError(err instanceof Error ? err.message : 'Import failed.');
+        }
+      };
+      parseFile();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- showError/showSuccess/t are stable refs; initialFileProcessedRef guard ensures single execution
+  }, [isOpen, initialFile]);
 
   const handleFormatSelect = useCallback((format: ImportFormat) => {
     setSelectedFormat(format);
@@ -231,18 +344,18 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
 
         setImportResult({ itemCount: result.data.importedCount });
         setStep('success');
-        showSuccess(
-          result.data.importedCount > 0
-            ? `Successfully imported ${result.data.importedCount} items`
-            : 'Import completed',
-        );
+        if (result.data.importedCount > 0) {
+          showSuccess(t('import.toast.success', { count: result.data.importedCount }));
+        } else {
+          showSuccess(t('import.toast.noCount'));
+        }
       } catch (err) {
         setErrorMessage(err instanceof Error ? err.message : 'Unknown error.');
         setStep('error');
         showError(err instanceof Error ? err.message : 'Import failed.');
       }
     },
-    [showSuccess, showError],
+    [showSuccess, showError, t],
   );
 
   const handleBackToFileSelect = useCallback(() => {
@@ -267,19 +380,11 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
   }, []);
 
   const formatIcons: Record<ImportFormat, string> = {
-    'keepass-xml': '🗝️',
-    'bitwarden-json': '🟦',
-    '1password-csv': '🔑',
-    'generic-csv': '📄',
-    'encrypted-json': '🔒',
-  };
-
-  const formatDescriptions: Record<ImportFormat, string> = {
-    'keepass-xml': 'Import from KeePass XML export (.xml)',
-    'bitwarden-json': 'Import from Bitwarden JSON export (.json)',
-    '1password-csv': 'Import from 1Password CSV export (.csv)',
-    'generic-csv': 'Import any CSV file with custom column mapping',
-    'encrypted-json': 'Import a SecurePass Manager encrypted backup (.spm)',
+    'keepass-xml': '\u{1F5DD}\u{FE0F}',
+    'bitwarden-json': '\u{1F7E6}',
+    '1password-csv': '\u{1F511}',
+    'generic-csv': '\u{1F4C4}',
+    'encrypted-json': '\u{1F512}',
   };
 
   return (
@@ -287,19 +392,18 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
       isOpen={isOpen}
       onClose={handleClose}
       className="max-w-xl"
-      ariaLabel="Import data dialog"
+      ariaLabel={t('import.dialog.ariaLabel')}
     >
       <div className="p-6">
-        {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-surface-900 dark:text-surface-50">
-            Import Data
+            {t('import.dialog.title')}
           </h2>
           <button
             type="button"
             onClick={handleClose}
             className="rounded p-1 text-surface-400 transition-colors hover:text-surface-600 dark:hover:text-surface-300"
-            aria-label="Close dialog"
+            aria-label={t('import.dialog.ariaLabelClose')}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -307,11 +411,10 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
           </button>
         </div>
 
-        {/* Step: Select Format */}
         {step === 'select-format' && (
           <div className="space-y-3">
             <p className="text-sm text-surface-500 dark:text-surface-400">
-              Choose the format of the file you want to import:
+              {t('import.selectFormat.title')}
             </p>
             <div className="grid gap-2">
               {IMPORT_FORMATS.map((fmt) => (
@@ -329,7 +432,7 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
                       {IMPORT_FORMAT_LABELS[fmt]}
                     </span>
                     <p className="mt-0.5 text-xs text-surface-400 dark:text-surface-500">
-                      {formatDescriptions[fmt]}
+                      {t(`import.formatDesc.${fmt}`)}
                     </p>
                   </div>
                   <svg
@@ -348,7 +451,6 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
           </div>
         )}
 
-        {/* Step: Select File */}
         {step === 'select-file' && selectedFormat && (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -357,7 +459,7 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
                 onClick={() => setStep('select-format')}
                 className="text-xs text-accent-500 hover:text-accent-600 dark:text-accent-400"
               >
-                &larr; Change format
+                {t('import.selectFile.changeFormat')}
               </button>
             </div>
             <div className="rounded-lg border border-surface-200 bg-surface-50 p-6 text-center dark:border-surface-700 dark:bg-surface-800">
@@ -365,7 +467,7 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
                 {IMPORT_FORMAT_LABELS[selectedFormat]}
               </p>
               <p className="mb-4 text-xs text-surface-400">
-                Select a file to import
+                {t('import.selectFile.selectFile')}
               </p>
               <button
                 type="button"
@@ -386,13 +488,12 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
                     d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
                   />
                 </svg>
-                Browse Files
+                {t('import.selectFile.browseFiles')}
               </button>
             </div>
           </div>
         )}
 
-        {/* Step: Column Mapping (only for generic-csv) */}
         {step === 'column-mapping' && selectedFormat === 'generic-csv' && (
           <ColumnMapper
             csvHeaders={csvHeaders}
@@ -402,7 +503,6 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
           />
         )}
 
-        {/* Step: Importing */}
         {step === 'importing' && (
           <div className="flex flex-col items-center justify-center py-8">
             <svg
@@ -415,12 +515,11 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             <p className="text-sm text-surface-500 dark:text-surface-400">
-              Reading file...
+              {t('import.importing.readingFile')}
             </p>
           </div>
         )}
 
-        {/* Step: Duplicate Preview */}
         {step === 'duplicate-preview' && parsedPayload && duplicateReport && (
           <DuplicatePreview
             payload={parsedPayload}
@@ -430,7 +529,6 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
           />
         )}
 
-        {/* Step: Committing */}
         {step === 'committing' && (
           <div className="flex flex-col items-center justify-center py-8">
             <svg
@@ -443,12 +541,11 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             <p className="text-sm text-surface-500 dark:text-surface-400">
-              Importing data...
+              {t('import.committing.importingData')}
             </p>
           </div>
         )}
 
-        {/* Step: Success */}
         {step === 'success' && (
           <div className="space-y-4">
             <div className="flex flex-col items-center justify-center rounded-lg border border-success-200 bg-success-50 p-6 dark:border-success-800 dark:bg-success-900/20">
@@ -464,8 +561,8 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
               </svg>
               <p className="text-sm font-medium text-success-700 dark:text-success-300">
                 {importResult.itemCount !== undefined
-                  ? `Successfully imported ${importResult.itemCount} items`
-                  : 'Import completed'}
+                  ? t('import.success.title', { count: importResult.itemCount })
+                  : t('import.success.titleNoCount')}
               </p>
               {selectedFile && (
                 <p className="mt-1 text-xs text-success-500">
@@ -479,20 +576,19 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
                 onClick={handleClose}
                 className="notion-button-ghost rounded-lg px-4 py-2 text-sm"
               >
-                Done
+                {t('import.success.done')}
               </button>
               <button
                 type="button"
                 onClick={handleTryAgain}
                 className="notion-button-primary rounded-lg px-4 py-2 text-sm"
               >
-                Import Another File
+                {t('import.success.importAnother')}
               </button>
             </div>
           </div>
         )}
 
-        {/* Step: Error */}
         {step === 'error' && (
           <div className="space-y-4">
             <div className="flex flex-col items-center justify-center rounded-lg border border-danger-200 bg-danger-50 p-6 dark:border-danger-800 dark:bg-danger-900/20">
@@ -507,7 +603,7 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-sm font-medium text-danger-700 dark:text-danger-300">
-                Import Failed
+                {t('import.error.title')}
               </p>
               <p className="mt-1 text-xs text-danger-500">{errorMessage}</p>
             </div>
@@ -517,14 +613,14 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
                 onClick={handleClose}
                 className="notion-button-ghost rounded-lg px-4 py-2 text-sm"
               >
-                Cancel
+                {t('import.error.cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleTryAgain}
                 className="notion-button-primary rounded-lg px-4 py-2 text-sm"
               >
-                Try Again
+                {t('import.error.tryAgain')}
               </button>
             </div>
           </div>

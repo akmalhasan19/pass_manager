@@ -7,6 +7,8 @@ import {
   type StrengthResult,
 } from '../utils/passwordStrength';
 import ImportDialog from '../components/import-export/ImportDialog';
+import DropZone from '../components/import-export/DropZone';
+import type { ImportFormat } from '../../shared/types';
 
 export default function LockScreenPage(): React.ReactElement {
   const { status, error, initApp, unlock, clearError } = useAuthStore();
@@ -109,6 +111,24 @@ export default function LockScreenPage(): React.ReactElement {
 
   const isLoading = status === 'checking';
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [droppedFile, setDroppedFile] = useState<{
+    format: ImportFormat;
+    filePath: string;
+    content: string;
+  } | null>(null);
+
+  const handleFileDropped = useCallback(
+    (file: { format: ImportFormat; filePath: string; content: string }) => {
+      setDroppedFile(file);
+      setShowImportDialog(true);
+    },
+    [],
+  );
+
+  const handleImportDialogClose = useCallback(() => {
+    setShowImportDialog(false);
+    setDroppedFile(null);
+  }, []);
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-surface-50 dark:bg-surface-900">
@@ -402,34 +422,51 @@ export default function LockScreenPage(): React.ReactElement {
               : 'Press Esc to clear the form'}
           </p>
           {!isSetup && (
-            <button
-              type="button"
-              onClick={() => setShowImportDialog(true)}
-              className="flex items-center gap-1.5 text-xs text-accent-500 transition-colors hover:text-accent-600 dark:text-accent-400 dark:hover:text-accent-300"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-3.5 w-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
+            <div className="flex w-full flex-col items-center gap-2">
+              <DropZone
+                onFileDropped={handleFileDropped}
+                disabled={isLoading}
+              />
+              <div className="relative w-full text-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-surface-200 dark:border-surface-700" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-surface-50 px-2 text-surface-400 dark:bg-surface-900 dark:text-surface-500">
+                    or
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowImportDialog(true)}
+                className="flex items-center gap-1.5 text-xs text-accent-500 transition-colors hover:text-accent-600 dark:text-accent-400 dark:hover:text-accent-300"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 16v-4a1 1 0 011-1h4m6 0h4a1 1 0 011 1v4m-5-5l-3-3m0 0l3-3m-3 3h12"
-                />
-              </svg>
-              Import Data
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 16v-4a1 1 0 011-1h4m6 0h4a1 1 0 011 1v4m-5-5l-3-3m0 0l3-3m-3 3h12"
+                  />
+                </svg>
+                Import Data
+              </button>
+            </div>
           )}
         </div>
       </div>
 
       <ImportDialog
         isOpen={showImportDialog}
-        onClose={() => setShowImportDialog(false)}
+        onClose={handleImportDialogClose}
+        initialFile={droppedFile}
       />
     </div>
   );

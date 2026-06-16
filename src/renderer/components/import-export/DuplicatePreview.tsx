@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useTranslation } from '../../i18n/useTranslation';
 import type {
   DuplicateReport,
   DuplicateResolution,
@@ -13,30 +14,13 @@ interface DuplicatePreviewProps {
   onBack: () => void;
 }
 
-const RESOLUTION_OPTIONS: { value: DuplicateResolution; label: string; description: string }[] = [
-  {
-    value: 'skip',
-    label: 'Skip',
-    description: 'Keep existing, discard imported',
-  },
-  {
-    value: 'replace',
-    label: 'Replace',
-    description: 'Overwrite with imported data',
-  },
-  {
-    value: 'rename',
-    label: 'Rename',
-    description: 'Add suffix like "(2)" to title',
-  },
-];
-
 export default function DuplicatePreview({
   payload,
   report,
   onConfirm,
   onBack,
 }: DuplicatePreviewProps): React.ReactElement {
+  const { t } = useTranslation();
   const [globalResolution, setGlobalResolution] = useState<DuplicateResolution>('skip');
   const [perItemResolutions, setPerItemResolutions] = useState<Record<number, DuplicateResolution>>({});
 
@@ -75,8 +59,6 @@ export default function DuplicatePreview({
   const finalItemCount =
     report.totalImportItems - skippedCount;
 
-  const isOverriding = getItemResolution !== undefined;
-
   const handleConfirm = useCallback(() => {
     onConfirm({
       items: report.duplicates,
@@ -84,6 +66,24 @@ export default function DuplicatePreview({
       perItemResolutions,
     });
   }, [report.duplicates, globalResolution, perItemResolutions, onConfirm]);
+
+  const resolutionOptions: { value: DuplicateResolution; labelKey: string; descKey: string }[] = [
+    {
+      value: 'skip',
+      labelKey: 'duplicatePreview.resolution.skip',
+      descKey: 'duplicatePreview.resolution.skip.desc',
+    },
+    {
+      value: 'replace',
+      labelKey: 'duplicatePreview.resolution.replace',
+      descKey: 'duplicatePreview.resolution.replace.desc',
+    },
+    {
+      value: 'rename',
+      labelKey: 'duplicatePreview.resolution.rename',
+      descKey: 'duplicatePreview.resolution.rename.desc',
+    },
+  ];
 
   return (
     <div className="space-y-4">
@@ -93,44 +93,42 @@ export default function DuplicatePreview({
           onClick={onBack}
           className="text-xs text-accent-500 hover:text-accent-600 dark:text-accent-400"
         >
-          &larr; Back
+          {t('duplicatePreview.back')}
         </button>
       </div>
 
-      {/* Summary */}
       <div className="rounded-lg border border-surface-200 bg-surface-50 p-4 dark:border-surface-700 dark:bg-surface-800">
         <h3 className="mb-2 text-sm font-medium text-surface-800 dark:text-surface-200">
-          Import Summary
+          {t('duplicatePreview.importSummary')}
         </h3>
         <div className="grid grid-cols-3 gap-3 text-center text-xs">
           <div className="rounded-md bg-white p-2 dark:bg-surface-900">
             <div className="text-lg font-semibold text-surface-800 dark:text-surface-200">
               {report.totalImportItems}
             </div>
-            <div className="text-surface-400">Total items</div>
+            <div className="text-surface-400">{t('duplicatePreview.totalItems')}</div>
           </div>
           <div className="rounded-md bg-white p-2 dark:bg-surface-900">
             <div className="text-lg font-semibold text-danger-500">
               {report.duplicates.length}
             </div>
-            <div className="text-surface-400">Duplicates found</div>
+            <div className="text-surface-400">{t('duplicatePreview.duplicatesFound')}</div>
           </div>
           <div className="rounded-md bg-white p-2 dark:bg-surface-900">
             <div className="text-lg font-semibold text-success-500">
               {uniqueImportCount}
             </div>
-            <div className="text-surface-400">New items</div>
+            <div className="text-surface-400">{t('duplicatePreview.newItems')}</div>
           </div>
         </div>
       </div>
 
-      {/* Global Resolution */}
       <div className="space-y-2">
         <label className="text-xs font-medium text-surface-500 dark:text-surface-400">
-          Action for all duplicates
+          {t('duplicatePreview.actionForAll')}
         </label>
         <div className="grid grid-cols-3 gap-2">
-          {RESOLUTION_OPTIONS.map((opt) => (
+          {resolutionOptions.map((opt) => (
             <button
               key={opt.value}
               type="button"
@@ -142,19 +140,18 @@ export default function DuplicatePreview({
               }`}
             >
               <div className="text-sm font-medium text-surface-800 dark:text-surface-200">
-                {opt.label}
+                {t(opt.labelKey)}
               </div>
-              <div className="mt-0.5 text-xs text-surface-400">{opt.description}</div>
+              <div className="mt-0.5 text-xs text-surface-400">{t(opt.descKey)}</div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Duplicate Items */}
       {report.duplicates.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-medium text-surface-500 dark:text-surface-400">
-            Duplicate items — per-item override
+            {t('duplicatePreview.perItemOverride')}
           </p>
           <div className="max-h-60 space-y-1.5 overflow-y-auto rounded-lg border border-surface-200 p-2 dark:border-surface-700">
             {report.duplicates.map((dup) => (
@@ -185,11 +182,11 @@ export default function DuplicatePreview({
                     )
                   }
                   className="notion-input min-w-[90px] rounded px-2 py-1 text-xs"
-                  aria-label={`Resolution for ${dup.importItemTitle}`}
+                  aria-label={t('duplicatePreview.ariaLabelResolution', { title: dup.importItemTitle })}
                 >
-                  {RESOLUTION_OPTIONS.map((opt) => (
+                  {resolutionOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>
-                      {opt.label}
+                      {t(opt.labelKey)}
                     </option>
                   ))}
                 </select>
@@ -199,49 +196,49 @@ export default function DuplicatePreview({
         </div>
       )}
 
-      {/* Final Stats */}
       <div className="rounded-lg border border-surface-200 p-3 dark:border-surface-700">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-surface-500">Total items to import:</span>
+          <span className="text-surface-500">{t('duplicatePreview.totalToImport')}</span>
           <span className="font-medium text-surface-800 dark:text-surface-200">
             {finalItemCount}
           </span>
         </div>
         {skippedCount > 0 && (
           <div className="flex items-center justify-between text-xs">
-            <span className="text-surface-400">Skipped (duplicates):</span>
+            <span className="text-surface-400">{t('duplicatePreview.skipped')}</span>
             <span className="text-surface-500">{skippedCount}</span>
           </div>
         )}
         {replacedCount > 0 && (
           <div className="flex items-center justify-between text-xs">
-            <span className="text-surface-400">Replaced:</span>
+            <span className="text-surface-400">{t('duplicatePreview.replaced')}</span>
             <span className="text-warning-500">{replacedCount}</span>
           </div>
         )}
         {renamedCount > 0 && (
           <div className="flex items-center justify-between text-xs">
-            <span className="text-surface-400">Renamed:</span>
+            <span className="text-surface-400">{t('duplicatePreview.renamed')}</span>
             <span className="text-surface-500">{renamedCount}</span>
           </div>
         )}
       </div>
 
-      {/* Actions */}
       <div className="flex justify-end gap-2 border-t border-surface-200 pt-4 dark:border-surface-700">
         <button
           type="button"
           onClick={onBack}
           className="notion-button-ghost rounded-lg px-4 py-2 text-sm"
         >
-          Back
+          {t('duplicatePreview.buttonBack')}
         </button>
         <button
           type="button"
           onClick={handleConfirm}
           className="notion-button-primary rounded-lg px-4 py-2 text-sm"
         >
-          Import {finalItemCount} Item{finalItemCount !== 1 ? 's' : ''}
+          {finalItemCount === 1
+            ? t('duplicatePreview.buttonImport', { count: finalItemCount })
+            : t('duplicatePreview.buttonImport.plural', { count: finalItemCount })}
         </button>
       </div>
     </div>

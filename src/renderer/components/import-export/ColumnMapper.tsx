@@ -1,14 +1,6 @@
 import React, { useState, useCallback } from 'react';
+import { useTranslation } from '../../i18n/useTranslation';
 import type { CsvColumn, CsvColumnMapping } from '../../../shared/types';
-
-const SECUREPASS_FIELDS: { key: CsvColumn; label: string; required: boolean; description: string }[] = [
-  { key: 'title', label: 'Title', required: true, description: 'Entry name / title' },
-  { key: 'username', label: 'Username', required: true, description: 'Login username' },
-  { key: 'password', label: 'Password', required: true, description: 'Login password' },
-  { key: 'url', label: 'URL', required: false, description: 'Website URL' },
-  { key: 'notes', label: 'Notes', required: false, description: 'Additional notes' },
-  { key: 'tags', label: 'Tags', required: false, description: 'Comma-separated tags' },
-];
 
 interface ColumnMapperProps {
   csvHeaders: string[];
@@ -23,14 +15,16 @@ export default function ColumnMapper({
   onConfirm,
   onBack,
 }: ColumnMapperProps): React.ReactElement {
+  const { t } = useTranslation();
   const [mapping, setMapping] = useState<CsvColumnMapping>(() => {
     const auto: CsvColumnMapping = {};
     const lowerHeaders = csvHeaders.map((h) => h.toLowerCase().trim());
 
-    for (const field of SECUREPASS_FIELDS) {
-      const idx = lowerHeaders.indexOf(field.key);
+    const fields: CsvColumn[] = ['title', 'username', 'password', 'url', 'notes', 'tags'];
+    for (const key of fields) {
+      const idx = lowerHeaders.indexOf(key);
       if (idx !== -1) {
-        auto[field.key] = csvHeaders[idx];
+        auto[key] = csvHeaders[idx];
       }
     }
     return auto;
@@ -70,24 +64,35 @@ export default function ColumnMapper({
   }, [mapping]);
 
   const handleConfirm = useCallback(() => {
-    const missing = SECUREPASS_FIELDS.filter(
+    const fields: { key: CsvColumn; labelKey: string; required: boolean }[] = [
+      { key: 'title', labelKey: 'columnMapper.fields.title', required: true },
+      { key: 'username', labelKey: 'columnMapper.fields.username', required: true },
+      { key: 'password', labelKey: 'columnMapper.fields.password', required: true },
+      { key: 'url', labelKey: 'columnMapper.fields.url', required: false },
+      { key: 'notes', labelKey: 'columnMapper.fields.notes', required: false },
+      { key: 'tags', labelKey: 'columnMapper.fields.tags', required: false },
+    ];
+
+    const missing = fields.filter(
       (f) => f.required && !mapping[f.key],
     );
 
     if (missing.length > 0) {
       setError(
-        `Please map the required fields: ${missing.map((f) => f.label).join(', ')}`,
+        t('columnMapper.error.requiredFields', {
+          fields: missing.map((f) => t(f.labelKey)).join(', '),
+        }),
       );
       return;
     }
 
     if (hasDuplicates()) {
-      setError('Each CSV column can only be mapped to one SecurePass field.');
+      setError(t('columnMapper.error.duplicateColumns'));
       return;
     }
 
     onConfirm(mapping);
-  }, [mapping, onConfirm, hasDuplicates]);
+  }, [mapping, onConfirm, hasDuplicates, t]);
 
   const getAvailableColumns = (fieldKey: CsvColumn): string[] => {
     const current = mapping[fieldKey];
@@ -95,6 +100,15 @@ export default function ColumnMapper({
       (col) => col === '' || col === current || !usedColumns.has(col),
     );
   };
+
+  const fieldDefs: { key: CsvColumn; labelKey: string; descKey: string; required: boolean }[] = [
+    { key: 'title', labelKey: 'columnMapper.fields.title', descKey: 'columnMapper.fields.title.desc', required: true },
+    { key: 'username', labelKey: 'columnMapper.fields.username', descKey: 'columnMapper.fields.username.desc', required: true },
+    { key: 'password', labelKey: 'columnMapper.fields.password', descKey: 'columnMapper.fields.password.desc', required: true },
+    { key: 'url', labelKey: 'columnMapper.fields.url', descKey: 'columnMapper.fields.url.desc', required: false },
+    { key: 'notes', labelKey: 'columnMapper.fields.notes', descKey: 'columnMapper.fields.notes.desc', required: false },
+    { key: 'tags', labelKey: 'columnMapper.fields.tags', descKey: 'columnMapper.fields.tags.desc', required: false },
+  ];
 
   return (
     <div className="space-y-4">
@@ -104,20 +118,19 @@ export default function ColumnMapper({
           onClick={onBack}
           className="text-xs text-accent-500 hover:text-accent-600 dark:text-accent-400"
         >
-          &larr; Change file
+          {t('columnMapper.changeFile')}
         </button>
       </div>
 
       <div>
         <p className="text-sm text-surface-500 dark:text-surface-400">
-          Map your CSV columns to SecurePass fields. Drag or select from the dropdowns below.
+          {t('columnMapper.instruction')}
         </p>
       </div>
 
-      {/* CSV Preview */}
       <div className="overflow-hidden rounded-lg border border-surface-200 dark:border-surface-700">
         <div className="bg-surface-50 px-3 py-1.5 text-xs font-medium text-surface-500 dark:bg-surface-800 dark:text-surface-400">
-          CSV Preview
+          {t('columnMapper.csvPreview')}
         </div>
         <div className="overflow-x-auto p-3">
           <table className="w-full text-left text-xs">
@@ -143,12 +156,11 @@ export default function ColumnMapper({
         </div>
       </div>
 
-      {/* Column Mapping */}
       <div className="space-y-2">
         <p className="text-xs font-medium text-surface-500 dark:text-surface-400">
-          Column Mapping
+          {t('columnMapper.columnMapping')}
         </p>
-        {SECUREPASS_FIELDS.map((field) => (
+        {fieldDefs.map((field) => (
           <div
             key={field.key}
             className="flex items-center gap-3 rounded-lg border border-surface-200 p-2.5 dark:border-surface-700"
@@ -156,13 +168,13 @@ export default function ColumnMapper({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <span className="text-sm font-medium text-surface-800 dark:text-surface-200">
-                  {field.label}
+                  {t(field.labelKey)}
                 </span>
                 {field.required && (
                   <span className="text-xs text-danger-500">*</span>
                 )}
               </div>
-              <p className="text-xs text-surface-400">{field.description}</p>
+              <p className="text-xs text-surface-400">{t(field.descKey)}</p>
             </div>
 
             <div className="flex items-center gap-2">
@@ -190,11 +202,11 @@ export default function ColumnMapper({
                 value={mapping[field.key] ?? ''}
                 onChange={(e) => handleSelect(field.key, e.target.value)}
                 className="notion-input min-w-[140px] rounded-lg px-2 py-1.5 text-xs"
-                aria-label={`Map ${field.label} to CSV column`}
+                aria-label={t('columnMapper.columnMapping') + ' ' + t(field.labelKey)}
               >
                 {getAvailableColumns(field.key).map((col) => (
                   <option key={col} value={col}>
-                    {col || '— Not mapped —'}
+                    {col || t('columnMapper.notMapped')}
                   </option>
                 ))}
               </select>
@@ -209,21 +221,20 @@ export default function ColumnMapper({
         </div>
       )}
 
-      {/* Actions */}
       <div className="flex justify-end gap-2 border-t border-surface-200 pt-4 dark:border-surface-700">
         <button
           type="button"
           onClick={onBack}
           className="notion-button-ghost rounded-lg px-4 py-2 text-sm"
         >
-          Back
+          {t('columnMapper.back')}
         </button>
         <button
           type="button"
           onClick={handleConfirm}
           className="notion-button-primary rounded-lg px-4 py-2 text-sm"
         >
-          Import Data
+          {t('columnMapper.importData')}
         </button>
       </div>
     </div>

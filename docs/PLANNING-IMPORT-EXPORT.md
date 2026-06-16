@@ -131,17 +131,17 @@ Pengguna SecurePass Manager harus dapat melakukan migrasi data masuk dan keluar 
 ---
 
 ## 5. Task: UX Polish & Error Handling
-- [ ] Task 5 Complete
+- [x] Task 5 Complete
 
 ### Sub-Task 5.1: Feedback Visual
 - [x] Toast notification "Successfully imported 10 items" atau "Exported to /path/file.spm".
 - [x] Error feedback jika file tidak dikenali: "Unsupported file format. Please verify..."
 
 ### Sub-Task 5.2: Localization (I18n Ready)
-- [ ] Semua string di UI Import/Export harus berasal dari keys file bahasa. Jangan hard-code Bahasa Inggris di dalam komponen, agar nantinya mudah diterjemahkan ke Bahasa Indonesia atau lainnya.
+- [x] Semua string di UI Import/Export harus berasal dari keys file bahasa. Jangan hard-code Bahasa Inggris di dalam komponen, agar nantinya mudah diterjemahkan ke Bahasa Indonesia atau lainnya.
 
 ### Sub-Task 5.3: Drag & Drop Import
-- [ ] User bisa drag file CSV/JSON/XML dari File Explorer ke area zona khusus di Lock Screen untuk memulai import.
+- [x] User bisa drag file CSV/JSON/XML dari File Explorer ke area zona khusus di Lock Screen untuk memulai import.
 
 ---
 
@@ -163,4 +163,4 @@ Pengguna SecurePass Manager harus dapat melakukan migrasi data masuk dan keluar 
 - [x] Sub-Task 3.4: CSV Plain Export
 - [x] Sub-Task 3.5: Progress Bar
 - [x] Sub-Task 4.1-4.4: Tests
-- [ ] Sub-Task 5.1-5.3: UX Polish
+- [x] Sub-Task 5.1-5.3: UX Polish
