@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useId } from 'react';
 import { useTranslation } from '../../i18n/useTranslation';
 import type { CsvColumn, CsvColumnMapping } from '../../../shared/types';
 
@@ -16,6 +16,7 @@ export default function ColumnMapper({
   onBack,
 }: ColumnMapperProps): React.ReactElement {
   const { t } = useTranslation();
+  const errorId = useId();
   const [mapping, setMapping] = useState<CsvColumnMapping>(() => {
     const auto: CsvColumnMapping = {};
     const lowerHeaders = csvHeaders.map((h) => h.toLowerCase().trim());
@@ -203,6 +204,8 @@ export default function ColumnMapper({
                 onChange={(e) => handleSelect(field.key, e.target.value)}
                 className="notion-input min-w-[140px] rounded-lg px-2 py-1.5 text-xs"
                 aria-label={t('columnMapper.columnMapping') + ' ' + t(field.labelKey)}
+                aria-invalid={!!error || undefined}
+                aria-describedby={error ? errorId : undefined}
               >
                 {getAvailableColumns(field.key).map((col) => (
                   <option key={col} value={col}>
@@ -216,7 +219,11 @@ export default function ColumnMapper({
       </div>
 
       {error && (
-        <div className="rounded-lg border border-danger-200 bg-danger-50 p-2.5 text-xs text-danger-600 dark:border-danger-800 dark:bg-danger-900/20 dark:text-danger-400">
+        <div 
+          role="alert"
+          id={errorId}
+          className="rounded-lg border border-danger-200 bg-danger-50 p-2.5 text-xs text-danger-600 dark:border-danger-800 dark:bg-danger-900/20 dark:text-danger-400"
+        >
           {error}
         </div>
       )}

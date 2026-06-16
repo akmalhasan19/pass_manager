@@ -4,6 +4,8 @@ import type { Folder } from '../../../shared/types';
 import { MAX_FIELD_LENGTHS } from '../../../shared/constants';
 import { sanitizeField, validateCharacters } from '../../../shared/validation';
 import EmojiPicker from './EmojiPicker';
+import { InlineFormField } from './FormField';
+import { useTranslation } from '../../i18n/useTranslation';
 
 interface TreeNodeProps {
   folder: Folder;
@@ -47,6 +49,7 @@ export default function TreeNode({
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   const isExpanded = expandedFolderIds.has(folder.id);
   const isSelected = selectedFolderId === folder.id;
@@ -89,18 +92,18 @@ export default function TreeNode({
     if (trimmed && trimmed !== folder.name) {
       const charError = validateCharacters('folderName', trimmed);
       if (charError) {
-        setRenameError(charError);
+        setRenameError(t(charError));
         return;
       }
       const success = await onRename(folder.id, trimmed);
       if (!success) {
-        setRenameError('A folder with this name already exists.');
+        setRenameError(t('validation.folderAlreadyExists'));
         return;
       }
     }
     setRenameError(null);
     setIsRenaming(false);
-  }, [renameValue, folder.name, folder.id, onRename]);
+  }, [renameValue, folder.name, folder.id, onRename, t]);
 
   const handleRenameKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -224,7 +227,11 @@ export default function TreeNode({
               onKeyDown={handleRenameKeyDown}
               onClick={(e) => e.stopPropagation()}
             />
-            {renameError && <p className="mt-0.5 text-[11px] text-danger-500">{renameError}</p>}
+            <InlineFormField
+              error={renameError}
+              showCharCount={!renameError && renameValue.length > 0}
+              charCount={{ current: renameValue.length, max: MAX_FIELD_LENGTHS.FOLDER_NAME }}
+            />
           </div>
         ) : (
           <span className="min-w-0 flex-1 truncate text-sm">{folder.name}</span>

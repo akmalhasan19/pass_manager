@@ -7,7 +7,7 @@ import LinkExtension from '@tiptap/extension-link';
 import CodeBlock from '@tiptap/extension-code-block';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import { sanitizeRichText, sanitizeRichTextForPaste } from '../../../shared/sanitizeRichText';
+import { sanitizeRichText, sanitizeRichTextForPaste, MAX_RICH_TEXT_LENGTH } from '../../../shared/sanitizeRichText';
 import MarkdownToolbar from './MarkdownToolbar';
 import SlashCommandMenu from './SlashCommandMenu';
 import type { Command } from './SlashCommandMenu';
@@ -89,6 +89,12 @@ export default function RichTextEditor({
     editable,
     onUpdate: ({ editor: ed }: { editor: Editor }) => {
       const html = ed.getHTML();
+      if (html.length > MAX_RICH_TEXT_LENGTH) {
+        const truncated = html.slice(0, MAX_RICH_TEXT_LENGTH);
+        const sanitized = sanitizeRichText(truncated);
+        onChange(sanitized);
+        return;
+      }
       const sanitized = sanitizeRichText(html);
       onChange(sanitized);
     },
@@ -146,6 +152,45 @@ export default function RichTextEditor({
   editorRef.current = editor;
 
   useEffect(() => {
+    if (!editor || !editable) return;
+    const editorEl = editor.view.dom;
+    const observer = new MutationObserver((mutations) => {
+      let needsCleanup = false;
+      for (const mutation of mutations) {
+        for (const node of Array.from(mutation.addedNodes)) {
+          if (node instanceof HTMLElement) {
+            const tag = node.tagName.toLowerCase();
+            if (
+              tag.includes('grammarly') ||
+              tag.includes('languagetool') ||
+              tag.includes('ginger') ||
+              tag.includes('prowritingaid')
+            ) {
+              needsCleanup = true;
+              break;
+            }
+            const grAttrs = Array.from(node.attributes).some(
+              (a) => /^data-gr-/i.test(a.name) || /^data-lt-/i.test(a.name) || /^gramm$/i.test(a.name),
+            );
+            if (grAttrs) {
+              needsCleanup = true;
+              break;
+            }
+          }
+        }
+        if (needsCleanup) break;
+      }
+      if (needsCleanup) {
+        const html = editor.getHTML();
+        const sanitized = sanitizeRichText(html);
+        editor.commands.setContent(sanitized);
+      }
+    });
+    observer.observe(editorEl, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-gr-cs-loaded', 'data-new-gr-cs-loaded', 'data-gr-id', 'data-lt-tmp-id', 'gramm'] });
+    return () => observer.disconnect();
+  }, [editor, editable]);
+
+  useEffect(() => {
     if (!editor) return;
     if (editor.isDestroyed) return;
 
@@ -154,7 +199,10 @@ export default function RichTextEditor({
     if (content && currentSanitized === content) return;
 
     try {
-      const sanitizedContent = content ? sanitizeRichText(content) : '';
+      const truncated = content && content.length > MAX_RICH_TEXT_LENGTH
+        ? content.slice(0, MAX_RICH_TEXT_LENGTH)
+        : content;
+      const sanitizedContent = truncated ? sanitizeRichText(truncated) : '';
       if (sanitizedContent) {
         editor.commands.setContent(sanitizedContent);
       } else {

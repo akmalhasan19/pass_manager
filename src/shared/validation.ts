@@ -18,6 +18,7 @@ const CONTROL_CHAR_REGEX = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 const ALL_CONTROL_CHAR_REGEX = /[\u0000-\u001F\u007F]/g;
 
 function hasControlCharacters(value: string): boolean {
+  CONTROL_CHAR_REGEX.lastIndex = 0;
   return CONTROL_CHAR_REGEX.test(value);
 }
 
@@ -27,6 +28,7 @@ function hasControlCharacters(value: string): boolean {
  * Blocks only ASCII control characters (\x00-\x1F, \x7F).
  */
 function containsOnlyPrintable(value: string): boolean {
+  ALL_CONTROL_CHAR_REGEX.lastIndex = 0;
   return !ALL_CONTROL_CHAR_REGEX.test(value);
 }
 
@@ -87,7 +89,7 @@ export function validateCharacters(field: ValidationField, value: string): strin
     }
 
     case 'notes': {
-      if (!containsOnlyPrintable(value)) {
+      if (hasControlCharacters(value)) {
         return 'validation.invalidCharacters';
       }
       return null;

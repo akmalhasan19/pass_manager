@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useId } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import {
   evaluateStrength,
@@ -27,6 +27,8 @@ export default function LockScreenPage(): React.ReactElement {
   });
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const passwordErrorId = useId();
+  const confirmPasswordErrorId = useId();
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -171,6 +173,8 @@ export default function LockScreenPage(): React.ReactElement {
                 autoCapitalize="off"
                 spellCheck={false}
                 disabled={isLoading}
+                aria-invalid={!!localError || undefined}
+                aria-describedby={localError ? passwordErrorId : undefined}
                 className="notion-input rounded-lg border border-surface-200 pr-10 dark:border-surface-700"
               />
               <button
@@ -238,6 +242,8 @@ export default function LockScreenPage(): React.ReactElement {
                   placeholder="Confirm master password"
                   autoComplete="off"
                   disabled={isLoading}
+                  aria-invalid={!!localError || undefined}
+                  aria-describedby={localError ? confirmPasswordErrorId : undefined}
                   className="notion-input rounded-lg border border-surface-200 pr-10 dark:border-surface-700"
                 />
                 <button
@@ -319,7 +325,11 @@ export default function LockScreenPage(): React.ReactElement {
 
           {/* Error Display */}
           {localError && (
-            <div className="animate-slide-up rounded-lg border border-danger-400/30 bg-danger-50 px-4 py-3 dark:bg-danger-500/10">
+            <div 
+              role="alert"
+              id={passwordErrorId}
+              className="animate-slide-up rounded-lg border border-danger-400/30 bg-danger-50 px-4 py-3 dark:bg-danger-500/10"
+            >
               <div className="flex items-start gap-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

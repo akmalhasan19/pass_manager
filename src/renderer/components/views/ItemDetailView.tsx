@@ -7,6 +7,7 @@ import RichTextEditor from '../editor/RichTextEditor';
 import EmojiPicker from '../ui/EmojiPicker';
 import CoverImage from '../ui/CoverImage';
 import ConfirmDialog from '../ui/ConfirmDialog';
+import { InlineFormField } from '../ui/FormField';
 import { useToast } from '../../hooks/useToast';
 import { useTranslation } from '../../i18n/useTranslation';
 
@@ -61,6 +62,16 @@ function formatFileSize(bytes: number): string {
 
 const TAG_COLORS = ['#ef4444', '#f59e0b', '#22c55e', '#6366f1', '#8b5cf6', '#06b6d4', '#ec4899'];
 
+function isContentEmpty(field: string, value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  const str = typeof value === 'string' ? value : '';
+  if (field === 'notes') {
+    const stripped = str.replace(/<[^>]*>/g, '').trim();
+    return stripped.length === 0;
+  }
+  return str.trim().length === 0;
+}
+
 export default function ItemDetailView({
   item,
   isLoading,
@@ -97,6 +108,8 @@ export default function ItemDetailView({
   const { showSuccess } = useToast();
   const { t } = useTranslation();
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSavingRef = useRef(false);
+  const pendingSaveRef = useRef<{ field: string; value: unknown } | null>(null);
   const tagDropdownRef = useRef<HTMLDivElement>(null);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -212,15 +225,38 @@ export default function ItemDetailView({
     [t],
   );
 
+  const executeSave = useCallback(
+    async (field: string, value: unknown) => {
+      if (!item) return;
+      if (isSavingRef.current) {
+        pendingSaveRef.current = { field, value };
+        return;
+      }
+      isSavingRef.current = true;
+      try {
+        await onUpdate(item.id, { [field]: value });
+      } finally {
+        isSavingRef.current = false;
+        if (pendingSaveRef.current) {
+          const next = pendingSaveRef.current;
+          pendingSaveRef.current = null;
+          executeSave(next.field, next.value);
+        }
+      }
+    },
+    [item, onUpdate],
+  );
+
   const scheduleAutoSave = useCallback(
     (field: string, value: unknown) => {
       if (!item) return;
+      if (isContentEmpty(field, value)) return;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
-        onUpdate(item.id, { [field]: value });
+        executeSave(field, value);
       }, 800);
     },
-    [item, onUpdate],
+    [item, executeSave],
   );
 
   const handleFieldChange = useCallback(
@@ -253,21 +289,36 @@ export default function ItemDetailView({
       } else if (field !== 'title' && typeof sanitized === 'string' && sanitized !== rawValue) {
         applyFieldSetter(field, sanitized);
       }
-      const success = await onUpdate(item.id, { [field]: trimmedValue });
-      if (field === 'title' && !success) {
-        setFieldErrors((prev) => ({
-          ...prev,
-          title: 'An item with this title already exists in this folder.',
-        }));
-      } else if (field === 'title' && success) {
-        setFieldErrors((prev) => {
-          const next = { ...prev };
-          delete next['title'];
-          return next;
-        });
+      if (isContentEmpty(field, trimmedValue)) return;
+      if (isSavingRef.current) {
+        pendingSaveRef.current = { field, value: trimmedValue };
+        return;
+      }
+      isSavingRef.current = true;
+      try {
+        const success = await onUpdate(item.id, { [field]: trimmedValue });
+        if (field === 'title' && !success) {
+          setFieldErrors((prev) => ({
+            ...prev,
+            title: 'An item with this title already exists in this folder.',
+          }));
+        } else if (field === 'title' && success) {
+          setFieldErrors((prev) => {
+            const next = { ...prev };
+            delete next['title'];
+            return next;
+          });
+        }
+      } finally {
+        isSavingRef.current = false;
+        if (pendingSaveRef.current) {
+          const next = pendingSaveRef.current;
+          pendingSaveRef.current = null;
+          executeSave(next.field, next.value);
+        }
       }
     },
-    [item, onUpdate, applyFieldSetter],
+    [item, onUpdate, applyFieldSetter, executeSave],
   );
 
   const handleCopy = useCallback(
@@ -376,6 +427,7 @@ export default function ItemDetailView({
   useEffect(() => {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      pendingSaveRef.current = null;
     };
   }, []);
 
@@ -446,26 +498,21 @@ export default function ItemDetailView({
           <div className="flex-1">
             {editMode ? (
               <div>
-                <input
-                  className="w-full border-0 bg-transparent text-3xl font-semibold text-surface-900 placeholder:text-surface-300 focus:outline-none focus:ring-0 dark:text-surface-50 dark:placeholder:text-surface-600"
-                  placeholder="Untitled"
-                  value={title}
-                  maxLength={MAX_FIELD_LENGTHS.ITEM_TITLE}
-                  onChange={(e) => handleFieldChange('title', e.target.value, setTitle)}
-                  onBlur={() => handleBlur('title', title)}
-                  autoFocus={isNewItem}
-                />
-                {fieldErrors.title && (
-                  <p className="mt-1 text-xs text-danger-500">{fieldErrors.title}</p>
-                )}
-                {title.length > MAX_FIELD_LENGTHS.ITEM_TITLE * 0.8 && !fieldErrors.title && (
-                  <p className="mt-1 text-xs text-surface-400">
-                    {t('validation.charCount', {
-                      current: title.length,
-                      max: MAX_FIELD_LENGTHS.ITEM_TITLE,
-                    })}
-                  </p>
-                )}
+                <InlineFormField
+                  error={fieldErrors.title}
+                  showCharCount={!fieldErrors.title}
+                  charCount={{ current: title.length, max: MAX_FIELD_LENGTHS.ITEM_TITLE }}
+                >
+                  <input
+                    className="w-full border-0 bg-transparent text-3xl font-semibold text-surface-900 placeholder:text-surface-300 focus:outline-none focus:ring-0 dark:text-surface-50 dark:placeholder:text-surface-600"
+                    placeholder="Untitled"
+                    value={title}
+                    maxLength={MAX_FIELD_LENGTHS.ITEM_TITLE}
+                    onChange={(e) => handleFieldChange('title', e.target.value, setTitle)}
+                    onBlur={() => handleBlur('title', title)}
+                    autoFocus={isNewItem}
+                  />
+                </InlineFormField>
               </div>
             ) : (
               <h2 className="text-3xl font-semibold text-surface-900 dark:text-surface-50">
@@ -521,17 +568,20 @@ export default function ItemDetailView({
             <div className="group-focus-within:border-primary flex items-center justify-between border-b border-surface-200 py-1 transition-colors dark:border-surface-700">
               {editMode ? (
                 <div className="min-w-0 flex-1">
-                  <input
-                    className="w-full border-0 bg-transparent p-0 text-base text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
-                    placeholder="https://example.com"
-                    value={url}
-                    maxLength={MAX_FIELD_LENGTHS.URL}
-                    onChange={(e) => handleFieldChange('url', e.target.value, setUrl)}
-                    onBlur={() => handleBlur('url', url)}
-                  />
-                  {fieldErrors.url && (
-                    <p className="mt-1 text-xs text-danger-500">{fieldErrors.url}</p>
-                  )}
+                  <InlineFormField
+                    error={fieldErrors.url}
+                    showCharCount={!fieldErrors.url}
+                    charCount={{ current: url.length, max: MAX_FIELD_LENGTHS.URL }}
+                  >
+                    <input
+                      className="w-full border-0 bg-transparent p-0 text-base text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
+                      placeholder="https://example.com"
+                      value={url}
+                      maxLength={MAX_FIELD_LENGTHS.URL}
+                      onChange={(e) => handleFieldChange('url', e.target.value, setUrl)}
+                      onBlur={() => handleBlur('url', url)}
+                    />
+                  </InlineFormField>
                 </div>
               ) : (
                 <span
@@ -590,17 +640,20 @@ export default function ItemDetailView({
             <div className="group-focus-within:border-primary flex items-center justify-between border-b border-surface-200 py-1 transition-colors dark:border-surface-700">
               {editMode ? (
                 <div className="min-w-0 flex-1">
-                  <input
-                    className="w-full border-0 bg-transparent p-0 text-base text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
-                    placeholder="username@example.com"
-                    value={username}
-                    maxLength={MAX_FIELD_LENGTHS.USERNAME}
-                    onChange={(e) => handleFieldChange('username', e.target.value, setUsername)}
-                    onBlur={() => handleBlur('username', username)}
-                  />
-                  {fieldErrors.username && (
-                    <p className="mt-1 text-xs text-danger-500">{fieldErrors.username}</p>
-                  )}
+                  <InlineFormField
+                    error={fieldErrors.username}
+                    showCharCount={!fieldErrors.username}
+                    charCount={{ current: username.length, max: MAX_FIELD_LENGTHS.USERNAME }}
+                  >
+                    <input
+                      className="w-full border-0 bg-transparent p-0 text-base text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
+                      placeholder="username@example.com"
+                      value={username}
+                      maxLength={MAX_FIELD_LENGTHS.USERNAME}
+                      onChange={(e) => handleFieldChange('username', e.target.value, setUsername)}
+                      onBlur={() => handleBlur('username', username)}
+                    />
+                  </InlineFormField>
                 </div>
               ) : (
                 <span className="text-base text-surface-800 dark:text-surface-200">
@@ -640,18 +693,21 @@ export default function ItemDetailView({
             <div className="group-focus-within:border-primary flex items-center justify-between border-b border-surface-200 py-1 transition-colors dark:border-surface-700">
               {editMode ? (
                 <div className="min-w-0 flex-1">
-                  <input
-                    className="w-full border-0 bg-transparent p-0 font-mono text-lg tracking-widest text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter password"
-                    value={password}
-                    maxLength={MAX_FIELD_LENGTHS.PASSWORD}
-                    onChange={(e) => handleFieldChange('password', e.target.value, setPassword)}
-                    onBlur={() => handleBlur('password', password)}
-                  />
-                  {fieldErrors.password && (
-                    <p className="mt-1 text-xs text-danger-500">{fieldErrors.password}</p>
-                  )}
+                  <InlineFormField
+                    error={fieldErrors.password}
+                    showCharCount={!fieldErrors.password}
+                    charCount={{ current: password.length, max: MAX_FIELD_LENGTHS.PASSWORD }}
+                  >
+                    <input
+                      className="w-full border-0 bg-transparent p-0 font-mono text-lg tracking-widest text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter password"
+                      value={password}
+                      maxLength={MAX_FIELD_LENGTHS.PASSWORD}
+                      onChange={(e) => handleFieldChange('password', e.target.value, setPassword)}
+                      onBlur={() => handleBlur('password', password)}
+                    />
+                  </InlineFormField>
                 </div>
               ) : (
                 <span className="font-mono text-lg tracking-widest text-surface-800 dark:text-surface-200">

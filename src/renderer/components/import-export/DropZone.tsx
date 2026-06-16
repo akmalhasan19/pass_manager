@@ -172,7 +172,7 @@ export default function DropZone({ onFileDropped, disabled = false }: DropZonePr
       </div>
       {error && (
         <div className="border-t border-surface-200 px-4 py-2 dark:border-surface-700">
-          <p className="text-center text-xs text-danger-500">{error}</p>
+          <p role="alert" className="text-center text-xs text-danger-500">{error}</p>
         </div>
       )}
     </div>

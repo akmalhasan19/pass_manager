@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { sanitizeRichText, sanitizeRichTextForPaste } from '../../../src/shared/sanitizeRichText';
+import { sanitizeRichText, sanitizeRichTextForPaste, MAX_RICH_TEXT_LENGTH } from '../../../src/shared/sanitizeRichText';
 
 describe('sanitizeRichText', () => {
   it('returns empty string for empty input', () => {
@@ -475,5 +475,222 @@ describe('sanitizeRichTextForPaste', () => {
       expect(result).not.toContain('class=');
       expect(result).not.toContain('id=');
     });
+  });
+});
+
+describe('Malformed DOM handling', () => {
+  describe('unclosed tags', () => {
+    it('auto-closes unclosed <p> tag', () => {
+      const input = '<p>unclosed paragraph';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('<p>');
+      expect(result).toContain('unclosed paragraph');
+      expect(result).toContain('</p>');
+    });
+
+    it('auto-closes unclosed <strong> tag', () => {
+      const input = '<strong>bold text';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('<strong>');
+      expect(result).toContain('bold text');
+      expect(result).toContain('</strong>');
+    });
+
+    it('auto-closes unclosed <b>, <i>, <u> tags', () => {
+      const input = '<b>bold<i>italic<u>underline';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('bold');
+      expect(result).toContain('italic');
+      expect(result).toContain('underline');
+      expect(result).toContain('</b>');
+      expect(result).toContain('</i>');
+      expect(result).toContain('</u>');
+    });
+
+    it('auto-closes unclosed heading tags', () => {
+      const input = '<h1>Title<h2>Subtitle';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('<h1>');
+      expect(result).toContain('</h1>');
+      expect(result).toContain('<h2>');
+      expect(result).toContain('</h2>');
+    });
+
+    it('auto-closes unclosed list tags', () => {
+      const input = '<ul><li>item 1<li>item 2';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('<ul>');
+      expect(result).toContain('<li>');
+      expect(result).toContain('item 1');
+      expect(result).toContain('item 2');
+    });
+  });
+
+  describe('incorrectly nested tags', () => {
+    it('fixes incorrectly nested tags (overlap)', () => {
+      const input = '<b><i>bold italic</b></i>';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('bold italic');
+    });
+
+    it('handles deeply nested malformed structure', () => {
+      const input = '<p><strong><em><u>text</strong></em></u></p>';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('text');
+    });
+
+    it('handles reversed closing order', () => {
+      const input = '<p><strong><em>text</p></strong></em>';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('text');
+    });
+  });
+
+  describe('malformed attributes', () => {
+    it('handles unclosed attribute quotes gracefully', () => {
+      const input = '<a href="https://example.com>link</a>';
+      const result = sanitizeRichText(input);
+      expect(typeof result).toBe('string');
+    });
+
+    it('handles extra angle brackets', () => {
+      const input = '<p>text with <stray> brackets</p>';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('text with');
+      expect(result).toContain('brackets');
+    });
+
+    it('handles self-closing syntax on non-void elements', () => {
+      const input = '<p/>self-closed<p>normal</p>';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('self-closed');
+      expect(result).toContain('normal');
+    });
+  });
+
+  describe('empty and whitespace-only content', () => {
+    it('preserves whitespace paragraphs in sanitizeRichText', () => {
+      const result = sanitizeRichText('<p>   </p><p></p>');
+      expect(result).toContain('<p>');
+      expect(typeof result).toBe('string');
+    });
+
+    it('preserves nested empty elements in sanitizeRichText', () => {
+      const result = sanitizeRichText('<div><p><strong></strong></p></div>');
+      expect(result).toContain('<div>');
+      expect(result).toContain('<p>');
+    });
+  });
+});
+
+describe('Extension artifact stripping (Grammarly, LanguageTool)', () => {
+  describe('Grammarly artifacts', () => {
+    it('strips data-gr-* attributes from elements', () => {
+      const input = '<p data-gr-id="abc123" data-gr-cs-loaded="true">text</p>';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('text');
+      expect(result).not.toContain('data-gr-id');
+      expect(result).not.toContain('data-gr-cs-loaded');
+    });
+
+    it('strips data-new-gr-cs-loaded attribute', () => {
+      const input = '<p data-new-gr-cs-loaded="true">text</p>';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('text');
+      expect(result).not.toContain('data-new-gr-cs-loaded');
+    });
+
+    it('strips gramm attribute', () => {
+      const input = '<span gramm="true">text</span>';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('text');
+      expect(result).not.toContain('gramm');
+    });
+
+    it('strips multiple Grammarly attributes from same element', () => {
+      const input = '<p data-gr-id="x" data-gr-cs-loaded="1" data-new-gr-cs-loaded="1" gramm="true">content</p>';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('content');
+      expect(result).not.toMatch(/data-gr-/);
+      expect(result).not.toMatch(/gramm/);
+    });
+  });
+
+  describe('LanguageTool artifacts', () => {
+    it('strips data-lt-* attributes from elements', () => {
+      const input = '<p data-lt-tmp-id="lt-123" data-lt-active="true">text</p>';
+      const result = sanitizeRichText(input);
+      expect(result).toContain('text');
+      expect(result).not.toContain('data-lt-tmp-id');
+      expect(result).not.toContain('data-lt-active');
+    });
+  });
+
+  describe('extension artifacts on paste', () => {
+    it('strips Grammarly attributes from pasted content', () => {
+      const input = '<p data-gr-id="abc" data-gr-cs-loaded="true">pasted text</p>';
+      const result = sanitizeRichTextForPaste(input);
+      expect(result).toContain('pasted text');
+      expect(result).not.toContain('data-gr-');
+    });
+
+    it('strips LanguageTool attributes from pasted content', () => {
+      const input = '<p data-lt-tmp-id="123">pasted text</p>';
+      const result = sanitizeRichTextForPaste(input);
+      expect(result).toContain('pasted text');
+      expect(result).not.toContain('data-lt-');
+    });
+
+    it('handles content with mixed extension and allowed attributes', () => {
+      const input = '<a href="https://example.com" data-gr-id="link1" title="Ex">link</a>';
+      const result = sanitizeRichTextForPaste(input);
+      expect(result).toContain('href="https://example.com"');
+      expect(result).toContain('title="Ex"');
+      expect(result).toContain('link');
+      expect(result).not.toContain('data-gr-');
+    });
+  });
+});
+
+describe('Extreme long text (100KB+) protection', () => {
+  it('truncates input exceeding MAX_RICH_TEXT_LENGTH', () => {
+    const longText = 'a'.repeat(MAX_RICH_TEXT_LENGTH + 1000);
+    const input = `<p>${longText}</p>`;
+    const result = sanitizeRichText(input);
+    expect(result.length).toBeLessThanOrEqual(MAX_RICH_TEXT_LENGTH + 50);
+  });
+
+  it('handles 100KB text without crashing', () => {
+    const text = 'x'.repeat(MAX_RICH_TEXT_LENGTH);
+    const input = `<p>${text}</p>`;
+    const result = sanitizeRichText(input);
+    expect(result).toContain('x');
+  });
+
+  it('handles large text with mixed formatting without crashing', () => {
+    const chunks: string[] = [];
+    for (let i = 0; i < 100; i++) {
+      chunks.push(`<strong>bold${i}</strong> normal${i} <em>italic${i}</em>`);
+    }
+    const input = `<p>${chunks.join(' ')}</p>`;
+    const result = sanitizeRichText(input);
+    expect(result).toContain('bold0');
+    expect(result).toContain('italic99');
+  });
+
+  it('truncates pasted input exceeding MAX_RICH_TEXT_LENGTH', () => {
+    const longText = 'b'.repeat(MAX_RICH_TEXT_LENGTH + 500);
+    const input = `<p>${longText}</p>`;
+    const result = sanitizeRichTextForPaste(input);
+    expect(result.length).toBeLessThanOrEqual(MAX_RICH_TEXT_LENGTH + 50);
+  });
+
+  it('handles very deeply nested tags within size limit', () => {
+    let nested = 'deep';
+    for (let i = 0; i < 50; i++) {
+      nested = `<strong>${nested}</strong>`;
+    }
+    const result = sanitizeRichText(`<p>${nested}</p>`);
+    expect(result).toContain('deep');
   });
 });

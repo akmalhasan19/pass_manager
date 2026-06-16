@@ -116,5 +116,7 @@
   "validation.emailWarning": "This does not look like a valid email address.",
   "validation.urlWarning": "This does not look like a valid URL.",
   "validation.whitespaceOnly": "This field cannot be empty or contain only whitespace.",
-  "validation.invalidCharacters": "This field contains invalid characters. Only printable characters are allowed."
+  "validation.invalidCharacters": "This field contains invalid characters. Only printable characters are allowed.",
+  "validation.folderAlreadyExists": "A folder with this name already exists.",
+  "validation.folderAlreadyExistsSuggestion": "A folder with this name already exists. Suggested: \"{suggestion}\""
 }

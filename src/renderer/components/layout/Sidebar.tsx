@@ -4,6 +4,8 @@ import { useFolderStore } from '../../stores/folderStore';
 import { useItemStore } from '../../stores/itemStore';
 import { MAX_FIELD_LENGTHS } from '../../../shared/constants';
 import { sanitizeField, validateCharacters } from '../../../shared/validation';
+import { InlineFormField } from '../ui/FormField';
+import { useTranslation } from '../../i18n/useTranslation';
 import type { Folder } from '../../../shared/types';
 import TreeNode from '../ui/TreeNode';
 
@@ -50,6 +52,7 @@ export default function Sidebar(): React.ReactElement {
     loadTree,
   } = useFolderStore();
   const { loadItems, selectedItemId, setSelectedItem } = useItemStore();
+  const { t } = useTranslation();
 
   const [newFolderName, setNewFolderName] = useState('');
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -131,7 +134,7 @@ export default function Sidebar(): React.ReactElement {
 
     const charError = validateCharacters('folderName', name);
     if (charError) {
-      setCreateFolderError(charError);
+      setCreateFolderError(t(charError));
       return;
     }
 
@@ -148,10 +151,10 @@ export default function Sidebar(): React.ReactElement {
       if (existingNames.has(name.toLowerCase())) {
         const suggestion = generateAlternativeName(name, existingNames);
         setNewFolderName(suggestion);
-        setCreateFolderError(`A folder with this name already exists. Suggested: "${suggestion}"`);
+        setCreateFolderError(t('validation.folderAlreadyExistsSuggestion', { suggestion }));
       }
     }
-  }, [newFolderName, newFolderParentId, createFolder, setSelectedFolder, loadItems, folders]);
+  }, [newFolderName, newFolderParentId, createFolder, setSelectedFolder, loadItems, folders, t]);
 
   const handleNewFolderNameChange = useCallback((value: string) => {
     const sanitized = sanitizeField('folderName', value);
@@ -349,9 +352,11 @@ export default function Sidebar(): React.ReactElement {
                     onKeyDown={handleCreateFolderKeyDown}
                   />
                 </div>
-                {createFolderError && (
-                  <p className="mt-0.5 pl-6 text-[11px] text-danger-500">{createFolderError}</p>
-                )}
+                <InlineFormField
+                  error={createFolderError}
+                  showCharCount={!createFolderError && newFolderName.length > 0}
+                  charCount={{ current: newFolderName.length, max: MAX_FIELD_LENGTHS.FOLDER_NAME }}
+                />
               </div>
             )}
           </div>

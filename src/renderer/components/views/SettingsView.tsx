@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useId } from 'react';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useAuthStore } from '../../stores/authStore';
 import { APP_NAME, APP_VERSION } from '../../../shared/constants';
@@ -28,6 +28,7 @@ export default function SettingsView(): React.ReactElement {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const passwordErrorId = useId();
 
   useEffect(() => {
     loadSettings();
@@ -289,6 +290,8 @@ export default function SettingsView(): React.ReactElement {
                         placeholder="Current master password"
                         value={oldPassword}
                         onChange={(e) => setOldPassword(e.target.value)}
+                        aria-invalid={!!passwordError || undefined}
+                        aria-describedby={passwordError ? passwordErrorId : undefined}
                       />
                     </div>
                     <div>
@@ -298,6 +301,8 @@ export default function SettingsView(): React.ReactElement {
                         placeholder="New master password (min. 8 characters)"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
+                        aria-invalid={!!passwordError || undefined}
+                        aria-describedby={passwordError ? passwordErrorId : undefined}
                       />
                     </div>
                     <div>
@@ -307,11 +312,19 @@ export default function SettingsView(): React.ReactElement {
                         placeholder="Confirm new master password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
+                        aria-invalid={!!passwordError || undefined}
+                        aria-describedby={passwordError ? passwordErrorId : undefined}
                       />
                     </div>
-                    {passwordError && <p className="text-xs text-danger-500">{passwordError}</p>}
+                    {passwordError && (
+                      <p id={passwordErrorId} role="alert" className="text-xs text-danger-500">
+                        {passwordError}
+                      </p>
+                    )}
                     {passwordSuccess && (
-                      <p className="text-xs text-success-500">{passwordSuccess}</p>
+                      <p aria-live="polite" className="text-xs text-success-500">
+                        {passwordSuccess}
+                      </p>
                     )}
                     <button
                       className="notion-button-primary h-9 text-sm"

@@ -39,12 +39,78 @@ const BLOCK_TAGS = new Set([
 
 const EMPTY_TAG_REGEX = /^[\s\u00A0]*$/;
 
+export const MAX_RICH_TEXT_LENGTH = 100_000;
+
+const EXTENSION_ELEMENT_SELECTORS = [
+  'grammarly-extension',
+  'grammarly-desktop-integration',
+  'grammarly-popups',
+  'grammarly-toolbar',
+  'languagetool-extension',
+  'languagetool-inline-marker',
+  '[data-gr-id]',
+  '[data-gr-cs-loaded]',
+  '[data-new-gr-cs-loaded]',
+  '[data-lt-tmp-id]',
+  '[data-lt-active]',
+];
+
+const EXTENSION_ATTR_PATTERNS = [
+  /^data-gr-/i,
+  /^data-lt-/i,
+  /^gramm$/i,
+  /^data-new-gr-/i,
+  /^data-gramm$/i,
+];
+
+function normalizeMalformedHTML(html: string): string {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    return doc.body.innerHTML;
+  } catch {
+    return html;
+  }
+}
+
+function stripExtensionArtifacts(doc: Document): void {
+  for (const selector of EXTENSION_ELEMENT_SELECTORS) {
+    try {
+      doc.querySelectorAll(selector).forEach((el) => el.remove());
+    } catch {
+      // selector may be invalid in some contexts — ignore
+    }
+  }
+
+  const allElements = doc.querySelectorAll('*');
+  for (const el of Array.from(allElements)) {
+    const attrsToRemove: string[] = [];
+    for (const attr of Array.from(el.attributes)) {
+      for (const pattern of EXTENSION_ATTR_PATTERNS) {
+        if (pattern.test(attr.name)) {
+          attrsToRemove.push(attr.name);
+          break;
+        }
+      }
+    }
+    for (const attr of attrsToRemove) {
+      el.removeAttribute(attr);
+    }
+  }
+}
+
 export function sanitizeRichText(html: string): string {
   if (!html || html.trim() === '') {
     return '';
   }
 
-  const clean = DOMPurify.sanitize(html, {
+  if (html.length > MAX_RICH_TEXT_LENGTH) {
+    html = html.slice(0, MAX_RICH_TEXT_LENGTH);
+  }
+
+  const normalized = normalizeMalformedHTML(html);
+
+  const clean = DOMPurify.sanitize(normalized, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
     ALLOWED_URI_REGEXP: SAFE_URI_REGEXP,
@@ -53,7 +119,15 @@ export function sanitizeRichText(html: string): string {
     FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'select', 'button', 'img', 'svg', 'math', 'link', 'meta'],
   });
 
-  return clean;
+  if (!clean || clean.trim() === '') {
+    return '';
+  }
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(clean, 'text/html');
+  stripExtensionArtifacts(doc);
+
+  return doc.body.innerHTML;
 }
 
 function stripWordMarkup(doc: Document): void {
@@ -134,7 +208,13 @@ export function sanitizeRichTextForPaste(html: string): string {
     return '';
   }
 
-  const clean = DOMPurify.sanitize(html, {
+  if (html.length > MAX_RICH_TEXT_LENGTH) {
+    html = html.slice(0, MAX_RICH_TEXT_LENGTH);
+  }
+
+  const normalized = normalizeMalformedHTML(html);
+
+  const clean = DOMPurify.sanitize(normalized, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
     ALLOWED_URI_REGEXP: SAFE_URI_REGEXP,
@@ -150,6 +230,7 @@ export function sanitizeRichTextForPaste(html: string): string {
   const parser = new DOMParser();
   const doc = parser.parseFromString(clean, 'text/html');
 
+  stripExtensionArtifacts(doc);
   stripWordMarkup(doc);
   stripInlineStyles(doc);
 

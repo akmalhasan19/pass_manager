@@ -5,6 +5,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { MAX_FIELD_LENGTHS } from '../../../shared/constants';
 import { sanitizeField, validateField } from '../../../shared/validation';
 import { useTranslation } from '../../i18n/useTranslation';
+import { InlineFormField } from '../ui/FormField';
 import type { Folder } from '../../../shared/types';
 
 function flattenFolders(folders: Folder[]): Folder[] {
@@ -123,35 +124,50 @@ export default function HomeView(): React.ReactElement {
 
       <div className="notion-scrollbar flex-1 overflow-y-auto p-6">
         {isCreating && (
-          <div className="mb-6 flex items-center gap-2">
-            <span className="text-base leading-none">📁</span>
-            <input
-              ref={inputRef}
-              className="notion-input h-8 w-56 text-xs"
-              placeholder="Folder name..."
-              value={newName}
-              maxLength={MAX_FIELD_LENGTHS.FOLDER_NAME}
-              onChange={(e) => handleNameChange(e.target.value)}
-              onBlur={() => {
-                if (!newName.trim()) {
-                  setIsCreating(false);
-                }
-              }}
-              onKeyDown={handleKeyDown}
-            />
-            {nameError && <p className="ml-8 mt-1 text-xs text-danger-500">{nameError}</p>}
-            <button className="notion-button-primary h-8 text-xs" onClick={handleCreateFolder}>
-              Create
-            </button>
-            <button
-              className="notion-button-ghost h-8 text-xs"
-              onClick={() => {
-                setIsCreating(false);
-                setNewName('');
-              }}
-            >
-              Cancel
-            </button>
+          <div className="mb-6 flex items-start gap-2">
+            <span className="text-base leading-none mt-1">📁</span>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <input
+                  ref={inputRef}
+                  className={`notion-input h-8 w-56 text-xs ${
+                    nameError ? 'border-danger-400 ring-danger-400/50' : ''
+                  }`}
+                  placeholder="Folder name..."
+                  value={newName}
+                  maxLength={MAX_FIELD_LENGTHS.FOLDER_NAME}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  onBlur={() => {
+                    if (!newName.trim()) {
+                      setIsCreating(false);
+                    }
+                  }}
+                  onKeyDown={handleKeyDown}
+                />
+                <button
+                  className="notion-button-primary h-8 text-xs"
+                  onClick={handleCreateFolder}
+                  disabled={!newName.trim() || Boolean(nameError)}
+                >
+                  Create
+                </button>
+                <button
+                  className="notion-button-ghost h-8 text-xs"
+                  onClick={() => {
+                    setIsCreating(false);
+                    setNewName('');
+                    setNameError('');
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+              <InlineFormField
+                error={nameError}
+                showCharCount={!nameError && newName.length > 0}
+                charCount={{ current: newName.length, max: MAX_FIELD_LENGTHS.FOLDER_NAME }}
+              />
+            </div>
           </div>
         )}
 

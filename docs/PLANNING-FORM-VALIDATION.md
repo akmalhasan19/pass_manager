@@ -99,7 +99,7 @@ Validasi form dan penanganan edge cases adalah fondasi stabilitas aplikasi. Tanp
 ---
 
 ## 4. Task: Rich Text Editor Edge Cases
-- [ ] Task 4 Complete
+- [x] Task 4 Complete
 
 ### Sub-Task 4.1: Paste Handling
 - [x] Sanitize content dari clipboard menggunakan DOMPurify sebelum dimasukkan ke editor.
@@ -108,64 +108,64 @@ Validasi form dan penanganan edge cases adalah fondasi stabilitas aplikasi. Tanp
 - [x] Mode "Paste as Plain Text" sebagai fallback (toolbar button atau Ctrl+Shift+V).
 
 ### Sub-Task 4.2: Malformed DOM Handling
-- [ ] Handle unclosed tags, nested incorrectly tags — let browser/DOMPurify cleanup.
-- [ ] Handle paste dari extension formatter (Grammarly, LanguageTool) yang bisa memodifikasi DOM secara tidak terduga.
-- [ ] Test dengan extreme long text (100KB+) di editor: pastikan tidak crash atau freeze UI.
+- [x] Handle unclosed tags, nested incorrectly tags — let browser/DOMPurify cleanup.
+- [x] Handle paste dari extension formatter (Grammarly, LanguageTool) yang bisa memodifikasi DOM secara tidak terduga.
+- [x] Test dengan extreme long text (100KB+) di editor: pastikan tidak crash atau freeze UI.
 
 ### Sub-Task 4.3: Auto-Save Edge Cases
-- [ ] Jangan auto-save jika content setelah sanitasi menjadi kosong (hapus semua teks → save kosong, bukan tidak save).
-- [ ] Debounce auto-save untuk menghindari race condition saat typing cepat.
-- [ ] Handle kasus perangkat low memory / slow: batalkan auto-save jika previous save masih pending.
+- [x] Jangan auto-save jika content setelah sanitasi menjadi kosong (hapus semua teks → save kosong, bukan tidak save).
+- [x] Debounce auto-save untuk menghindari race condition saat typing cepat.
+- [x] Handle kasus perangkat low memory / slow: batalkan auto-save jika previous save masih pending.
 
 ---
 
 ## 5. Task: Testing & Quality Assurance
-- [ ] Task 5 Complete
+- [x] Task 5 Complete
 
 ### Sub-Task 5.1: Unit Tests untuk Validasi
-- [ ] Test setiap rules panjang maksimum (boundary: exactly max, max+1, 0, whitespace-only).
--ZB- Test format email/URL valid dan invalid.
-- [ ] Test duplikat logic dengan berbagai casing dan Unicode normalization.
+- [x] Test setiap rules panjang maksimum (boundary: exactly max, max+1, 0, whitespace-only).
+- [x] Test format email/URL valid dan invalid.
+- [x] Test duplikat logic dengan berbagai casing dan Unicode normalization.
 
 ### Sub-Task 5.2: XSS Injection Tests
-- [ ] Test fixtures berisi payload XSS common:
+- [x] Test fixtures berisi payload XSS common:
   ```html
   <script>alert('xss')</script>
   <img src=x onerror=alert('xss')>
   javascript:alert('xss')
   <iframe src="evil.com">
   ```
-- [ ] Assert output setelah sanitasi tidak mengandung JavaScript executable.
-- [ ] Assert rendering di UI tidak mengeksekusi script (DOM testing).
+- [x] Assert output setelah sanitasi tidak mengandung JavaScript executable.
+- [x] Assert rendering di UI tidak mengeksekusi script (DOM testing).
 
 ### Sub-Task 5.3: SQL Injection Tests
-- [ ] Test input dengan payload SQLi seperti `' OR '1'='1`, `'; DROP TABLE items; --`, `1; DELETE FROM items`.
-- [ ] Assert query parameterized — database tidak terpengaruh (gunakan mock/spy pada query builder).
+- [x] Test input dengan payload SQLi seperti `' OR '1'='1`, `'; DROP TABLE items; --`, `1; DELETE FROM items`.
+- [x] Assert query parameterized — database tidak terpengaruh (gunakan mock/spy pada query builder).
 
 ### Sub-Task 5.4: Edge Case Regression Tests
-- [ ] **Unicode extremes**: Test dengan emoji sequences (👨‍👩‍👧‍👦 — 7 code points, 1 grapheme), RTL text (Arabic, Hebrew), combining characters.
-- [ ] **Extreme length**: Test 100KB notes, 4096 char passwords, nested tags berjauhan.
-- [ ] **Memory stress**: Rapid create/edit/delete operations dalam loop — monitor memory leak.
+- [x] **Unicode extremes**: Test dengan emoji sequences (👨‍👩‍👧‍👦 — 7 code points, 1 grapheme), RTL text (Arabic, Hebrew), combining characters.
+- [x] **Extreme length**: Test 100KB notes, 4096 char passwords, nested tags berjauhan.
+- [x] **Memory stress**: Rapid create/edit/delete operations dalam loop — monitor memory leak.
 
 ---
 
 ## 6. Task: UX Polish & Error Handling
-- [ ] Task 6 Complete
+- [x] Task 6 Complete
 
 ### Sub-Task 6.1: Error Feedback Visual
-- [ ] Inline validation dengan border merah dan pesan error di bawah field.
-- [ ] Error message harus spesifik: "Folder name is required" bukan "Error occurred."
-- [ ] Disable submit button sampai semua field valid.
-- [ ] Show character counter ketika mendekati limit (misal: "245/255").
+- [x] Inline validation dengan border merah dan pesan error di bawah field.
+- [x] Error message harus spesifik: "Folder name is required" bukan "Error occurred."
+- [x] Disable submit button sampai semua field valid.
+- [x] Show character counter ketika mendekati limit (misal: "245/255").
 
 ### Sub-Task 6.2: Localization (I18n Ready)
-- [ ] Semua validation messages harus berasal dari keys file bahasa.
-- [ ] Format dynamic values (counts, lengths) menggunakan i18n interpolation agar grammar berbagai bahasa tetap benar.
+- [x] Semua validation messages harus berasal dari keys file bahasa.
+- [x] Format dynamic values (counts, lengths) menggunakan i18n interpolation agar grammar berbagai bahasa tetap benar.
 
 ### Sub-Task 6.3: Accessibility (A11y)
-- [ ] Associate error message dengan input menggunakan `aria-describedby` dan `aria-invalid`.
-- [ ] Pastikan error state diumumkan oleh screen reader (live region atau `aria-live`).
-- [ ] Keyboard navigation tetap fokus saat error muncul (trap focus dalam modal/dialog).
+- [x] Associate error message dengan input menggunakan `aria-describedby` dan `aria-invalid`.
+- [x] Pastikan error state diumumkan oleh screen reader (live region atau `aria-live`).
+- [x] Keyboard navigation tetap fokus saat error muncul (trap focus dalam modal/dialog).
 
 ---
 
@@ -182,7 +182,9 @@ Validasi form dan penanganan edge cases adalah fondasi stabilitas aplikasi. Tanp
 - [x] Sub-Task 3.3: SQL Injection Prevention (parameterized queries audit)
 - [x] Sub-Task 3.4: Path Traversal & File Upload Security
 - [x] Sub-Task 4.1: Paste Handling di Rich Text (clipboard sanitize, Word/GDocs)
-- [ ] Sub-Task 4.2: Malformed DOM Handling (cleanup, extension interference)
-- [ ] Sub-Task 4.3: Auto-Save Edge Cases (empty after sanitize, debounce, race)
-- [ ] Sub-Task 5.1-5.4: Unit, XSS, SQLi, dan Regression Tests
-- [ ] Sub-Task 6.1-6.3: UX Error Feedback, I18n, A11y
+- [x] Sub-Task 4.2: Malformed DOM Handling (cleanup, extension interference)
+- [x] Sub-Task 4.3: Auto-Save Edge Cases (empty after sanitize, debounce, race)
+- [x] Sub-Task 5.1-5.4: Unit, XSS, SQLi, dan Regression Tests
+- [x] Sub-Task 6.1: Error Feedback Visual
+- [x] Sub-Task 6.2: Localization (I18n Ready)
+- [x] Sub-Task 6.3: Accessibility (A11y)

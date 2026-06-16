@@ -116,5 +116,7 @@
   "validation.emailWarning": "Ini tidak terlihat seperti alamat email yang valid.",
   "validation.urlWarning": "Ini tidak terlihat seperti URL yang valid.",
   "validation.whitespaceOnly": "Bidang ini tidak boleh kosong atau hanya berisi spasi.",
-  "validation.invalidCharacters": "Bidang ini berisi karakter yang tidak valid. Hanya karakter yang dapat dicetak yang diperbolehkan."
+  "validation.invalidCharacters": "Bidang ini berisi karakter yang tidak valid. Hanya karakter yang dapat dicetak yang diperbolehkan.",
+  "validation.folderAlreadyExists": "Folder dengan nama ini sudah ada.",
+  "validation.folderAlreadyExistsSuggestion": "Folder dengan nama ini sudah ada. Saran: \"{suggestion}\""
 }

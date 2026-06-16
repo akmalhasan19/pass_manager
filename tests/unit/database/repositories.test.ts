@@ -260,6 +260,35 @@ describe('Repository integration tests', () => {
       folderRepo.create(null, 'Something');
       expect(folderRepo.searchByName('zzzzz')).toHaveLength(0);
     });
+
+    it('should detect duplicate folder name case-insensitively', () => {
+      folderRepo.create(null, 'Work');
+      expect(folderRepo.existsByParentIdAndName(null, 'work')).toBe(true);
+      expect(folderRepo.existsByParentIdAndName(null, 'WORK')).toBe(true);
+    });
+
+    it('should detect duplicate folder name with Unicode normalization', () => {
+      folderRepo.create(null, 'Café');
+      expect(folderRepo.existsByParentIdAndName(null, 'Cafe\u0301')).toBe(true);
+    });
+
+    it('should not detect duplicate when excluded folder id matches', () => {
+      const folder = folderRepo.create(null, 'Work');
+      expect(folderRepo.existsByParentIdAndName(null, 'work', folder.id)).toBe(false);
+    });
+
+    it('should not detect duplicate in different parent folders', () => {
+      const parent = folderRepo.create(null, 'Parent');
+      folderRepo.create(parent.id, 'Child');
+      const otherParent = folderRepo.create(null, 'Other Parent');
+      expect(folderRepo.existsByParentIdAndName(otherParent.id, 'child')).toBe(false);
+    });
+
+    it('should detect duplicate within same parent folder', () => {
+      const parent = folderRepo.create(null, 'Parent');
+      folderRepo.create(parent.id, 'Child');
+      expect(folderRepo.existsByParentIdAndName(parent.id, 'child')).toBe(true);
+    });
   });
 
   // =========================================================================
@@ -440,6 +469,28 @@ describe('Repository integration tests', () => {
     it('should return empty array when search yields no matches', () => {
       itemRepo.create(folderId, { title: 'Something' });
       expect(itemRepo.search('zzzzz')).toHaveLength(0);
+    });
+
+    it('should detect duplicate item title case-insensitively', () => {
+      itemRepo.create(folderId, { title: 'Twitter' });
+      expect(itemRepo.existsByFolderIdAndTitle(folderId, 'twitter')).toBe(true);
+      expect(itemRepo.existsByFolderIdAndTitle(folderId, 'TWITTER')).toBe(true);
+    });
+
+    it('should detect duplicate item title with Unicode normalization', () => {
+      itemRepo.create(folderId, { title: 'Café' });
+      expect(itemRepo.existsByFolderIdAndTitle(folderId, 'Cafe\u0301')).toBe(true);
+    });
+
+    it('should not detect duplicate when excluded item id matches', () => {
+      const item = itemRepo.create(folderId, { title: 'Twitter' });
+      expect(itemRepo.existsByFolderIdAndTitle(folderId, 'twitter', item.id)).toBe(false);
+    });
+
+    it('should not detect duplicate in different folders', () => {
+      const otherFolder = folderRepo.create(null, 'Other Folder');
+      itemRepo.create(folderId, { title: 'Twitter' });
+      expect(itemRepo.existsByFolderIdAndTitle(otherFolder.id, 'twitter')).toBe(false);
     });
   });
 
