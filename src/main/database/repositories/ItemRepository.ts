@@ -2,6 +2,7 @@ import { getDatabase } from '../connection';
 import { Item } from '../../../shared/types';
 import { nanoid } from 'nanoid';
 import { normalizeForComparison } from '../../../shared/validation';
+import { assertValidId, prepareLikePattern } from '../../../shared/sqlSafety';
 
 export class ItemRepository {
   create(
@@ -55,6 +56,7 @@ export class ItemRepository {
   }
 
   getById(id: string): Item | null {
+    assertValidId(id, 'item');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
@@ -72,6 +74,7 @@ export class ItemRepository {
   }
 
   getByFolder(folderId: string): Item[] {
+    assertValidId(folderId, 'folder');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
@@ -102,6 +105,7 @@ export class ItemRepository {
       sortOrder: number;
     }>,
   ): Item | null {
+    assertValidId(id, 'item');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
@@ -157,6 +161,7 @@ export class ItemRepository {
   }
 
   delete(id: string): void {
+    assertValidId(id, 'item');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
@@ -167,6 +172,7 @@ export class ItemRepository {
 
   getByFolderIdList(folderIds: string[]): Item[] {
     if (folderIds.length === 0) return [];
+    folderIds.forEach((id) => assertValidId(id, 'folder'));
 
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
@@ -226,15 +232,17 @@ export class ItemRepository {
       stmt.free();
     };
 
-    const pattern = `%${query}%`;
-    searchInTable('SELECT * FROM items WHERE title LIKE ? ORDER BY sort_order ASC LIMIT 20', [
-      pattern,
+    const pattern = prepareLikePattern(query);
+    if (!pattern) return [];
+
+    searchInTable('SELECT * FROM items WHERE title LIKE ? ESCAPE ? ORDER BY sort_order ASC LIMIT 20', [
+      pattern, '\\',
     ]);
-    searchInTable('SELECT * FROM items WHERE username LIKE ? ORDER BY sort_order ASC LIMIT 10', [
-      pattern,
+    searchInTable('SELECT * FROM items WHERE username LIKE ? ESCAPE ? ORDER BY sort_order ASC LIMIT 10', [
+      pattern, '\\',
     ]);
-    searchInTable('SELECT * FROM items WHERE url LIKE ? ORDER BY sort_order ASC LIMIT 10', [
-      pattern,
+    searchInTable('SELECT * FROM items WHERE url LIKE ? ESCAPE ? ORDER BY sort_order ASC LIMIT 10', [
+      pattern, '\\',
     ]);
 
     if (query.length > 2) {
@@ -243,9 +251,9 @@ export class ItemRepository {
           `SELECT items.* FROM items
            JOIN item_tags ON items.id = item_tags.item_id
            JOIN tags ON item_tags.tag_id = tags.id
-           WHERE tags.name LIKE ?
+           WHERE tags.name LIKE ? ESCAPE ?
            ORDER BY items.sort_order ASC LIMIT 10`,
-          [pattern],
+          [pattern, '\\'],
         );
       } catch {
         // Tags table might not have matching entries
@@ -268,6 +276,8 @@ export class ItemRepository {
     title: string,
     excludeId?: string,
   ): boolean {
+    assertValidId(folderId, 'folder');
+    if (excludeId) assertValidId(excludeId, 'item');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 

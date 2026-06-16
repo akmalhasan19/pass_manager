@@ -2,6 +2,7 @@ import { getDatabase } from '../connection';
 import { Tag } from '../../../shared/types';
 import { MAX_FIELD_LENGTHS } from '../../../shared/constants';
 import { nanoid } from 'nanoid';
+import { assertValidId } from '../../../shared/sqlSafety';
 
 export class TagRepository {
   create(name: string, color: string = '#6366f1'): Tag {
@@ -42,6 +43,7 @@ export class TagRepository {
   }
 
   getById(id: string): Tag | null {
+    assertValidId(id, 'tag');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
@@ -84,18 +86,23 @@ export class TagRepository {
   }
 
   attachToItem(itemId: string, tagId: string): void {
+    assertValidId(itemId, 'item');
+    assertValidId(tagId, 'tag');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
     db.run('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)', [itemId, tagId]);
   }
 
   detachFromItem(itemId: string, tagId: string): void {
+    assertValidId(itemId, 'item');
+    assertValidId(tagId, 'tag');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
     db.run('DELETE FROM item_tags WHERE item_id = ? AND tag_id = ?', [itemId, tagId]);
   }
 
   getByItem(itemId: string): Tag[] {
+    assertValidId(itemId, 'item');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
@@ -122,6 +129,7 @@ export class TagRepository {
   }
 
   delete(id: string): void {
+    assertValidId(id, 'tag');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 

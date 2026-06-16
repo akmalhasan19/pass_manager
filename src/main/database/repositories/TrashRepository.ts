@@ -1,6 +1,7 @@
 import { getDatabase } from '../connection';
 import { TrashEntry } from '../../../shared/types';
 import { nanoid } from 'nanoid';
+import { assertValidId } from '../../../shared/sqlSafety';
 
 export class TrashRepository {
   add(
@@ -46,6 +47,7 @@ export class TrashRepository {
   }
 
   getById(id: string): TrashEntry | null {
+    assertValidId(id, 'trash entry');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
@@ -70,12 +72,14 @@ export class TrashRepository {
   }
 
   remove(id: string): void {
+    assertValidId(id, 'trash entry');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
     db.run('DELETE FROM trash WHERE id = ?', [id]);
   }
 
   removeByOriginalId(originalId: string): void {
+    assertValidId(originalId, 'original ID');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
     db.run('DELETE FROM trash WHERE original_id = ?', [originalId]);

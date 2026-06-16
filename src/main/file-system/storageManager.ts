@@ -13,6 +13,7 @@ import {
 } from 'node:fs';
 import { join, basename } from 'node:path';
 import { app } from 'electron';
+import { containsPathTraversal, isPathWithinDirectory } from '../../shared/fileSecurity';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_BYTES = 12;
@@ -76,6 +77,17 @@ export async function decryptAndRetrieveFile(storagePath: string, key: Buffer): 
     throw new Error(`Key must be ${KEY_BYTES} bytes (got ${key.length})`);
   }
 
+  // Validate path for traversal attacks
+  if (containsPathTraversal(storagePath)) {
+    throw new Error('Invalid storage path: path traversal detected.');
+  }
+
+  // Validate path is within storage directory
+  const storageDir = getStoragePath();
+  if (!isPathWithinDirectory(storageDir, storagePath)) {
+    throw new Error('Storage path is outside the allowed directory.');
+  }
+
   if (!existsSync(storagePath)) {
     throw new Error(`Encrypted file not found: ${storagePath}`);
   }
@@ -137,6 +149,17 @@ export async function decryptAndRetrieveFile(storagePath: string, key: Buffer): 
 }
 
 export function deleteStoredFile(storagePath: string): void {
+  // Validate path for traversal attacks
+  if (containsPathTraversal(storagePath)) {
+    throw new Error('Invalid storage path: path traversal detected.');
+  }
+
+  // Validate path is within storage directory
+  const storageDir = getStoragePath();
+  if (!isPathWithinDirectory(storageDir, storagePath)) {
+    throw new Error('Storage path is outside the allowed directory.');
+  }
+
   if (!existsSync(storagePath)) {
     return;
   }

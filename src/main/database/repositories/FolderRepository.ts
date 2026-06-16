@@ -2,6 +2,7 @@ import { getDatabase } from '../connection';
 import { Folder } from '../../../shared/types';
 import { nanoid } from 'nanoid';
 import { normalizeForComparison } from '../../../shared/validation';
+import { assertValidId, prepareLikePattern } from '../../../shared/sqlSafety';
 
 export class FolderRepository {
   create(parentId: string | null, name: string, emoji: string | null = null): Folder {
@@ -33,6 +34,7 @@ export class FolderRepository {
   }
 
   getById(id: string): Folder | null {
+    assertValidId(id, 'folder');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
@@ -120,7 +122,9 @@ export class FolderRepository {
   }
 
   move(id: string, newParentId: string | null, sortOrder: number): Folder | null {
+    assertValidId(id, 'folder');
     if (id === newParentId) return null;
+    if (newParentId) assertValidId(newParentId, 'parent folder');
 
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
@@ -165,6 +169,7 @@ export class FolderRepository {
   }
 
   delete(id: string): void {
+    assertValidId(id, 'folder');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
@@ -182,6 +187,7 @@ export class FolderRepository {
   }
 
   getDescendantIds(folderId: string): string[] {
+    assertValidId(folderId, 'folder');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
@@ -208,9 +214,11 @@ export class FolderRepository {
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
-    const pattern = `%${query}%`;
-    const stmt = db.prepare('SELECT * FROM folders WHERE name LIKE ? LIMIT 20');
-    stmt.bind([pattern]);
+    const pattern = prepareLikePattern(query);
+    if (!pattern) return [];
+
+    const stmt = db.prepare('SELECT * FROM folders WHERE name LIKE ? ESCAPE ? LIMIT 20');
+    stmt.bind([pattern, '\\']);
 
     const results: Folder[] = [];
     while (stmt.step()) {
@@ -235,6 +243,8 @@ export class FolderRepository {
     name: string,
     excludeId?: string,
   ): boolean {
+    if (parentId) assertValidId(parentId, 'parent folder');
+    if (excludeId) assertValidId(excludeId, 'folder');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
@@ -264,6 +274,7 @@ export class FolderRepository {
   }
 
   private getParentChain(folderId: string): string[] {
+    assertValidId(folderId, 'folder');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 

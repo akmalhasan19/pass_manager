@@ -7,16 +7,19 @@ import LinkExtension from '@tiptap/extension-link';
 import CodeBlock from '@tiptap/extension-code-block';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
+import { sanitizeRichText, sanitizeRichTextForPaste } from '../../../shared/sanitizeRichText';
 import MarkdownToolbar from './MarkdownToolbar';
 import SlashCommandMenu from './SlashCommandMenu';
 import type { Command } from './SlashCommandMenu';
 
 export interface RichTextEditorProps {
   content: string | null;
-  onChange: (json: string) => void;
+  onChange: (html: string) => void;
   placeholder?: string;
   editable?: boolean;
 }
+
+export type PasteMode = 'rich' | 'plain';
 
 function isInCodeBlock(editor: { isActive: (name: string) => boolean } | null): boolean {
   if (!editor) return true;
@@ -33,6 +36,16 @@ export default function RichTextEditor({
   const [slashQuery, setSlashQuery] = useState('');
   const [slashPos, setSlashPos] = useState<{ top: number; left: number } | null>(null);
   const slashNodeRangeRef = useRef<{ from: number; to: number } | null>(null);
+
+  const [pasteMode, setPasteMode] = useState<PasteMode>('rich');
+  const pasteModeRef = useRef<PasteMode>('rich');
+  pasteModeRef.current = pasteMode;
+
+  const editorRef = useRef<Editor | null>(null);
+
+  const togglePasteMode = useCallback(() => {
+    setPasteMode((prev) => (prev === 'rich' ? 'plain' : 'rich'));
+  }, []);
 
   const extensions = useMemo(
     () => [
@@ -75,27 +88,80 @@ export default function RichTextEditor({
     content: null,
     editable,
     onUpdate: ({ editor: ed }: { editor: Editor }) => {
-      const json = JSON.stringify(ed.getJSON());
-      onChange(json);
+      const html = ed.getHTML();
+      const sanitized = sanitizeRichText(html);
+      onChange(sanitized);
+    },
+    editorProps: {
+      handlePaste: (_view, event) => {
+        const clipboardData = event.clipboardData;
+        if (!clipboardData) return false;
+
+        const evt = event as unknown as {
+          ctrlKey: boolean;
+          shiftKey: boolean;
+          altKey: boolean;
+          metaKey: boolean;
+          clipboardData: DataTransfer | null;
+          preventDefault: () => void;
+        };
+
+        const isCtrlShiftV =
+          (evt.ctrlKey || evt.metaKey) && evt.shiftKey &&
+          !evt.altKey;
+        const shouldPastePlain = isCtrlShiftV || pasteModeRef.current === 'plain';
+
+        if (shouldPastePlain) {
+          const plain = clipboardData.getData('text/plain');
+          if (plain) {
+            event.preventDefault();
+            editorRef.current?.commands.insertContent(plain);
+            return true;
+          }
+          return false;
+        }
+
+        const html = clipboardData.getData('text/html');
+        if (html) {
+          event.preventDefault();
+          const sanitized = sanitizeRichTextForPaste(html);
+          if (sanitized) {
+            editorRef.current?.commands.insertContent(sanitized);
+          }
+          return true;
+        }
+
+        const plain = clipboardData.getData('text/plain');
+        if (plain) {
+          event.preventDefault();
+          editorRef.current?.commands.insertContent(plain);
+          return true;
+        }
+
+        return false;
+      },
     },
   });
+
+  editorRef.current = editor;
 
   useEffect(() => {
     if (!editor) return;
     if (editor.isDestroyed) return;
 
-    const currentJson = JSON.stringify(editor.getJSON());
-    if (content && currentJson === content) return;
+    const currentHtml = editor.getHTML();
+    const currentSanitized = sanitizeRichText(currentHtml);
+    if (content && currentSanitized === content) return;
 
     try {
-      const parsed = content ? JSON.parse(content) : null;
-      if (parsed) {
-        editor.commands.setContent(parsed);
+      const sanitizedContent = content ? sanitizeRichText(content) : '';
+      if (sanitizedContent) {
+        editor.commands.setContent(sanitizedContent);
       } else {
-        editor.commands.setContent(content || '');
+        editor.commands.setContent('');
       }
     } catch {
-      editor.commands.setContent(content || '');
+      editor.commands.setContent('');
     }
   }, [editor, content]);
 
@@ -180,7 +246,13 @@ export default function RichTextEditor({
 
   return (
     <div className="rich-text-editor-wrapper overflow-hidden rounded-md border border-surface-200 bg-white dark:border-surface-700 dark:bg-surface-850">
-      {editable && <MarkdownToolbar editor={editor} />}
+      {editable && (
+        <MarkdownToolbar
+          editor={editor}
+          pasteMode={pasteMode}
+          onTogglePasteMode={togglePasteMode}
+        />
+      )}
 
       <BubbleMenu
         editor={editor}

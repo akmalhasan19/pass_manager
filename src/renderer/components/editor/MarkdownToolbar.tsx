@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import type { Editor } from '@tiptap/core';
+import type { PasteMode } from './RichTextEditor';
 
 interface ToolbarButton {
   label: string;
@@ -15,6 +16,8 @@ interface ToolbarGroup {
 
 interface MarkdownToolbarProps {
   editor: Editor | null;
+  pasteMode?: PasteMode;
+  onTogglePasteMode?: () => void;
 }
 
 function btn(
@@ -27,7 +30,11 @@ function btn(
   return { label, title, icon, action, isActive };
 }
 
-export default function MarkdownToolbar({ editor }: MarkdownToolbarProps): React.ReactElement {
+export default function MarkdownToolbar({
+  editor,
+  pasteMode,
+  onTogglePasteMode,
+}: MarkdownToolbarProps): React.ReactElement {
   const handleLinkAdd = useCallback(() => {
     if (!editor) return;
     const previousUrl = editor.getAttributes('link').href as string;
@@ -218,6 +225,40 @@ export default function MarkdownToolbar({ editor }: MarkdownToolbarProps): React
     },
   ];
 
+  const isPastePlainActive = pasteMode === 'plain';
+
+  const pasteBtn = (
+    <button
+      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded text-xs transition-colors ${
+        isPastePlainActive
+          ? 'bg-accent-100 text-accent-700 dark:bg-accent-900/40 dark:text-accent-300'
+          : 'text-surface-500 hover:bg-surface-200 hover:text-surface-700 dark:text-surface-400 dark:hover:bg-surface-700 dark:hover:text-surface-200'
+      }`}
+      title="Paste as Plain Text (Ctrl+Shift+V)"
+      onClick={onTogglePasteMode}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-3.5 w-3.5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M9 14h6M9 17h6"
+        />
+      </svg>
+    </button>
+  );
+
   return (
     <div className="flex flex-shrink-0 items-center gap-0.5 overflow-x-auto rounded-t-md border-b border-surface-200 bg-surface-50 px-2 py-1.5 dark:border-surface-700 dark:bg-surface-850">
       {groups.map((group, gi) => (
@@ -253,6 +294,12 @@ export default function MarkdownToolbar({ editor }: MarkdownToolbarProps): React
           </div>
         </React.Fragment>
       ))}
+      {onTogglePasteMode && (
+        <>
+          <div className="mx-1 h-5 w-px shrink-0 bg-surface-200 dark:bg-surface-700" />
+          {pasteBtn}
+        </>
+      )}
     </div>
   );
 }

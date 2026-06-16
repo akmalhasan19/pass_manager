@@ -1,6 +1,7 @@
 import { getDatabase } from '../connection';
 import { Attachment } from '../../../shared/types';
 import { nanoid } from 'nanoid';
+import { assertValidId } from '../../../shared/sqlSafety';
 
 export class FileAttachmentRepository {
   create(
@@ -27,6 +28,7 @@ export class FileAttachmentRepository {
   }
 
   getById(id: string): Attachment | null {
+    assertValidId(id, 'attachment');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
@@ -53,6 +55,7 @@ export class FileAttachmentRepository {
   }
 
   getByItem(itemId: string): Attachment[] {
+    assertValidId(itemId, 'item');
     const db = getDatabase();
     if (!db) throw new Error('Database not open');
 
@@ -79,6 +82,7 @@ export class FileAttachmentRepository {
   }
 
   delete(id: string): Attachment | null {
+    assertValidId(id, 'attachment');
     const attachment = this.getById(id);
     if (!attachment) return null;
 

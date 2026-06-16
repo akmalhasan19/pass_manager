@@ -2,9 +2,13 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, statSync
 import { join } from 'node:path';
 import { app } from 'electron';
 import { randomBytes } from 'node:crypto';
+import {
+  containsPathTraversal,
+  isPathWithinDirectory,
+  FILE_SIZE_LIMITS,
+} from '../../shared/fileSecurity';
 
 const COVERS_DIR_NAME = 'covers';
-const MAX_COVER_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg']);
 
@@ -45,6 +49,11 @@ function getMimeType(fileName: string): string {
  * @returns The generated cover filename (stored in DB metadata).
  */
 export function saveCoverImage(sourcePath: string): string {
+  // Validate path for traversal attacks
+  if (containsPathTraversal(sourcePath)) {
+    throw new Error('Invalid file path: path traversal detected.');
+  }
+
   const fileName = sourcePath.split(/[/\\]/).pop() ?? 'cover';
   const ext = getExtension(fileName);
 
@@ -68,9 +77,9 @@ export function saveCoverImage(sourcePath: string): string {
     throw new Error(`Source image not found: ${sourcePath}`);
   }
 
-  if (stats.size > MAX_COVER_SIZE_BYTES) {
+  if (stats.size > FILE_SIZE_LIMITS.COVER_IMAGE) {
     throw new Error(
-      `Cover image is too large (${(stats.size / 1024 / 1024).toFixed(1)} MB). Max: ${MAX_COVER_SIZE_BYTES / 1024 / 1024} MB.`,
+      `Cover image is too large (${(stats.size / 1024 / 1024).toFixed(1)} MB). Max: ${FILE_SIZE_LIMITS.COVER_IMAGE / 1024 / 1024} MB.`,
     );
   }
 
@@ -91,11 +100,16 @@ export function saveCoverImage(sourcePath: string): string {
  * @returns Base64 data URL suitable for `<img src="..." />`.
  */
 export function readCoverImage(coverName: string): string {
+  // Validate coverName for path traversal
+  if (containsPathTraversal(coverName)) {
+    throw new Error('Invalid cover image name: path traversal detected.');
+  }
+
   const coversDir = getCoversDir();
   const filePath = join(coversDir, coverName);
 
-  // Prevent path traversal: coverName must be a plain filename.
-  if (!filePath.startsWith(coversDir + '\\') && !filePath.startsWith(coversDir + '/')) {
+  // Prevent path traversal: resolved path must be within covers directory
+  if (!isPathWithinDirectory(coversDir, coverName)) {
     throw new Error('Invalid cover image path');
   }
 
@@ -115,10 +129,16 @@ export function readCoverImage(coverName: string): string {
  * @param coverName - Filename returned by {@link saveCoverImage}.
  */
 export function deleteCoverImage(coverName: string): void {
+  // Validate coverName for path traversal
+  if (containsPathTraversal(coverName)) {
+    throw new Error('Invalid cover image name: path traversal detected.');
+  }
+
   const coversDir = getCoversDir();
   const filePath = join(coversDir, coverName);
 
-  if (!filePath.startsWith(coversDir + '\\') && !filePath.startsWith(coversDir + '/')) {
+  // Prevent path traversal: resolved path must be within covers directory
+  if (!isPathWithinDirectory(coversDir, coverName)) {
     throw new Error('Invalid cover image path');
   }
 

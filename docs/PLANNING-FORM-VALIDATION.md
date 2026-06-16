@@ -71,7 +71,7 @@ Validasi form dan penanganan edge cases adalah fondasi stabilitas aplikasi. Tanp
 ---
 
 ## 3. Task: Sanitasi & Keamanan Input
-- [ ] Task 3 Complete
+- [x] Task 3 Complete
 
 ### Sub-Task 3.1: XSS Prevention di Teks Biasa
 - [x] Escape atau strip HTML tags di field yang bukan rich text (title, username, URL plaintext).
@@ -79,22 +79,22 @@ Validasi form dan penanganan edge cases adalah fondasi stabilitas aplikasi. Tanp
 - [x] Validasi bahwa `<`, `>`, `&`, `"`, `'` di-escape sebelum ditampilkan.
 
 ### Sub-Task 3.2: XSS Prevention di Rich Text Editor
-- [ ] Integrasi DOMPurify sebelum menyimpan rich text notes ke database.
-- [ ] Konfigurasi whitelist tags/attributes yang diizinkan (hanya basic formatting: `p`, `b`, `i`, `u`, `ol`, `ul`, `li`, `blockquote`, `code`, `pre`).
-- [ ] Strip event handlers (`onclick`, `onerror`, dll.) meskipun di tag yang diizinkan.
-- [ ] Strip `javascript:` dan `data:` URLs dari atribut apapun.
-- [ ] Verifikasi bahwa DOMPurify bekerja pada saat render (default) dan saat paste dari clipboard.
+- [x] Integrasi DOMPurify sebelum menyimpan rich text notes ke database.
+- [x] Konfigurasi whitelist tags/attributes yang diizinkan (hanya basic formatting: `p`, `b`, `i`, `u`, `ol`, `ul`, `li`, `blockquote`, `code`, `pre`).
+- [x] Strip event handlers (`onclick`, `onerror`, dll.) meskipun di tag yang diizinkan.
+- [x] Strip `javascript:` dan `data:` URLs dari atribut apapun.
+- [x] Verifikasi bahwa DOMPurify bekerja pada saat render (default) dan saat paste dari clipboard.
 
 ### Sub-Task 3.3: SQL Injection Prevention
-- [ ] **Audit semua query**: Pastikan seluruh query menggunakan parameterized statements (`?` placeholders).
-- [ ] **Never concatenate user input ke SQL string** — lint rule atau code review checklist.
-- [ ] Escape karakter khusus SQL seperti backslash jika ada raw query edge cases.
-- [ ] Validasi input integer (IDs) sebelum digunakan dalam query.
+- [x] **Audit semua query**: Pastikan seluruh query menggunakan parameterized statements (`?` placeholders).
+- [x] **Never concatenate user input ke SQL string** — lint rule atau code review checklist.
+- [x] Escape karakter khusus SQL seperti backslash jika ada raw query edge cases.
+- [x] Validasi input integer (IDs) sebelum digunakan dalam query.
 
 ### Sub-Task 3.4: Path Traversal & File Upload Security
-- [ ] Jika ada file operations (attachment, export): sanitize path, reject `..` sequences.
-- [ ] Validasi file extension whitelist saat memproses drag & drop upload.
-- [ ] Limit file size untuk upload (jika ada attachment feature di masa depan).
+- [x] Jika ada file operations (attachment, export): sanitize path, reject `..` sequences.
+- [x] Validasi file extension whitelist saat memproses drag & drop upload.
+- [x] Limit file size untuk upload (jika ada attachment feature di masa depan).
 
 ---
 
@@ -102,10 +102,10 @@ Validasi form dan penanganan edge cases adalah fondasi stabilitas aplikasi. Tanp
 - [ ] Task 4 Complete
 
 ### Sub-Task 4.1: Paste Handling
-- [ ] Sanitize content dari clipboard menggunakan DOMPurify sebelum dimasukkan ke editor.
-- [ ] Strip formatting tidak diinginkan (misal: styles, classes, fonts) saat paste.
-- [ ] Handle paste dari Microsoft Word / Google Docs (mengandung banyak inline styles) — strip atau convert ke plain semantic HTML.
-- [ ] Mode "Paste as Plain Text" sebagai fallback (toolbar button atau Ctrl+Shift+V).
+- [x] Sanitize content dari clipboard menggunakan DOMPurify sebelum dimasukkan ke editor.
+- [x] Strip formatting tidak diinginkan (misal: styles, classes, fonts) saat paste.
+- [x] Handle paste dari Microsoft Word / Google Docs (mengandung banyak inline styles) — strip atau convert ke plain semantic HTML.
+- [x] Mode "Paste as Plain Text" sebagai fallback (toolbar button atau Ctrl+Shift+V).
 
 ### Sub-Task 4.2: Malformed DOM Handling
 - [ ] Handle unclosed tags, nested incorrectly tags — let browser/DOMPurify cleanup.
@@ -178,10 +178,10 @@ Validasi form dan penanganan edge cases adalah fondasi stabilitas aplikasi. Tanp
 - [x] Sub-Task 2.2: UX untuk Konflik Duplikat (inline error, auto-suggest)
 - [x] Sub-Task 2.3: Edge Cases Duplikat (casing, whitespace, Unicode normalization)
 - [x] Sub-Task 3.1: XSS Prevention di Teks Biasa (escape, textContent)
-- [ ] Sub-Task 3.2: XSS Prevention di Rich Text Editor (DOMPurify, whitelist tags)
-- [ ] Sub-Task 3.3: SQL Injection Prevention (parameterized queries audit)
-- [ ] Sub-Task 3.4: Path Traversal & File Upload Security
-- [ ] Sub-Task 4.1: Paste Handling di Rich Text (clipboard sanitize, Word/GDocs)
+- [x] Sub-Task 3.2: XSS Prevention di Rich Text Editor (DOMPurify, whitelist tags)
+- [x] Sub-Task 3.3: SQL Injection Prevention (parameterized queries audit)
+- [x] Sub-Task 3.4: Path Traversal & File Upload Security
+- [x] Sub-Task 4.1: Paste Handling di Rich Text (clipboard sanitize, Word/GDocs)
 - [ ] Sub-Task 4.2: Malformed DOM Handling (cleanup, extension interference)
 - [ ] Sub-Task 4.3: Auto-Save Edge Cases (empty after sanitize, debounce, race)
 - [ ] Sub-Task 5.1-5.4: Unit, XSS, SQLi, dan Regression Tests

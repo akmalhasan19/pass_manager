@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { app } from 'electron';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
@@ -7,6 +7,12 @@ import { FileAttachmentRepository } from '../database/repositories/FileAttachmen
 import { isDatabaseOpen } from '../database/connection';
 import { getMasterKey } from './authHandlers';
 import { encryptAES256GCM, decryptAES256GCM } from '../crypto/encryption';
+import {
+  containsPathTraversal,
+  sanitizeFileName,
+  validateFileUpload,
+  FILE_SIZE_LIMITS,
+} from '../../shared/fileSecurity';
 
 const fileRepo = new FileAttachmentRepository();
 
@@ -113,11 +119,28 @@ export function registerFileHandlers(): void {
           return { success: false, error: 'No master key available. Unlock first.' };
         }
 
+        // Validate file path for security
+        if (!filePath || containsPathTraversal(filePath)) {
+          return { success: false, error: 'Invalid file path.' };
+        }
+
         if (!existsSync(filePath)) {
           return { success: false, error: 'Source file not found.' };
         }
 
-        const fileName = filePath.split(/[/\\]/).pop() ?? 'unnamed';
+        // Get file stats for size validation
+        const stats = statSync(filePath);
+
+        // Validate file (extension + size)
+        const validation = validateFileUpload(filePath, stats.size, {
+          maxSize: FILE_SIZE_LIMITS.ATTACHMENT,
+        });
+        if (!validation.valid) {
+          return { success: false, error: validation.error };
+        }
+
+        const rawFileName = filePath.split(/[/\\]/).pop() ?? 'unnamed';
+        const fileName = sanitizeFileName(rawFileName);
         const fileBuffer = readFileSync(filePath);
         const encrypted = encryptFileData(fileBuffer, key);
 
@@ -164,6 +187,11 @@ export function registerFileHandlers(): void {
           return { success: false, error: 'Attachment not found.' };
         }
 
+        // Validate storage path is within attachments directory
+        if (containsPathTraversal(attachment.storagePath)) {
+          return { success: false, error: 'Invalid attachment storage path.' };
+        }
+
         if (!existsSync(attachment.storagePath)) {
           return { success: false, error: 'Encrypted file not found on disk.' };
         }
@@ -172,7 +200,8 @@ export function registerFileHandlers(): void {
         const decrypted = decryptFileData(encryptedBlob, key);
 
         const tempDir = getTempDir();
-        const tempPath = join(tempDir, attachment.fileName);
+        const safeFileName = sanitizeFileName(attachment.fileName);
+        const tempPath = join(tempDir, safeFileName);
 
         writeFileSync(tempPath, decrypted);
 
@@ -180,7 +209,7 @@ export function registerFileHandlers(): void {
           success: true,
           data: {
             filePath: tempPath,
-            fileName: attachment.fileName,
+            fileName: safeFileName,
             mimeType: attachment.mimeType,
           },
         };
