@@ -110,23 +110,23 @@ Pengguna SecurePass Manager harus dapat melakukan migrasi data masuk dan keluar 
 ---
 
 ## 4. Task: Testing & Quality Assurance
-- [ ] Task 4 Complete
+- [x] Task 4 Complete
 
 ### Sub-Task 4.1: Unit Tests untuk Parser
-- [ ] Test fixture file berbagai format (KeePass XML, Bitwarden JSON, 1Password CSV).
-- [ ] Assert setiap item yang tergenerasi sudah memiliki field wajib.
-- [ ] Assert error handling jika file corrupt atau tidak sesuai format.
+- [x] Test fixture file berbagai format (KeePass XML, Bitwarden JSON, 1Password CSV).
+- [x] Assert setiap item yang tergenerasi sudah memiliki field wajib.
+- [x] Assert error handling jika file corrupt atau tidak sesuai format.
 
 ### Sub-Task 4.2: Integration Tests (IPC)
-- [ ] Simulasi file select → parse → insert ke DB melalui IPC handlers.
-- [ ] Assert integritas relasional (folder tidak duplikat, items terhubung ke folder yang benar).
+- [x] Simulasi file select → parse → insert ke DB melalui IPC handlers.
+- [x] Assert integritas relasional (folder tidak duplikat, items terhubung ke folder yang benar).
 
 ### Sub-Task 4.3: Round Trip Test
-- [ ] Export ke Encrypted JSON → Import kembali → Assert data asli sama persis (bandingkan hash atau deep equal).
+- [x] Export ke Encrypted JSON → Import kembali → Assert data asli sama persis (bandingkan hash atau deep equal).
 
 ### Sub-Task 4.4: Security Tests
-- [ ] Import file CSV dengan XSS payload di kolom `title`: Harus idsanitasi sebelum masuk ke RichText/DB.
-- [ ] Import file XML dengan external entity: Harus menghandle dengan aman (disable DTD).
+- [x] Import file CSV dengan XSS payload di kolom `title`: Harus disanitasi sebelum masuk ke RichText/DB.
+- [x] Import file XML dengan external entity: Harus menghandle dengan aman (disable DTD).
 
 ---
 
@@ -134,8 +134,8 @@ Pengguna SecurePass Manager harus dapat melakukan migrasi data masuk dan keluar 
 - [ ] Task 5 Complete
 
 ### Sub-Task 5.1: Feedback Visual
-- [ ] Toast notification "Successfully imported 10 items" atau "Exported to /path/file.spm".
-- [ ] Error feedback jika file tidak dikenali: "Unsupported file format. Please verify..."
+- [x] Toast notification "Successfully imported 10 items" atau "Exported to /path/file.spm".
+- [x] Error feedback jika file tidak dikenali: "Unsupported file format. Please verify..."
 
 ### Sub-Task 5.2: Localization (I18n Ready)
 - [ ] Semua string di UI Import/Export harus berasal dari keys file bahasa. Jangan hard-code Bahasa Inggris di dalam komponen, agar nantinya mudah diterjemahkan ke Bahasa Indonesia atau lainnya.
@@ -162,5 +162,5 @@ Pengguna SecurePass Manager harus dapat melakukan migrasi data masuk dan keluar 
 - [x] Sub-Task 3.3: JSON Plain Export
 - [x] Sub-Task 3.4: CSV Plain Export
 - [x] Sub-Task 3.5: Progress Bar
-- [ ] Sub-Task 4.1-4.4: Tests
+- [x] Sub-Task 4.1-4.4: Tests
 - [ ] Sub-Task 5.1-5.3: UX Polish

@@ -4,6 +4,7 @@ import { IPC_CHANNELS } from '../../shared/ipcChannels';
 import {
   IMPORT_FORMAT_EXTENSIONS,
   IMPORT_FORMAT_MIME_TYPES,
+  IMPORT_FORMAT_LABELS,
   type ImportFormat,
   type ImportDialogResult,
   type ImportPayload,
@@ -85,7 +86,7 @@ export function registerImportHandlers(): void {
           const allowed = getAllowedExtensions(format).join(', ');
           return {
             success: false,
-            error: `Invalid file extension. Expected ${allowed} for ${filter.name} format.`,
+            error: `Unsupported file format. Please verify the file extension. Expected: ${allowed} for ${FORMAT_FILTERS[format].name}.`,
           };
         }
 
@@ -133,7 +134,7 @@ export function registerImportHandlers(): void {
         const factory = createImporterFactoryWithAllDefaults();
 
         if (!factory.has(format)) {
-          return { success: false, error: `Unsupported import format: ${format}.` };
+          return { success: false, error: `Unsupported file format. Please verify the file is a valid ${IMPORT_FORMAT_LABELS[format] ?? format} file and try again.` };
         }
 
         const importer = factory.get(format);

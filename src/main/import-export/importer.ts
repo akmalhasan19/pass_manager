@@ -6,6 +6,7 @@ import type {
   ImportAttachment,
   ImportFormat,
 } from '../../shared/types';
+import { sanitizePayload } from './sanitizer';
 
 export class ImportError extends Error {
   public readonly code: string;
@@ -156,8 +157,9 @@ function validatePayload(payload: ImportPayload): void {
 export function makeImportPayload(
   payload: ImportPayload,
 ): ImportPayload {
-  validatePayload(payload);
-  return payload;
+  const sanitized = sanitizePayload(payload);
+  validatePayload(sanitized);
+  return sanitized;
 }
 
 export class ImporterFactory {

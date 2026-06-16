@@ -113,6 +113,27 @@ describe('OnePasswordCsvImporter', () => {
         expect(item.tagIds).toEqual([]);
       }
     });
+
+    it('should have all required fields on every generated item', () => {
+      for (const item of payload.items) {
+        expect(item.id).toBeDefined();
+        expect(item.id.length).toBeGreaterThan(0);
+        expect(typeof item.title).toBe('string');
+        expect(item.title.length).toBeGreaterThan(0);
+        expect(typeof item.username).toBe('string');
+        expect(typeof item.password).toBe('string');
+        expect(item.password.length).toBeGreaterThan(0);
+        expect(typeof item.url).toBe('string');
+        expect(typeof item.folderId).toBe('string');
+        expect(typeof item.createdAt).toBe('number');
+        expect(item.createdAt).toBeGreaterThan(0);
+        expect(typeof item.updatedAt).toBe('number');
+        expect(item.updatedAt).toBeGreaterThan(0);
+        expect(typeof item.isFavorite).toBe('boolean');
+        expect(typeof item.sortOrder).toBe('number');
+        expect(Array.isArray(item.tagIds)).toBe(true);
+      }
+    });
   });
 
   describe('CSV with different column order', () => {
@@ -235,6 +256,43 @@ describe('OnePasswordCsvImporter', () => {
       const payload = importer.parse(csv);
       expect(payload.items.length).toBe(1);
       expect(payload.items[0].title).toBe('Entry1');
+    });
+
+    it('should throw ImportFormatError for truncated CSV', () => {
+      const truncated = 'title,username,password\nEntry1,user1';
+      const payload = importer.parse(truncated);
+      expect(payload.items.length).toBe(1);
+      expect(payload.items[0].password).toBe('');
+    });
+
+    it('should handle CSV with mismatched column count', () => {
+      const mismatched = [
+        'title,username,password,url',
+        'Entry1,user1,pass1,https://example.com,extra,columns',
+      ].join('\n');
+      const payload = importer.parse(mismatched);
+      expect(payload.items.length).toBe(1);
+    });
+
+    it('should throw ImportFormatError for CSV with only whitespace rows', () => {
+      const whitespace = [
+        'title,username,password',
+        '   ,   ,   ',
+        '\t,\t,\t',
+      ].join('\n');
+      expect(() => importer.parse(whitespace)).toThrow(ImportFormatError);
+    });
+
+    it('should handle CSV with special characters in fields', () => {
+      const special = [
+        'title,username,password,url,notes',
+        '"Entry with ""quotes""","user,with,commas","pass123",https://example.com,"notes with, commas"',
+      ].join('\n');
+      const payload = importer.parse(special);
+      expect(payload.items.length).toBe(1);
+      expect(payload.items[0].title).toBe('Entry with "quotes"');
+      expect(payload.items[0].username).toBe('user,with,commas');
+      expect(payload.items[0].notes).toBe('notes with, commas');
     });
   });
 });

@@ -137,6 +137,41 @@ describe('KeePassXmlImporter', () => {
       expect(nationalBank).toBeDefined();
       expect(nationalBank!.notes).toBeTruthy();
     });
+
+    it('should have all required fields on every generated item', () => {
+      for (const item of payload.items) {
+        expect(item.id).toBeDefined();
+        expect(item.id.length).toBeGreaterThan(0);
+        expect(typeof item.title).toBe('string');
+        expect(item.title.length).toBeGreaterThan(0);
+        expect(typeof item.username).toBe('string');
+        expect(typeof item.password).toBe('string');
+        expect(item.password.length).toBeGreaterThan(0);
+        expect(typeof item.url).toBe('string');
+        expect(typeof item.folderId).toBe('string');
+        expect(typeof item.createdAt).toBe('number');
+        expect(item.createdAt).toBeGreaterThan(0);
+        expect(typeof item.updatedAt).toBe('number');
+        expect(item.updatedAt).toBeGreaterThan(0);
+        expect(typeof item.isFavorite).toBe('boolean');
+        expect(typeof item.sortOrder).toBe('number');
+        expect(Array.isArray(item.tagIds)).toBe(true);
+      }
+    });
+
+    it('should have all required fields on every generated folder', () => {
+      for (const folder of payload.folders) {
+        expect(folder.id).toBeDefined();
+        expect(folder.id.length).toBeGreaterThan(0);
+        expect(typeof folder.name).toBe('string');
+        expect(folder.name.length).toBeGreaterThan(0);
+        expect(typeof folder.createdAt).toBe('number');
+        expect(folder.createdAt).toBeGreaterThan(0);
+        expect(typeof folder.updatedAt).toBe('number');
+        expect(folder.updatedAt).toBeGreaterThan(0);
+        expect(typeof folder.sortOrder).toBe('number');
+      }
+    });
   });
 
   describe('error handling', () => {
@@ -170,6 +205,21 @@ describe('KeePassXmlImporter', () => {
       expect(() => importer.parse('')).toThrow(
         'Missing root element <KeePassFile>',
       );
+    });
+
+    it('should throw ImportFormatError for XML with invalid structure', () => {
+      const invalid = '<?xml version="1.0"?><KeePassFile><Invalid></Invalid></KeePassFile>';
+      expect(() => importer.parse(invalid)).toThrow(ImportFormatError);
+    });
+
+    it('should throw for completely invalid XML', () => {
+      const notXml = 'This is not XML at all';
+      expect(() => importer.parse(notXml)).toThrow();
+    });
+
+    it('should throw for XML with binary/corrupt content', () => {
+      const corrupt = '<?xml version="1.0"?><KeePassFile>\x00\x01\x02\x03</KeePassFile>';
+      expect(() => importer.parse(corrupt)).toThrow();
     });
   });
 });

@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import Modal from '../ui/Modal';
 import ColumnMapper from './ColumnMapper';
 import DuplicatePreview from './DuplicatePreview';
+import { useToast } from '../../hooks/useToast';
 import {
   IMPORT_FORMATS,
   IMPORT_FORMAT_LABELS,
@@ -38,6 +39,7 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
   const [duplicateReport, setDuplicateReport] = useState<DuplicateReport | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [importResult, setImportResult] = useState<{ itemCount?: number }>({});
+  const { showSuccess, showError } = useToast();
 
   const resetDialog = useCallback(() => {
     setStep('select-format');
@@ -74,8 +76,10 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
           setStep('select-file');
           return;
         }
-        setErrorMessage(result.error ?? 'Failed to open file.');
+        const msg = result.error ?? 'Failed to open file.';
+        setErrorMessage(msg);
         setStep('error');
+        showError(msg);
         return;
       }
 
@@ -88,6 +92,7 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
         if (!headersResult.success) {
           setErrorMessage(headersResult.error ?? 'Failed to read CSV headers.');
           setStep('error');
+          showError(headersResult.error ?? 'Failed to read CSV headers.');
           return;
         }
 
@@ -100,6 +105,7 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Unknown error.');
       setStep('error');
+      showError(err instanceof Error ? err.message : 'Failed to import file.');
     }
   }, [selectedFormat]);
 
@@ -116,6 +122,7 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
       if (!parseResult.success) {
         setErrorMessage(parseResult.error ?? 'Failed to parse file.');
         setStep('error');
+        showError(parseResult.error ?? 'Failed to parse file.');
         return;
       }
 
@@ -127,6 +134,7 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
       if (!dupResult.success) {
         setErrorMessage(dupResult.error ?? 'Failed to check duplicates.');
         setStep('error');
+        showError(dupResult.error ?? 'Failed to check duplicates.');
         return;
       }
 
@@ -145,6 +153,7 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Unknown error.');
       setStep('error');
+      showError(err instanceof Error ? err.message : 'Import failed.');
     }
   }, [selectedFormat, selectedFile]);
 
@@ -161,6 +170,7 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
       if (!result.success) {
         setErrorMessage(result.error ?? 'Failed to parse CSV file.');
         setStep('error');
+        showError(result.error ?? 'Failed to parse CSV file.');
         return;
       }
 
@@ -172,6 +182,7 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
       if (!dupResult.success) {
         setErrorMessage(dupResult.error ?? 'Failed to check duplicates.');
         setStep('error');
+        showError(dupResult.error ?? 'Failed to check duplicates.');
         return;
       }
 
@@ -190,6 +201,7 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Unknown error.');
       setStep('error');
+      showError(err instanceof Error ? err.message : 'Import failed.');
     }
   }, [fileContent]);
 
@@ -213,17 +225,24 @@ export default function ImportDialog({ isOpen, onClose }: ImportDialogProps): Re
         if (!result.success) {
           setErrorMessage(result.error ?? 'Failed to import data.');
           setStep('error');
+          showError(result.error ?? 'Failed to import data.');
           return;
         }
 
         setImportResult({ itemCount: result.data.importedCount });
         setStep('success');
+        showSuccess(
+          result.data.importedCount > 0
+            ? `Successfully imported ${result.data.importedCount} items`
+            : 'Import completed',
+        );
       } catch (err) {
         setErrorMessage(err instanceof Error ? err.message : 'Unknown error.');
         setStep('error');
+        showError(err instanceof Error ? err.message : 'Import failed.');
       }
     },
-    [],
+    [showSuccess, showError],
   );
 
   const handleBackToFileSelect = useCallback(() => {

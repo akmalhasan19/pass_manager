@@ -170,6 +170,41 @@ describe('BitwardenJsonImporter', () => {
       expect(wifi).toBeDefined();
       expect(wifi!.username).toBe('');
     });
+
+    it('should have all required fields on every generated item', () => {
+      for (const item of payload.items) {
+        expect(item.id).toBeDefined();
+        expect(item.id.length).toBeGreaterThan(0);
+        expect(typeof item.title).toBe('string');
+        expect(item.title.length).toBeGreaterThan(0);
+        expect(typeof item.username).toBe('string');
+        expect(typeof item.password).toBe('string');
+        expect(item.password.length).toBeGreaterThan(0);
+        expect(typeof item.url).toBe('string');
+        expect(typeof item.folderId).toBe('string');
+        expect(typeof item.createdAt).toBe('number');
+        expect(item.createdAt).toBeGreaterThan(0);
+        expect(typeof item.updatedAt).toBe('number');
+        expect(item.updatedAt).toBeGreaterThan(0);
+        expect(typeof item.isFavorite).toBe('boolean');
+        expect(typeof item.sortOrder).toBe('number');
+        expect(Array.isArray(item.tagIds)).toBe(true);
+      }
+    });
+
+    it('should have all required fields on every generated folder', () => {
+      for (const folder of payload.folders) {
+        expect(folder.id).toBeDefined();
+        expect(folder.id.length).toBeGreaterThan(0);
+        expect(typeof folder.name).toBe('string');
+        expect(folder.name.length).toBeGreaterThan(0);
+        expect(typeof folder.createdAt).toBe('number');
+        expect(folder.createdAt).toBeGreaterThan(0);
+        expect(typeof folder.updatedAt).toBe('number');
+        expect(folder.updatedAt).toBeGreaterThan(0);
+        expect(typeof folder.sortOrder).toBe('number');
+      }
+    });
   });
 
   describe('error handling', () => {
@@ -209,6 +244,25 @@ describe('BitwardenJsonImporter', () => {
 
     it('should handle empty string', () => {
       expect(() => importer.parse('')).toThrow(ImportParseError);
+    });
+
+    it('should throw ImportParseError for truncated JSON', () => {
+      const truncated = '{"encrypted":false,"items":[{"id":"123","name":"Test"';
+      expect(() => importer.parse(truncated)).toThrow(ImportParseError);
+    });
+
+    it('should throw ImportParseError for JSON with invalid syntax', () => {
+      const invalid = '{"encrypted":false,"items":[invalid]}';
+      expect(() => importer.parse(invalid)).toThrow(ImportParseError);
+    });
+
+    it('should throw ImportFormatError for JSON array instead of object', () => {
+      const arrayJson = '[{"id":"123"}]';
+      expect(() => importer.parse(arrayJson)).toThrow(ImportFormatError);
+    });
+
+    it('should throw ImportParseError for null JSON', () => {
+      expect(() => importer.parse('null')).toThrow(ImportFormatError);
     });
   });
 });

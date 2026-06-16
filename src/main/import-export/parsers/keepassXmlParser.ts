@@ -10,6 +10,9 @@ import {
 } from '../importer';
 import type { ImportFormat, ImportFolder } from '../../../shared/types';
 
+const DTD_DOCTYPE_RE = /<!DOCTYPE\s/i;
+const ENTITY_DECL_RE = /<!ENTITY\s/i;
+
 const KEEPASS_KNOWN_KEYS = new Set([
   'Title',
   'UserName',
@@ -193,11 +196,21 @@ export class KeePassXmlImporter implements Importer {
   readonly format: ImportFormat = 'keepass-xml';
 
   parse(content: string): import('../../../shared/types').ImportPayload {
+    if (DTD_DOCTYPE_RE.test(content) || ENTITY_DECL_RE.test(content)) {
+      throw new ImportParseError(
+        'KeePass XML file contains DTD/DOCTYPE declarations which are not allowed for security reasons.',
+        undefined,
+        { reason: 'XXE_DTD_REJECTED' },
+      );
+    }
+
     const parser = new XMLParser({
       ignoreAttributes: false,
       attributeNamePrefix: '@_',
       textNodeName: '#text',
       trimValues: true,
+      processEntities: false,
+      htmlEntities: false,
     });
 
     let parsed: { KeePassFile?: KeepassFile };

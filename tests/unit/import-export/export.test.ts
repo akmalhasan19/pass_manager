@@ -305,6 +305,274 @@ describe('Encrypted JSON Export', () => {
     expect(importedPayload.folders).toHaveLength(1);
     expect(importedPayload.folders[0].name).toBe('Roundtrip');
   });
+
+  // =========================================================================
+  // 4.3 — Comprehensive Round Trip Test
+  // =========================================================================
+  describe('Round Trip Test - Full Data Integrity', () => {
+    it('should preserve all data through export → import cycle with deep equality', () => {
+      // Create complex vault structure
+      const folder1 = folderRepo.create(null, 'Work', '💼');
+      const folder2 = folderRepo.create(null, 'Personal', '🏠');
+      const subfolder1 = folderRepo.create(folder1.id, 'Projects', '📁');
+
+      const encryptedPw1 = encryptString('WorkPass123!', TEST_KEY);
+      const encryptedNotes1 = encryptString('Important work notes', TEST_KEY);
+      const encryptedPw2 = encryptString('PersonalPass456@', TEST_KEY);
+      const encryptedNotes2 = encryptString('Personal secrets here', TEST_KEY);
+      const encryptedPw3 = encryptString('ProjectPass789#', TEST_KEY);
+
+      const item1 = itemRepo.create(folder1.id, {
+        title: 'Work Email',
+        username: 'worker@company.com',
+        passwordEncrypted: encryptedPw1,
+        url: 'https://mail.company.com',
+        notesEncrypted: encryptedNotes1,
+        emoji: '📧',
+      });
+
+      const item2 = itemRepo.create(folder2.id, {
+        title: 'Personal Bank',
+        username: 'john.doe',
+        passwordEncrypted: encryptedPw2,
+        url: 'https://bank.com',
+        notesEncrypted: encryptedNotes2,
+        emoji: '🏦',
+      });
+
+      const item3 = itemRepo.create(subfolder1.id, {
+        title: 'Project Repo',
+        username: 'dev-user',
+        passwordEncrypted: encryptedPw3,
+        url: 'https://github.com/project',
+        emoji: '💻',
+      });
+
+      const tag1 = tagRepo.create('important', '#ef4444');
+      const tag2 = tagRepo.create('work', '#3b82f6');
+      const tag3 = tagRepo.create('personal', '#10b981');
+
+      tagRepo.attachToItem(item1.id, tag1.id);
+      tagRepo.attachToItem(item1.id, tag2.id);
+      tagRepo.attachToItem(item2.id, tag3.id);
+      tagRepo.attachToItem(item3.id, tag2.id);
+
+      // Export to encrypted JSON
+      const originalPayload = buildEncryptedPayload();
+      const encryptedFile = serializeEncryptedExport(originalPayload, TEST_KEY);
+      const encryptedFileJson = JSON.stringify(encryptedFile);
+
+      // Import back
+      const importer = new EncryptedJsonImporter();
+      const importedPayload = importer.parse(encryptedFileJson);
+
+      // Verify folders
+      expect(importedPayload.folders).toHaveLength(originalPayload.folders.length);
+      for (const origFolder of originalPayload.folders) {
+        const impFolder = importedPayload.folders.find((f) => f.name === origFolder.name);
+        expect(impFolder).toBeDefined();
+        expect(impFolder!.parentId).toBe(origFolder.parentId);
+        expect(impFolder!.emoji).toBe(origFolder.emoji);
+        expect(impFolder!.sortOrder).toBe(origFolder.sortOrder);
+      }
+
+      // Verify items
+      expect(importedPayload.items).toHaveLength(originalPayload.items.length);
+      for (const origItem of originalPayload.items) {
+        const impItem = importedPayload.items.find((i) => i.title === origItem.title);
+        expect(impItem).toBeDefined();
+        expect(impItem!.username).toBe(origItem.username);
+        expect(impItem!.url).toBe(origItem.url);
+        expect(impItem!.emoji).toBe(origItem.emoji);
+        expect(impItem!.isFavorite).toBe(origItem.isFavorite);
+        expect(impItem!.sortOrder).toBe(origItem.sortOrder);
+
+        // Verify password can be decrypted to original value
+        const origPw = origItem.passwordEncrypted
+          ? decryptString(Buffer.from(origItem.passwordEncrypted, 'base64'), TEST_KEY)
+          : '';
+        expect(impItem!.password).toBe(origPw);
+
+        // Verify notes can be decrypted to original value
+        const origNotes = origItem.notesEncrypted
+          ? decryptString(Buffer.from(origItem.notesEncrypted, 'base64'), TEST_KEY)
+          : null;
+        if (origNotes) {
+          expect(impItem!.notes).toBe(origNotes);
+        }
+      }
+
+      // Verify tags
+      expect(importedPayload.tags).toHaveLength(originalPayload.tags.length);
+      for (const origTag of originalPayload.tags) {
+        const impTag = importedPayload.tags.find((t) => t.name === origTag.name);
+        expect(impTag).toBeDefined();
+        expect(impTag!.color).toBe(origTag.color);
+      }
+
+      // Verify tag assignments
+      const workEmailImport = importedPayload.items.find((i) => i.title === 'Work Email');
+      expect(workEmailImport).toBeDefined();
+      expect(workEmailImport!.tagIds).toHaveLength(2);
+
+      const personalBankImport = importedPayload.items.find((i) => i.title === 'Personal Bank');
+      expect(personalBankImport).toBeDefined();
+      expect(personalBankImport!.tagIds).toHaveLength(1);
+
+      const projectRepoImport = importedPayload.items.find((i) => i.title === 'Project Repo');
+      expect(projectRepoImport).toBeDefined();
+      expect(projectRepoImport!.tagIds).toHaveLength(1);
+    });
+
+    it('should preserve special characters and unicode through round trip', () => {
+      const folder = folderRepo.create(null, '🔐 Special Folder', '🌟');
+      const encryptedPw = encryptString('P@$$w0rd!#%^&*()_+-=[]{}|;:\'",.<>?/`~', TEST_KEY);
+      const encryptedNotes = encryptString('Notes with emoji: 🎉🚀💯 and unicode: 用户@例子.com', TEST_KEY);
+
+      const item = itemRepo.create(folder.id, {
+        title: 'Special Characters Test 🎭',
+        username: 'user\nwith\nnewlines',
+        passwordEncrypted: encryptedPw,
+        url: 'https://пример.com/path?q=1&b=2#hash',
+        notesEncrypted: encryptedNotes,
+        emoji: '🔑',
+      });
+
+      const tag = tagRepo.create('тест-テスト', '#ff00ff');
+      tagRepo.attachToItem(item.id, tag.id);
+
+      const originalPayload = buildEncryptedPayload();
+      const encryptedFile = serializeEncryptedExport(originalPayload, TEST_KEY);
+      const encryptedFileJson = JSON.stringify(encryptedFile);
+
+      const importer = new EncryptedJsonImporter();
+      const importedPayload = importer.parse(encryptedFileJson);
+
+      expect(importedPayload.items).toHaveLength(1);
+      expect(importedPayload.items[0].title).toBe('Special Characters Test 🎭');
+      expect(importedPayload.items[0].username).toBe('user\nwith\nnewlines');
+      expect(importedPayload.items[0].password).toBe('P@$$w0rd!#%^&*()_+-=[]{}|;:\'",.<>?/`~');
+      expect(importedPayload.items[0].url).toBe('https://пример.com/path?q=1&b=2#hash');
+      expect(importedPayload.items[0].notes).toBe('Notes with emoji: 🎉🚀💯 and unicode: 用户@例子.com');
+      expect(importedPayload.items[0].emoji).toBe('🔑');
+
+      expect(importedPayload.folders).toHaveLength(1);
+      expect(importedPayload.folders[0].name).toBe('🔐 Special Folder');
+      expect(importedPayload.folders[0].emoji).toBe('🌟');
+
+      expect(importedPayload.tags).toHaveLength(1);
+      expect(importedPayload.tags[0].name).toBe('тест-テスト');
+      expect(importedPayload.tags[0].color).toBe('#ff00ff');
+    });
+
+    it('should maintain folder hierarchy through round trip', () => {
+      const root1 = folderRepo.create(null, 'Root1', '🌳');
+      const root2 = folderRepo.create(null, 'Root2', '🌲');
+      const child1 = folderRepo.create(root1.id, 'Child1', '🌿');
+      const child2 = folderRepo.create(root1.id, 'Child2', '🍃');
+      const grandchild = folderRepo.create(child1.id, 'Grandchild', '🌱');
+
+      const encryptedPw = encryptString('test', TEST_KEY);
+      itemRepo.create(root1.id, { title: 'Item1', passwordEncrypted: encryptedPw });
+      itemRepo.create(child1.id, { title: 'Item2', passwordEncrypted: encryptedPw });
+      itemRepo.create(grandchild.id, { title: 'Item3', passwordEncrypted: encryptedPw });
+
+      const originalPayload = buildEncryptedPayload();
+      const encryptedFile = serializeEncryptedExport(originalPayload, TEST_KEY);
+      const encryptedFileJson = JSON.stringify(encryptedFile);
+
+      const importer = new EncryptedJsonImporter();
+      const importedPayload = importer.parse(encryptedFileJson);
+
+      expect(importedPayload.folders).toHaveLength(5);
+
+      const impRoot1 = importedPayload.folders.find((f) => f.name === 'Root1');
+      const impChild1 = importedPayload.folders.find((f) => f.name === 'Child1');
+      const impGrandchild = importedPayload.folders.find((f) => f.name === 'Grandchild');
+
+      expect(impRoot1).toBeDefined();
+      expect(impRoot1!.parentId).toBeNull();
+
+      expect(impChild1).toBeDefined();
+      expect(impChild1!.parentId).toBe(impRoot1!.id);
+
+      expect(impGrandchild).toBeDefined();
+      expect(impGrandchild!.parentId).toBe(impChild1!.id);
+
+      const item2 = importedPayload.items.find((i) => i.title === 'Item2');
+      expect(item2).toBeDefined();
+      expect(item2!.folderId).toBe(impChild1!.id);
+
+      const item3 = importedPayload.items.find((i) => i.title === 'Item3');
+      expect(item3).toBeDefined();
+      expect(item3!.folderId).toBe(impGrandchild!.id);
+    });
+
+    it('should preserve favorite status and sort order through round trip', () => {
+      const folder = folderRepo.create(null, 'Test', '📂');
+      const encryptedPw = encryptString('pass', TEST_KEY);
+
+      const item1 = itemRepo.create(folder.id, {
+        title: 'Favorite Item',
+        passwordEncrypted: encryptedPw,
+      });
+      itemRepo.update(item1.id, { isFavorite: true });
+
+      const item2 = itemRepo.create(folder.id, {
+        title: 'Normal Item',
+        passwordEncrypted: encryptedPw,
+      });
+
+      const originalPayload = buildEncryptedPayload();
+      const encryptedFile = serializeEncryptedExport(originalPayload, TEST_KEY);
+      const encryptedFileJson = JSON.stringify(encryptedFile);
+
+      const importer = new EncryptedJsonImporter();
+      const importedPayload = importer.parse(encryptedFileJson);
+
+      const impItem1 = importedPayload.items.find((i) => i.title === 'Favorite Item');
+      expect(impItem1).toBeDefined();
+      expect(impItem1!.isFavorite).toBe(true);
+
+      const impItem2 = importedPayload.items.find((i) => i.title === 'Normal Item');
+      expect(impItem2).toBeDefined();
+      expect(impItem2!.isFavorite).toBe(false);
+    });
+
+    it('should handle large vault with many items through round trip', () => {
+      const folder = folderRepo.create(null, 'Large', '📦');
+      const encryptedPw = encryptString('password', TEST_KEY);
+
+      for (let i = 0; i < 100; i++) {
+        itemRepo.create(folder.id, {
+          title: `Item ${i}`,
+          username: `user${i}@example.com`,
+          passwordEncrypted: encryptedPw,
+          url: `https://site${i}.com`,
+        });
+      }
+
+      const originalPayload = buildEncryptedPayload();
+      expect(originalPayload.items).toHaveLength(100);
+
+      const encryptedFile = serializeEncryptedExport(originalPayload, TEST_KEY);
+      const encryptedFileJson = JSON.stringify(encryptedFile);
+
+      const importer = new EncryptedJsonImporter();
+      const importedPayload = importer.parse(encryptedFileJson);
+
+      expect(importedPayload.items).toHaveLength(100);
+
+      for (let i = 0; i < 100; i++) {
+        const origItem = originalPayload.items[i];
+        const impItem = importedPayload.items.find((item) => item.title === origItem.title);
+        expect(impItem).toBeDefined();
+        expect(impItem!.username).toBe(origItem.username);
+        expect(impItem!.url).toBe(origItem.url);
+        expect(impItem!.password).toBe('password');
+      }
+    });
+  });
 });
 
 describe('JSON Plain Export', () => {

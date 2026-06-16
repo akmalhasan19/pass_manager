@@ -98,7 +98,7 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
 
       setExportedFilePath(result.data.filePath);
       setStep('success');
-      showSuccess(`Exported to ${result.data.filePath.split(/[/\\]/).pop() ?? 'file'}`);
+      showSuccess(`Exported to ${result.data.filePath}`);
     } catch (err) {
       if (cleanupRef.current) {
         cleanupRef.current();
