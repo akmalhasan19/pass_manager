@@ -1,4 +1,5 @@
 import { MAX_FIELD_LENGTHS } from './constants';
+import { sanitizeForField, type SanitizableField } from './sanitize';
 
 /**
  * Character validation utilities for form input.
@@ -44,6 +45,8 @@ export type ValidationField =
   | 'notes'
   | 'tagName';
 
+export type { SanitizableField };
+
 /**
  * Validates a field value for character restrictions.
  * Returns a validation error key if invalid, null if valid.
@@ -55,10 +58,7 @@ export type ValidationField =
  * - url: Allow printable characters. Validate URL format.
  * - notes: Allow all printable Unicode. Allow newline and tab. Block other control characters.
  */
-export function validateCharacters(
-  field: ValidationField,
-  value: string,
-): string | null {
+export function validateCharacters(field: ValidationField, value: string): string | null {
   if (value.length === 0) return null;
 
   switch (field) {
@@ -123,10 +123,7 @@ export function sanitizeUrl(value: string): string {
  * Full field validation combining length and character checks.
  * Returns a validation error key if invalid, null if valid.
  */
-export function validateField(
-  field: ValidationField,
-  value: string,
-): string | null {
+export function validateField(field: ValidationField, value: string): string | null {
   const limits: Partial<Record<ValidationField, number>> = {
     folderName: MAX_FIELD_LENGTHS.FOLDER_NAME,
     itemTitle: MAX_FIELD_LENGTHS.ITEM_TITLE,
@@ -147,7 +144,11 @@ export function validateField(
     return charError;
   }
 
-  if ((field === 'folderName' || field === 'itemTitle') && value.trim().length === 0 && value.length > 0) {
+  if (
+    (field === 'folderName' || field === 'itemTitle') &&
+    value.trim().length === 0 &&
+    value.length > 0
+  ) {
     return 'validation.whitespaceOnly';
   }
 
@@ -168,6 +169,37 @@ export function validateField(
  */
 export function stripControlChars(value: string): string {
   return value.replace(CONTROL_CHAR_REGEX, '');
+}
+
+/**
+ * Sanitize a value for a given plain-text field. Strips HTML tags and
+ * decodes entities so the stored value contains only the visible text
+ * (no executable markup). The result is safe to pass through
+ * `validateField` and to persist to the database.
+ *
+ * For `notes` (rich text) and other non-plain-text fields, this is a
+ * no-op — the caller must sanitize rich text via DOMPurify (handled in
+ * Sub-Task 3.2).
+ */
+export function sanitizeField(field: ValidationField, value: string): string {
+  if (field === 'notes') {
+    return value ?? '';
+  }
+  return sanitizeForField(field as SanitizableField, value);
+}
+
+/**
+ * Sanitize a value and then validate it. Returns both the sanitized
+ * value and the validation error key (or null). Use this at every input
+ * boundary so plain-text fields cannot contain HTML markup.
+ */
+export function sanitizeAndValidateField(
+  field: ValidationField,
+  value: string,
+): { sanitized: string; errorKey: string | null } {
+  const sanitized = sanitizeField(field, value);
+  const errorKey = validateField(field, sanitized);
+  return { sanitized, errorKey };
 }
 
 /**

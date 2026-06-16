@@ -3,11 +3,40 @@ import { useUIStore } from '../../stores/uiStore';
 import { useFolderStore } from '../../stores/folderStore';
 import { useItemStore } from '../../stores/itemStore';
 import { MAX_FIELD_LENGTHS } from '../../../shared/constants';
-import { validateCharacters } from '../../../shared/validation';
+import { sanitizeField, validateCharacters } from '../../../shared/validation';
+import type { Folder } from '../../../shared/types';
 import TreeNode from '../ui/TreeNode';
 
+function generateAlternativeName(baseName: string, existingNames: Set<string>): string {
+  let counter = 2;
+  let candidate = `${baseName} (${counter})`;
+  while (existingNames.has(candidate.toLowerCase())) {
+    counter++;
+    candidate = `${baseName} (${counter})`;
+  }
+  return candidate;
+}
+
+function collectFolderNames(folders: Folder[]): Set<string> {
+  const names = new Set<string>();
+  const walk = (list: Folder[]) => {
+    for (const f of list) {
+      names.add(f.name.toLowerCase());
+      if (f.children) walk(f.children);
+    }
+  };
+  walk(folders);
+  return names;
+}
+
 export default function Sidebar(): React.ReactElement {
-  const { toggleQuickFind, setActiveView, toggleCenterPanel, centerPanelVisible, setCenterPanelVisible } = useUIStore();
+  const {
+    toggleQuickFind,
+    setActiveView,
+    toggleCenterPanel,
+    centerPanelVisible,
+    setCenterPanelVisible,
+  } = useUIStore();
   const {
     folders,
     selectedFolderId,
@@ -25,6 +54,7 @@ export default function Sidebar(): React.ReactElement {
   const [newFolderName, setNewFolderName] = useState('');
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderParentId, setNewFolderParentId] = useState<string | null>(null);
+  const [createFolderError, setCreateFolderError] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const newFolderInputRef = useRef<HTMLInputElement>(null);
 
@@ -83,18 +113,25 @@ export default function Sidebar(): React.ReactElement {
   const handleNewFolder = useCallback((parentId: string | null = null) => {
     setNewFolderParentId(parentId);
     setNewFolderName('');
+    setCreateFolderError(null);
     setIsCreatingFolder(true);
   }, []);
 
   const handleCreateFolderSubmit = useCallback(async () => {
-    const name = newFolderName.trim();
+    const sanitized = sanitizeField('folderName', newFolderName);
+    const name = sanitized.trim();
+    if (sanitized !== newFolderName) {
+      setNewFolderName(sanitized);
+    }
     if (!name) {
       setIsCreatingFolder(false);
+      setCreateFolderError(null);
       return;
     }
 
     const charError = validateCharacters('folderName', name);
     if (charError) {
+      setCreateFolderError(charError);
       return;
     }
 
@@ -102,11 +139,25 @@ export default function Sidebar(): React.ReactElement {
     if (folder) {
       setSelectedFolder(folder.id);
       loadItems(folder.id);
+      setIsCreatingFolder(false);
+      setNewFolderName('');
+      setNewFolderParentId(null);
+      setCreateFolderError(null);
+    } else {
+      const existingNames = collectFolderNames(folders);
+      if (existingNames.has(name.toLowerCase())) {
+        const suggestion = generateAlternativeName(name, existingNames);
+        setNewFolderName(suggestion);
+        setCreateFolderError(`A folder with this name already exists. Suggested: "${suggestion}"`);
+      }
     }
-    setIsCreatingFolder(false);
-    setNewFolderName('');
-    setNewFolderParentId(null);
-  }, [newFolderName, newFolderParentId, createFolder, setSelectedFolder, loadItems]);
+  }, [newFolderName, newFolderParentId, createFolder, setSelectedFolder, loadItems, folders]);
+
+  const handleNewFolderNameChange = useCallback((value: string) => {
+    const sanitized = sanitizeField('folderName', value);
+    setNewFolderName(sanitized);
+    setCreateFolderError(null);
+  }, []);
 
   const handleCreateFolderKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -116,16 +167,26 @@ export default function Sidebar(): React.ReactElement {
         setIsCreatingFolder(false);
         setNewFolderName('');
         setNewFolderParentId(null);
+        setCreateFolderError(null);
       }
     },
     [handleCreateFolderSubmit],
   );
 
   const handleRename = useCallback(
-    async (id: string, newName: string) => {
-      await updateFolder(id, { name: newName });
+    async (id: string, newName: string): Promise<boolean> => {
+      try {
+        const result = await window.electron.folders.update(id, { name: newName });
+        if (!result.success) {
+          return false;
+        }
+        await loadTree();
+        return true;
+      } catch {
+        return false;
+      }
     },
-    [updateFolder],
+    [loadTree],
   );
 
   const handleEmojiChange = useCallback(
@@ -179,7 +240,7 @@ export default function Sidebar(): React.ReactElement {
   return (
     <aside className="flex h-full w-[220px] shrink-0 flex-col bg-[#f5f5f7] dark:bg-surface-850">
       {/* User Profile */}
-      <div className="flex shrink-0 items-center gap-3 px-4 pt-4 pb-3">
+      <div className="flex shrink-0 items-center gap-3 px-4 pb-3 pt-4">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-400 to-blue-600">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -266,20 +327,31 @@ export default function Sidebar(): React.ReactElement {
             {/* Inline new folder creation */}
             {isCreatingFolder && (
               <div
-                className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm"
+                className="rounded-md px-2 py-1.5 text-sm"
                 style={{ paddingLeft: `${(newFolderParentId ? 20 : 0) + 8}px` }}
               >
-                <span className="shrink-0 text-base leading-none">📁</span>
-                <input
-                  ref={newFolderInputRef}
-                  className="min-w-0 flex-1 rounded border border-accent-400 bg-white px-1 py-0 text-sm outline-none ring-1 ring-accent-400/50 dark:bg-surface-800"
-                  placeholder="Vault name..."
-                  value={newFolderName}
-                  maxLength={MAX_FIELD_LENGTHS.FOLDER_NAME}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  onBlur={handleCreateFolderSubmit}
-                  onKeyDown={handleCreateFolderKeyDown}
-                />
+                <div className="flex items-center gap-1.5">
+                  <span className="shrink-0 text-base leading-none">📁</span>
+                  <input
+                    ref={newFolderInputRef}
+                    className={`min-w-0 flex-1 rounded border bg-white px-1 py-0 text-sm outline-none ring-1 dark:bg-surface-800 ${
+                      createFolderError
+                        ? 'border-danger-400 ring-danger-400/50'
+                        : 'border-accent-400 ring-accent-400/50'
+                    }`}
+                    placeholder="Vault name..."
+                    value={newFolderName}
+                    maxLength={MAX_FIELD_LENGTHS.FOLDER_NAME}
+                    onChange={(e) => {
+                      handleNewFolderNameChange(e.target.value);
+                    }}
+                    onBlur={handleCreateFolderSubmit}
+                    onKeyDown={handleCreateFolderKeyDown}
+                  />
+                </div>
+                {createFolderError && (
+                  <p className="mt-0.5 pl-6 text-[11px] text-danger-500">{createFolderError}</p>
+                )}
               </div>
             )}
           </div>

@@ -1,6 +1,7 @@
 import { getDatabase } from '../connection';
 import { Item } from '../../../shared/types';
 import { nanoid } from 'nanoid';
+import { normalizeForComparison } from '../../../shared/validation';
 
 export class ItemRepository {
   create(
@@ -252,6 +253,40 @@ export class ItemRepository {
     }
 
     return items.slice(0, 20);
+  }
+
+  /**
+   * Check if an item with the same title (case-insensitive) exists in the same folder.
+   * Uses normalizeForComparison for Unicode-aware comparison.
+   * @param folderId - The folder ID to check within
+   * @param title - The item title to check
+   * @param excludeId - Optional item ID to exclude (for rename operations)
+   * @returns true if a duplicate exists, false otherwise
+   */
+  existsByFolderIdAndTitle(
+    folderId: string,
+    title: string,
+    excludeId?: string,
+  ): boolean {
+    const db = getDatabase();
+    if (!db) throw new Error('Database not open');
+
+    const normalizedInput = normalizeForComparison(title);
+    const stmt = db.prepare('SELECT id, title FROM items WHERE folder_id = ?');
+    stmt.bind([folderId]);
+
+    let duplicateFound = false;
+    while (stmt.step()) {
+      const row = stmt.getAsObject() as { id: string; title: string };
+      if (excludeId && row.id === excludeId) continue;
+      if (normalizeForComparison(row.title) === normalizedInput) {
+        duplicateFound = true;
+        break;
+      }
+    }
+    stmt.free();
+
+    return duplicateFound;
   }
 
   private rowToItem(row: Record<string, unknown>): Item {

@@ -1,6 +1,7 @@
 import { getDatabase } from '../connection';
 import { Folder } from '../../../shared/types';
 import { nanoid } from 'nanoid';
+import { normalizeForComparison } from '../../../shared/validation';
 
 export class FolderRepository {
   create(parentId: string | null, name: string, emoji: string | null = null): Folder {
@@ -219,6 +220,47 @@ export class FolderRepository {
 
     stmt.free();
     return results;
+  }
+
+  /**
+   * Check if a folder with the same name (case-insensitive) exists in the same parent.
+   * Uses normalizeForComparison for Unicode-aware comparison.
+   * @param parentId - The parent folder ID (null for root level)
+   * @param name - The folder name to check
+   * @param excludeId - Optional folder ID to exclude (for rename operations)
+   * @returns true if a duplicate exists, false otherwise
+   */
+  existsByParentIdAndName(
+    parentId: string | null,
+    name: string,
+    excludeId?: string,
+  ): boolean {
+    const db = getDatabase();
+    if (!db) throw new Error('Database not open');
+
+    const normalizedInput = normalizeForComparison(name);
+    let stmt;
+
+    if (parentId) {
+      stmt = db.prepare('SELECT id, name FROM folders WHERE parent_id = ?');
+      stmt.bind([parentId]);
+    } else {
+      stmt = db.prepare('SELECT id, name FROM folders WHERE parent_id IS NULL');
+      stmt.bind([]);
+    }
+
+    let duplicateFound = false;
+    while (stmt.step()) {
+      const row = stmt.getAsObject() as { id: string; name: string };
+      if (excludeId && row.id === excludeId) continue;
+      if (normalizeForComparison(row.name) === normalizedInput) {
+        duplicateFound = true;
+        break;
+      }
+    }
+    stmt.free();
+
+    return duplicateFound;
   }
 
   private getParentChain(folderId: string): string[] {

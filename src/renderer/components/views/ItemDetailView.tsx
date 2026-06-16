@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import type { ItemDecrypted, Tag, Attachment } from '../../../shared/types';
 import { MAX_FIELD_LENGTHS } from '../../../shared/constants';
-import { validateField as validateFieldUtil } from '../../../shared/validation';
+import { validateField as validateFieldUtil, sanitizeField } from '../../../shared/validation';
 import PasswordGenerator from '../widgets/PasswordGenerator';
 import RichTextEditor from '../editor/RichTextEditor';
 import EmojiPicker from '../ui/EmojiPicker';
@@ -14,7 +14,7 @@ interface ItemDetailViewProps {
   item: ItemDecrypted | null;
   isLoading?: boolean;
   isNewItem?: boolean;
-  onUpdate: (id: string, fields: Record<string, unknown>) => Promise<void>;
+  onUpdate: (id: string, fields: Record<string, unknown>) => Promise<boolean>;
   onDelete: (id: string) => void;
   onBack: () => void;
   allTags: Tag[];
@@ -37,6 +37,20 @@ function formatDate(ts: number): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+const FIELD_NAME_MAP: Record<string, 'itemTitle' | 'username' | 'password' | 'url' | 'notes'> = {
+  title: 'itemTitle',
+  username: 'username',
+  password: 'password',
+  url: 'url',
+  notes: 'notes',
+};
+
+function sanitizeInputValue(field: string, value: string): string {
+  const mappedField = FIELD_NAME_MAP[field];
+  if (!mappedField) return value;
+  return sanitizeField(mappedField, value);
 }
 
 function formatFileSize(bytes: number): string {
@@ -135,6 +149,28 @@ export default function ItemDetailView({
     // Dirty tracking is handled by auto-save debouncing
   }, []);
 
+  const applyFieldSetter = useCallback((field: string, value: string) => {
+    switch (field) {
+      case 'title':
+        setTitle(value);
+        break;
+      case 'username':
+        setUsername(value);
+        break;
+      case 'password':
+        setPassword(value);
+        break;
+      case 'url':
+        setUrl(value);
+        break;
+      case 'notes':
+        setNotes(value);
+        break;
+      default:
+        break;
+    }
+  }, []);
+
   const validateField = useCallback(
     (field: string, value: string): string | null => {
       const fieldMap: Record<string, 'itemTitle' | 'username' | 'password' | 'url' | 'notes'> = {
@@ -189,8 +225,10 @@ export default function ItemDetailView({
 
   const handleFieldChange = useCallback(
     (field: string, value: unknown, setter: (v: string) => void) => {
-      setter(value as string);
-      const error = validateField(field, value as string);
+      const rawValue = typeof value === 'string' ? value : '';
+      const sanitized = sanitizeInputValue(field, rawValue);
+      setter(sanitized);
+      const error = validateField(field, sanitized);
       setFieldErrors((prev) => {
         if (error) return { ...prev, [field]: error };
         const next = { ...prev };
@@ -198,27 +236,38 @@ export default function ItemDetailView({
         return next;
       });
       markDirty(field);
-      scheduleAutoSave(field, value);
+      scheduleAutoSave(field, sanitized);
     },
     [markDirty, scheduleAutoSave, validateField],
   );
 
   const handleBlur = useCallback(
-    (field: string, value: unknown) => {
+    async (field: string, value: unknown) => {
       if (!item) return;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      const trimmedValue = typeof value === 'string' ? value.trim() : value;
-      if (field === 'title' && typeof value === 'string' && trimmedValue !== value) {
+      const rawValue = typeof value === 'string' ? value : '';
+      const sanitized = sanitizeInputValue(field, rawValue);
+      const trimmedValue = typeof sanitized === 'string' ? sanitized.trim() : sanitized;
+      if (field === 'title' && typeof sanitized === 'string' && trimmedValue !== sanitized) {
         setTitle(trimmedValue as string);
+      } else if (field !== 'title' && typeof sanitized === 'string' && sanitized !== rawValue) {
+        applyFieldSetter(field, sanitized);
+      }
+      const success = await onUpdate(item.id, { [field]: trimmedValue });
+      if (field === 'title' && !success) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          title: 'An item with this title already exists in this folder.',
+        }));
+      } else if (field === 'title' && success) {
         setFieldErrors((prev) => {
           const next = { ...prev };
-          delete next[field];
+          delete next['title'];
           return next;
         });
       }
-      onUpdate(item.id, { [field]: trimmedValue });
     },
-    [item, onUpdate],
+    [item, onUpdate, applyFieldSetter],
   );
 
   const handleCopy = useCallback(
@@ -259,7 +308,7 @@ export default function ItemDetailView({
   );
 
   const handleCreateTag = useCallback(async () => {
-    const name = newTagName.trim();
+    const name = sanitizeField('tagName', newTagName).trim();
     if (!name) return;
     const color = TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
     const tag = await onCreateTag(name, color);
@@ -287,7 +336,13 @@ export default function ItemDetailView({
 
   const getStrengthLabel = useCallback(
     (pw: string): { label: string; color: string; score: number; borderColor: string } => {
-      if (!pw) return { label: 'Empty', color: 'bg-surface-300', score: 0, borderColor: 'border-surface-300' };
+      if (!pw)
+        return {
+          label: 'Empty',
+          color: 'bg-surface-300',
+          score: 0,
+          borderColor: 'border-surface-300',
+        };
       let score = 0;
       if (pw.length >= 8) score++;
       if (pw.length >= 12) score++;
@@ -344,7 +399,7 @@ export default function ItemDetailView({
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <div className="border-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
           <p className="text-sm text-surface-400">Loading...</p>
         </div>
       </div>
@@ -356,7 +411,7 @@ export default function ItemDetailView({
   return (
     <div className="notion-scrollbar h-full overflow-y-auto">
       {/* Cover Area */}
-      <div className="relative h-48 w-full bg-gradient-to-br from-red-50 to-primary/20 opacity-50">
+      <div className="to-primary/20 relative h-48 w-full bg-gradient-to-br from-red-50 opacity-50">
         {coverImage && (
           <CoverImage
             coverImage={coverImage}
@@ -405,7 +460,10 @@ export default function ItemDetailView({
                 )}
                 {title.length > MAX_FIELD_LENGTHS.ITEM_TITLE * 0.8 && !fieldErrors.title && (
                   <p className="mt-1 text-xs text-surface-400">
-                    {t('validation.charCount', { current: title.length, max: MAX_FIELD_LENGTHS.ITEM_TITLE })}
+                    {t('validation.charCount', {
+                      current: title.length,
+                      max: MAX_FIELD_LENGTHS.ITEM_TITLE,
+                    })}
                   </p>
                 )}
               </div>
@@ -456,11 +514,11 @@ export default function ItemDetailView({
         {/* Fields Grid */}
         <div className="mb-12 grid grid-cols-1 gap-y-8">
           {/* Website / URL */}
-          <div className="space-y-2 group">
+          <div className="group space-y-2">
             <label className="text-xs font-bold uppercase tracking-wider text-surface-400">
               Website
             </label>
-            <div className="flex items-center justify-between border-b border-surface-200 py-1 transition-colors group-focus-within:border-primary dark:border-surface-700">
+            <div className="group-focus-within:border-primary flex items-center justify-between border-b border-surface-200 py-1 transition-colors dark:border-surface-700">
               {editMode ? (
                 <div className="min-w-0 flex-1">
                   <input
@@ -477,7 +535,7 @@ export default function ItemDetailView({
                 </div>
               ) : (
                 <span
-                  className="cursor-pointer text-base text-surface-800 hover:text-primary dark:text-surface-200"
+                  className="hover:text-primary cursor-pointer text-base text-surface-800 dark:text-surface-200"
                   onClick={() => {
                     if (url) {
                       try {
@@ -494,7 +552,7 @@ export default function ItemDetailView({
               )}
               {url && (
                 <button
-                  className="p-1 transition-colors hover:text-primary"
+                  className="hover:text-primary p-1 transition-colors"
                   onClick={() => {
                     try {
                       const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
@@ -525,11 +583,11 @@ export default function ItemDetailView({
           </div>
 
           {/* Username */}
-          <div className="space-y-2 group">
+          <div className="group space-y-2">
             <label className="text-xs font-bold uppercase tracking-wider text-surface-400">
               Username
             </label>
-            <div className="flex items-center justify-between border-b border-surface-200 py-1 transition-colors group-focus-within:border-primary dark:border-surface-700">
+            <div className="group-focus-within:border-primary flex items-center justify-between border-b border-surface-200 py-1 transition-colors dark:border-surface-700">
               {editMode ? (
                 <div className="min-w-0 flex-1">
                   <input
@@ -551,7 +609,7 @@ export default function ItemDetailView({
               )}
               {username && (
                 <button
-                  className="p-1 transition-colors hover:text-primary"
+                  className="hover:text-primary p-1 transition-colors"
                   onClick={() => handleCopy(username, 'Username copied')}
                   aria-label="Copy username"
                 >
@@ -575,11 +633,11 @@ export default function ItemDetailView({
           </div>
 
           {/* Password */}
-          <div className="space-y-2 group">
+          <div className="group space-y-2">
             <label className="text-xs font-bold uppercase tracking-wider text-surface-400">
               Password
             </label>
-            <div className="flex items-center justify-between border-b border-surface-200 py-1 transition-colors group-focus-within:border-primary dark:border-surface-700">
+            <div className="group-focus-within:border-primary flex items-center justify-between border-b border-surface-200 py-1 transition-colors dark:border-surface-700">
               {editMode ? (
                 <div className="min-w-0 flex-1">
                   <input
@@ -603,7 +661,7 @@ export default function ItemDetailView({
               <div className="flex gap-1">
                 {password && (
                   <button
-                    className="p-1 transition-colors hover:text-primary"
+                    className="hover:text-primary p-1 transition-colors"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
@@ -647,7 +705,7 @@ export default function ItemDetailView({
                 )}
                 {password && (
                   <button
-                    className="p-1 transition-colors hover:text-primary"
+                    className="hover:text-primary p-1 transition-colors"
                     onClick={() => handleCopy(password, 'Password copied')}
                     aria-label="Copy password"
                   >
@@ -699,9 +757,9 @@ export default function ItemDetailView({
           <div className="flex flex-col gap-4 rounded-2xl border border-surface-200/30 bg-surface-50 p-6 dark:bg-surface-800/50">
             <div className="flex items-center justify-between">
               <h4 className="font-semibold text-surface-800 dark:text-surface-200">Generator</h4>
-              <span className="text-xs font-bold text-primary">SECURE</span>
+              <span className="text-primary text-xs font-bold">SECURE</span>
             </div>
-            <div className="rounded-xl border border-surface-200/50 bg-white p-3 text-center font-mono text-primary tracking-tight dark:bg-surface-800">
+            <div className="text-primary rounded-xl border border-surface-200/50 bg-white p-3 text-center font-mono tracking-tight dark:bg-surface-800">
               {password || 'Click Generate'}
             </div>
             <div className="space-y-2">
@@ -717,7 +775,7 @@ export default function ItemDetailView({
               </div>
             </div>
             <button
-              className="w-full rounded-lg bg-primary py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-container"
+              className="bg-primary text-on-primary hover:bg-primary-container w-full rounded-lg py-2 text-sm font-medium transition-colors"
               onClick={() => setPasswordGeneratorOpen(true)}
             >
               Generate Password
@@ -777,7 +835,7 @@ export default function ItemDetailView({
             {editMode && (
               <div className="relative">
                 <button
-                  className="flex items-center gap-1 rounded-full border border-dashed border-surface-300 px-3 py-1 text-xs text-surface-500 transition-colors hover:border-primary hover:text-primary dark:border-surface-600"
+                  className="hover:border-primary hover:text-primary flex items-center gap-1 rounded-full border border-dashed border-surface-300 px-3 py-1 text-xs text-surface-500 transition-colors dark:border-surface-600"
                   onClick={() => setIsTagDropdownOpen(!isTagDropdownOpen)}
                 >
                   <svg
@@ -801,7 +859,7 @@ export default function ItemDetailView({
                     {isCreatingTag ? (
                       <div className="p-2">
                         <input
-                          className="h-8 w-full rounded-lg border border-surface-200 px-2 text-xs focus:border-primary focus:outline-none dark:border-surface-700 dark:bg-surface-800"
+                          className="focus:border-primary h-8 w-full rounded-lg border border-surface-200 px-2 text-xs focus:outline-none dark:border-surface-700 dark:bg-surface-800"
                           placeholder="Tag name..."
                           value={newTagName}
                           maxLength={MAX_FIELD_LENGTHS.TAG_NAME}
@@ -817,7 +875,7 @@ export default function ItemDetailView({
                         />
                         <div className="mt-1 flex items-center gap-1">
                           <button
-                            className="flex-1 rounded-lg bg-primary py-1 text-xs font-medium text-on-primary hover:bg-primary-container"
+                            className="bg-primary text-on-primary hover:bg-primary-container flex-1 rounded-lg py-1 text-xs font-medium"
                             onClick={handleCreateTag}
                           >
                             Create
@@ -865,11 +923,7 @@ export default function ItemDetailView({
                             stroke="currentColor"
                             strokeWidth={2}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M12 4v16m8-8H4"
-                            />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                           </svg>
                           Create new tag
                         </button>
@@ -894,15 +948,11 @@ export default function ItemDetailView({
               placeholder="Add notes..."
             />
           ) : notes ? (
-            <div className="prose prose-sm max-w-none text-surface-600 leading-relaxed dark:text-surface-400">
-              {typeof notes === 'string' ? (
-                <p>{notes}</p>
-              ) : (
-                <p>{JSON.stringify(notes)}</p>
-              )}
+            <div className="prose prose-sm max-w-none leading-relaxed text-surface-600 dark:text-surface-400">
+              {typeof notes === 'string' ? <p>{notes}</p> : <p>{JSON.stringify(notes)}</p>}
             </div>
           ) : (
-            <p className="text-sm text-surface-400 italic">No notes yet.</p>
+            <p className="text-sm italic text-surface-400">No notes yet.</p>
           )}
         </div>
 
@@ -914,7 +964,7 @@ export default function ItemDetailView({
             </h4>
             {editMode && (
               <button
-                className="flex items-center gap-1 text-xs text-primary hover:text-primary-container"
+                className="text-primary hover:text-primary-container flex items-center gap-1 text-xs"
                 onClick={handleFileAttachClick}
               >
                 <svg

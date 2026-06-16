@@ -78,7 +78,17 @@ export default function MainPanel(): React.ReactElement {
   const handleNewItem = useCallback(async () => {
     if (!currentFolderId) return;
     try {
-      const newItem = await createItem(currentFolderId, { title: 'Untitled' });
+      let title = 'Untitled';
+      let newItem = await createItem(currentFolderId, { title });
+      if (!newItem) {
+        let counter = 2;
+        while (counter <= 100) {
+          title = `Untitled (${counter})`;
+          newItem = await createItem(currentFolderId, { title });
+          if (newItem) break;
+          counter++;
+        }
+      }
       if (newItem) {
         setIsNewItem(true);
         setSelectedItem(newItem.id);
@@ -143,8 +153,13 @@ export default function MainPanel(): React.ReactElement {
   }, []);
 
   const handleItemUpdate = useCallback(
-    async (id: string, fields: Record<string, unknown>) => {
-      await updateItem(id, fields);
+    async (id: string, fields: Record<string, unknown>): Promise<boolean> => {
+      try {
+        await updateItem(id, fields);
+        return true;
+      } catch {
+        return false;
+      }
     },
     [updateItem],
   );

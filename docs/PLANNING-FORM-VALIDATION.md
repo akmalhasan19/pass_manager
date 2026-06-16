@@ -53,20 +53,20 @@ Validasi form dan penanganan edge cases adalah fondasi stabilitas aplikasi. Tanp
 - [ ] Task 2 Complete
 
 ### Sub-Task 2.1: Cek Duplikat di Database Level
-- [ ] Query database case-insensitive untuk nama folder/item dalam vault yang sama.
-- [ ] **Folder**: Nama folder harus unik dalam satu vault (case-insensitive).
-- [ ] **Item**: Duplikat title di folder yang sama harus ditangani (warning atau append counter).
-- [ ] Untuk rename: cek duplikat sebelum commit transaction.
+- [x] Query database case-insensitive untuk nama folder/item dalam vault yang sama.
+- [x] **Folder**: Nama folder harus unik dalam satu vault (case-insensitive).
+- [x] **Item**: Duplikat title di folder yang sama harus ditangani (warning atau append counter).
+- [x] Untuk rename: cek duplikat sebelum commit transaction.
 
 ### Sub-Task 2.2: UX untuk Konflik Duplikat
-- [ ] Saat rename folder/item: tampilkan error inline "A folder with this name already exists."
-- [ ] Saat create baru: auto-suggest nama alternatif (misal: "Work (2)") atau blok create.
-- [ ] Saat import: tampilkan dialog pilihan — Skip, Replace, atau Keep Both (sesuai PLANNING-IMPORT-EXPORT.md).
+- [x] Saat rename folder/item: tampilkan error inline "A folder with this name already exists."
+- [x] Saat create baru: auto-suggest nama alternatif (misal: "Work (2)") atau blok create.
+- [x] Saat import: tampilkan dialog pilihan — Skip, Replace, atau Keep Both (sesuai PLANNING-IMPORT-EXPORT.md).
 
 ### Sub-Task 2.3: Edge Cases Duplikat
-- [ ] Handle perbedaan casing: "Work" vs "work" dianggap sama (case-insensitive).
-- [ ] Handle whitespace-only differences: "Work " vs "Work" di-trim dulu sebelum compare.
-- [ ] Handle Unicode normalization: "Café" (e+combining accent) dan "Café" (é precomposed) dianggap sama setelah NFC normalization.
+- [x] Handle perbedaan casing: "Work" vs "work" dianggap sama (case-insensitive).
+- [x] Handle whitespace-only differences: "Work " vs "Work" di-trim dulu sebelum compare.
+- [x] Handle Unicode normalization: "Café" (e+combining accent) dan "Café" (é precomposed) dianggap sama setelah NFC normalization.
 
 ---
 
@@ -74,9 +74,9 @@ Validasi form dan penanganan edge cases adalah fondasi stabilitas aplikasi. Tanp
 - [ ] Task 3 Complete
 
 ### Sub-Task 3.1: XSS Prevention di Teks Biasa
-- [ ] Escape atau strip HTML tags di field yang bukan rich text (title, username, URL plaintext).
-- [ ] Gunakan `textContent` atau equivalent alih-alih `innerHTML` saat rendering user data.
-- [ ] Validasi bahwa `<`, `>`, `&`, `"`, `'` di-escape sebelum ditampilkan.
+- [x] Escape atau strip HTML tags di field yang bukan rich text (title, username, URL plaintext).
+- [x] Gunakan `textContent` atau equivalent alih-alih `innerHTML` saat rendering user data.
+- [x] Validasi bahwa `<`, `>`, `&`, `"`, `'` di-escape sebelum ditampilkan.
 
 ### Sub-Task 3.2: XSS Prevention di Rich Text Editor
 - [ ] Integrasi DOMPurify sebelum menyimpan rich text notes ke database.
@@ -174,10 +174,10 @@ Validasi form dan penanganan edge cases adalah fondasi stabilitas aplikasi. Tanp
 - [x] Sub-Task 1.1: Pembatasan Panjang Maksimum Semua Field
 - [x] Sub-Task 1.2: Validasi Format (Email, URL, Required, Whitespace)
 - [x] Sub-Task 1.3: Validasi Karakter yang Diizinkan (Unicode, kontrol chars)
-- [ ] Sub-Task 2.1: Cek Duplikat di Database Level (folder, item, case-insensitive)
-- [ ] Sub-Task 2.2: UX untuk Konflik Duplikat (inline error, auto-suggest)
-- [ ] Sub-Task 2.3: Edge Cases Duplikat (casing, whitespace, Unicode normalization)
-- [ ] Sub-Task 3.1: XSS Prevention di Teks Biasa (escape, textContent)
+- [x] Sub-Task 2.1: Cek Duplikat di Database Level (folder, item, case-insensitive)
+- [x] Sub-Task 2.2: UX untuk Konflik Duplikat (inline error, auto-suggest)
+- [x] Sub-Task 2.3: Edge Cases Duplikat (casing, whitespace, Unicode normalization)
+- [x] Sub-Task 3.1: XSS Prevention di Teks Biasa (escape, textContent)
 - [ ] Sub-Task 3.2: XSS Prevention di Rich Text Editor (DOMPurify, whitelist tags)
 - [ ] Sub-Task 3.3: SQL Injection Prevention (parameterized queries audit)
 - [ ] Sub-Task 3.4: Path Traversal & File Upload Security

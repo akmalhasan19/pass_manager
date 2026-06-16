@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Folder } from '../../../shared/types';
 import { MAX_FIELD_LENGTHS } from '../../../shared/constants';
-import { validateCharacters } from '../../../shared/validation';
+import { sanitizeField, validateCharacters } from '../../../shared/validation';
 import EmojiPicker from './EmojiPicker';
 
 interface TreeNodeProps {
@@ -12,7 +12,7 @@ interface TreeNodeProps {
   expandedFolderIds: Set<string>;
   onSelect: (id: string) => void;
   onToggleExpand: (id: string) => void;
-  onRename: (id: string, newName: string) => void;
+  onRename: (id: string, newName: string) => Promise<boolean>;
   onDelete: (id: string) => void;
   onNewSubfolder: (parentId: string) => void;
   onEmojiChange?: (id: string, emoji: string) => void;
@@ -42,6 +42,7 @@ export default function TreeNode({
 }: TreeNodeProps): React.ReactElement {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(folder.name);
+  const [renameError, setRenameError] = useState<string | null>(null);
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
@@ -74,19 +75,30 @@ export default function TreeNode({
   }, [showContextMenu]);
 
   const handleDoubleClick = useCallback(() => {
+    setRenameError(null);
     setIsRenaming(true);
     setRenameValue(folder.name);
   }, [folder.name]);
 
-  const handleRenameSubmit = useCallback(() => {
-    const trimmed = renameValue.trim();
+  const handleRenameSubmit = useCallback(async () => {
+    const sanitized = sanitizeField('folderName', renameValue);
+    const trimmed = sanitized.trim();
+    if (sanitized !== renameValue) {
+      setRenameValue(sanitized);
+    }
     if (trimmed && trimmed !== folder.name) {
       const charError = validateCharacters('folderName', trimmed);
       if (charError) {
+        setRenameError(charError);
         return;
       }
-      onRename(folder.id, trimmed);
+      const success = await onRename(folder.id, trimmed);
+      if (!success) {
+        setRenameError('A folder with this name already exists.');
+        return;
+      }
     }
+    setRenameError(null);
     setIsRenaming(false);
   }, [renameValue, folder.name, folder.id, onRename]);
 
@@ -95,6 +107,7 @@ export default function TreeNode({
       if (e.key === 'Enter') {
         handleRenameSubmit();
       } else if (e.key === 'Escape') {
+        setRenameError(null);
         setIsRenaming(false);
         setRenameValue(folder.name);
       }
@@ -192,16 +205,27 @@ export default function TreeNode({
 
         {/* Name or rename input */}
         {isRenaming ? (
-          <input
-            ref={inputRef}
-            className="min-w-0 flex-1 rounded border border-accent-400 bg-white px-1 py-0 text-sm outline-none ring-1 ring-accent-400/50 dark:bg-surface-800"
-            value={renameValue}
-            maxLength={MAX_FIELD_LENGTHS.FOLDER_NAME}
-            onChange={(e) => setRenameValue(e.target.value)}
-            onBlur={handleRenameSubmit}
-            onKeyDown={handleRenameKeyDown}
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div className="min-w-0 flex-1">
+            <input
+              ref={inputRef}
+              className={`w-full min-w-0 rounded border bg-white px-1 py-0 text-sm outline-none ring-1 dark:bg-surface-800 ${
+                renameError
+                  ? 'border-danger-400 ring-danger-400/50'
+                  : 'border-accent-400 ring-accent-400/50'
+              }`}
+              value={renameValue}
+              maxLength={MAX_FIELD_LENGTHS.FOLDER_NAME}
+              onChange={(e) => {
+                const sanitized = sanitizeField('folderName', e.target.value);
+                setRenameValue(sanitized);
+                if (renameError) setRenameError(null);
+              }}
+              onBlur={handleRenameSubmit}
+              onKeyDown={handleRenameKeyDown}
+              onClick={(e) => e.stopPropagation()}
+            />
+            {renameError && <p className="mt-0.5 text-[11px] text-danger-500">{renameError}</p>}
+          </div>
         ) : (
           <span className="min-w-0 flex-1 truncate text-sm">{folder.name}</span>
         )}

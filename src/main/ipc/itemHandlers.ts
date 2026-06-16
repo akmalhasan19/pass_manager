@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
 import { MAX_FIELD_LENGTHS } from '../../shared/constants';
-import { validateCharacters } from '../../shared/validation';
+import { sanitizeField, validateCharacters } from '../../shared/validation';
 import type { Item, ItemDecrypted } from '../../shared/types';
 import { FolderRepository } from '../database/repositories/FolderRepository';
 import { ItemRepository } from '../database/repositories/ItemRepository';
@@ -144,7 +144,11 @@ export function registerItemHandlers(): void {
           return { success: false, error: 'Item title is required.' };
         }
 
-        const trimmedTitle = fields.title.trim();
+        const sanitizedTitle = sanitizeField('itemTitle', fields.title);
+        const trimmedTitle = sanitizedTitle.trim();
+        if (trimmedTitle.length === 0) {
+          return { success: false, error: 'Item title is required.' };
+        }
         if (trimmedTitle.length > MAX_FIELD_LENGTHS.ITEM_TITLE) {
           return {
             success: false,
@@ -157,14 +161,16 @@ export function registerItemHandlers(): void {
           return { success: false, error: 'Item title contains invalid characters.' };
         }
 
-        if (fields.username && fields.username.length > MAX_FIELD_LENGTHS.USERNAME) {
+        const sanitizedUsername =
+          fields.username !== undefined ? sanitizeField('username', fields.username) : undefined;
+        if (sanitizedUsername && sanitizedUsername.length > MAX_FIELD_LENGTHS.USERNAME) {
           return {
             success: false,
             error: `Username must be ${MAX_FIELD_LENGTHS.USERNAME} characters or less.`,
           };
         }
-        if (fields.username) {
-          const usernameCharError = validateCharacters('username', fields.username);
+        if (sanitizedUsername) {
+          const usernameCharError = validateCharacters('username', sanitizedUsername);
           if (usernameCharError) {
             return { success: false, error: 'Username contains invalid characters.' };
           }
@@ -181,14 +187,16 @@ export function registerItemHandlers(): void {
             return { success: false, error: 'Password contains invalid characters.' };
           }
         }
-        if (fields.url && fields.url.length > MAX_FIELD_LENGTHS.URL) {
+        const sanitizedUrl =
+          fields.url !== undefined ? sanitizeField('url', fields.url) : undefined;
+        if (sanitizedUrl && sanitizedUrl.length > MAX_FIELD_LENGTHS.URL) {
           return {
             success: false,
             error: `URL must be ${MAX_FIELD_LENGTHS.URL} characters or less.`,
           };
         }
-        if (fields.url) {
-          const urlCharError = validateCharacters('url', fields.url);
+        if (sanitizedUrl) {
+          const urlCharError = validateCharacters('url', sanitizedUrl);
           if (urlCharError) {
             return { success: false, error: 'URL contains invalid characters.' };
           }
@@ -204,6 +212,14 @@ export function registerItemHandlers(): void {
           if (notesCharError) {
             return { success: false, error: 'Notes contain invalid characters.' };
           }
+        }
+
+        const titleDuplicateExists = itemRepo.existsByFolderIdAndTitle(folderId, trimmedTitle);
+        if (titleDuplicateExists) {
+          return {
+            success: false,
+            error: 'An item with this title already exists in this folder.',
+          };
         }
 
         const key = getMasterKey();
@@ -222,10 +238,10 @@ export function registerItemHandlers(): void {
         }
 
         const item = itemRepo.create(folderId, {
-          title: fields.title.trim(),
-          username: fields.username,
+          title: trimmedTitle,
+          username: sanitizedUsername ?? '',
           passwordEncrypted,
-          url: fields.url,
+          url: sanitizedUrl ?? '',
           notesEncrypted,
           emoji: fields.emoji ?? null,
           coverImage: fields.coverImage ?? null,
@@ -289,33 +305,44 @@ export function registerItemHandlers(): void {
           sortOrder: number;
         }> = {};
 
-        if (fields.title !== undefined) updateFields.title = fields.title.trim();
-        if (fields.username !== undefined) updateFields.username = fields.username;
+        if (fields.title !== undefined)
+          updateFields.title = sanitizeField('itemTitle', fields.title).trim();
+        if (fields.username !== undefined)
+          updateFields.username = sanitizeField('username', fields.username);
         if (fields.password !== undefined) {
           updateFields.passwordEncrypted = fields.password
             ? (encryptString(fields.password, key) as unknown as ArrayBuffer)
             : null;
         }
-        if (fields.url !== undefined) updateFields.url = fields.url;
+        if (fields.url !== undefined) updateFields.url = sanitizeField('url', fields.url);
         if (fields.notes !== undefined) {
           updateFields.notesEncrypted = fields.notes
             ? (encryptString(fields.notes, key) as unknown as ArrayBuffer)
             : null;
         }
 
-        if (updateFields.title !== undefined && updateFields.title.length > MAX_FIELD_LENGTHS.ITEM_TITLE) {
+        if (
+          updateFields.title !== undefined &&
+          updateFields.title.length > MAX_FIELD_LENGTHS.ITEM_TITLE
+        ) {
           return {
             success: false,
             error: `Item title must be ${MAX_FIELD_LENGTHS.ITEM_TITLE} characters or less.`,
           };
         }
         if (updateFields.title !== undefined) {
+          if (updateFields.title.length === 0) {
+            return { success: false, error: 'Item title is required.' };
+          }
           const titleCharError = validateCharacters('itemTitle', updateFields.title);
           if (titleCharError) {
             return { success: false, error: 'Item title contains invalid characters.' };
           }
         }
-        if (updateFields.username !== undefined && updateFields.username.length > MAX_FIELD_LENGTHS.USERNAME) {
+        if (
+          updateFields.username !== undefined &&
+          updateFields.username.length > MAX_FIELD_LENGTHS.USERNAME
+        ) {
           return {
             success: false,
             error: `Username must be ${MAX_FIELD_LENGTHS.USERNAME} characters or less.`,
@@ -363,6 +390,21 @@ export function registerItemHandlers(): void {
             return { success: false, error: 'Notes contain invalid characters.' };
           }
         }
+
+        if (updateFields.title !== undefined && updateFields.title !== existing.title) {
+          const titleDuplicateExists = itemRepo.existsByFolderIdAndTitle(
+            existing.folderId,
+            updateFields.title,
+            id,
+          );
+          if (titleDuplicateExists) {
+            return {
+              success: false,
+              error: 'An item with this title already exists in this folder.',
+            };
+          }
+        }
+
         if (fields.emoji !== undefined) updateFields.emoji = fields.emoji;
         if (fields.coverImage !== undefined) updateFields.coverImage = fields.coverImage;
         if (fields.isFavorite !== undefined) updateFields.isFavorite = fields.isFavorite;

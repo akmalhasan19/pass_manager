@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
 import { MAX_FIELD_LENGTHS } from '../../shared/constants';
-import { validateCharacters } from '../../shared/validation';
+import { sanitizeField, validateCharacters } from '../../shared/validation';
 import { FolderRepository } from '../database/repositories/FolderRepository';
 import { TrashRepository } from '../database/repositories/TrashRepository';
 import { isDatabaseOpen, getDatabase } from '../database/connection';
@@ -42,7 +42,11 @@ export function registerFolderHandlers(): void {
           return { success: false, error: 'Folder name is required.' };
         }
 
-        const trimmedName = name.trim();
+        const sanitizedName = sanitizeField('folderName', name);
+        const trimmedName = sanitizedName.trim();
+        if (trimmedName.length === 0) {
+          return { success: false, error: 'Folder name is required.' };
+        }
         if (trimmedName.length > MAX_FIELD_LENGTHS.FOLDER_NAME) {
           return {
             success: false,
@@ -53,6 +57,14 @@ export function registerFolderHandlers(): void {
         const charError = validateCharacters('folderName', trimmedName);
         if (charError) {
           return { success: false, error: 'Folder name contains invalid characters.' };
+        }
+
+        const duplicateExists = folderRepo.existsByParentIdAndName(parentId, trimmedName);
+        if (duplicateExists) {
+          return {
+            success: false,
+            error: 'A folder with this name already exists.',
+          };
         }
 
         const data = folderRepo.create(parentId, trimmedName, emoji ?? null);
@@ -88,7 +100,8 @@ export function registerFolderHandlers(): void {
         }
 
         if (name !== undefined) {
-          const trimmedName = name.trim();
+          const sanitizedName = sanitizeField('folderName', name);
+          const trimmedName = sanitizedName.trim();
           if (trimmedName.length === 0) {
             return { success: false, error: 'Folder name is required.' };
           }
@@ -102,9 +115,27 @@ export function registerFolderHandlers(): void {
           if (charError) {
             return { success: false, error: 'Folder name contains invalid characters.' };
           }
+
+          if (trimmedName !== existing.name) {
+            const duplicateExists = folderRepo.existsByParentIdAndName(
+              existing.parentId,
+              trimmedName,
+              id,
+            );
+            if (duplicateExists) {
+              return {
+                success: false,
+                error: 'A folder with this name already exists.',
+              };
+            }
+          }
         }
 
-        const data = folderRepo.update(id, { name: name?.trim(), emoji, coverImage });
+        const data = folderRepo.update(id, {
+          name: name !== undefined ? sanitizeField('folderName', name).trim() : undefined,
+          emoji,
+          coverImage,
+        });
         return { success: true, data };
       } catch (error) {
         return {
