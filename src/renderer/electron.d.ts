@@ -138,6 +138,12 @@ export interface ElectronImportAPI {
   }): Promise<IpcResult<{ importedCount: number; replacedCount: number }>>;
 }
 
+export interface ElectronExportAPI {
+  exportData(format: 'encrypted-json' | 'json-plain' | 'csv'): Promise<IpcResult<{ filePath: string }>>;
+  onProgress(callback: (progress: { percent: number; phase: string }) => void): void;
+  removeProgressListener(): void;
+}
+
 export interface ElectronHealthAPI {
   analyze(oldDays?: number): Promise<IpcResult<HealthReport>>;
 }
@@ -145,6 +151,7 @@ export interface ElectronHealthAPI {
 export interface ElectronAPI {
   auth: ElectronAuthAPI;
   import: ElectronImportAPI;
+  export: ElectronExportAPI;
   folders: ElectronFoldersAPI;
   items: ElectronItemsAPI;
   tags: ElectronTagsAPI;

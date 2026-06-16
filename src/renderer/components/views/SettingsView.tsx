@@ -3,6 +3,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { useAuthStore } from '../../stores/authStore';
 import { APP_NAME, APP_VERSION } from '../../../shared/constants';
 import ImportDialog from '../import-export/ImportDialog';
+import ExportDialog from '../import-export/ExportDialog';
 
 const AUTO_LOCK_OPTIONS = [
   { value: 60000, label: '1 minute' },
@@ -26,6 +27,7 @@ export default function SettingsView(): React.ReactElement {
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -72,11 +74,7 @@ export default function SettingsView(): React.ReactElement {
   }, [oldPassword, newPassword, confirmPassword, changePassword]);
 
   const handleExportBackup = useCallback(async () => {
-    try {
-      await (window.electron.settings as { exportBackup?: () => Promise<void> }).exportBackup?.();
-    } catch {
-      // Feature not yet available
-    }
+    setShowExportDialog(true);
   }, []);
 
   const handleImportBackup = useCallback(async () => {
@@ -611,6 +609,10 @@ export default function SettingsView(): React.ReactElement {
       <ImportDialog
         isOpen={showImportDialog}
         onClose={() => setShowImportDialog(false)}
+      />
+      <ExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
       />
     </div>
   );

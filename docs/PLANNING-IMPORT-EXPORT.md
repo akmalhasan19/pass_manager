@@ -37,7 +37,7 @@ Pengguna SecurePass Manager harus dapat melakukan migrasi data masuk dan keluar 
 ---
 
 ## 2. Task: Implementasi Import Layer
-- [ ] Task 2 Complete
+- [x] Task 2 Complete
 
 ### Sub-Task 2.1: UI Import Dialog
 - [x] Tombol "Import Data" di halaman Lock Screen atau di Settings.
@@ -73,39 +73,39 @@ Pengguna SecurePass Manager harus dapat melakukan migrasi data masuk dan keluar 
 - [x] Tampilkan preview sebelum commit import.
 
 ### Sub-Task 2.8: Encrypted JSON Import
-- [ ] Parse JSON schema internal (Task 1.1).
-- [ ] Dekripsi jika ada lapisan enkripsi tambahan.
+- [x] Parse JSON schema internal (Task 1.1).
+- [x] Dekripsi jika ada lapisan enkripsi tambahan.
 
 ---
 
 ## 3. Task: Implementasi Export Layer
-- [ ] Task 3 Complete
+- [x] Task 3 Complete
 
 ### Sub-Task 3.1: UI Export Dialog
-- [ ] Tombol "Export Data" di halaman Settings.
-- [ ] Pilihan format: Encrypted JSON (default!), JSON Plain, CSV.
-- [ ] Tampilkan **Security Warning** besar berwarna merah/kuning sebelum export ke format plain text.
+- [x] Tombol "Export Data" di halaman Settings.
+- [x] Pilihan format: Encrypted JSON (default!), JSON Plain, CSV.
+- [x] Tampilkan **Security Warning** besar berwarna merah/kuning sebelum export ke format plain text.
 
 ### Sub-Task 3.2: Export ke Encrypted JSON (Default)
-- [ ] Serialize vault internal ke JSON.
-- [ ] Enkripsi seluruh JSON menggunakan kunci vault aktif (AES-256-GCM). Lini produk data sama dengan vault.
-- [ ] Generate `.json.encr` atau file khusus dengan extension `.spm` (SecurePass Manager).
-- [ ] Simpan metadata: `exportedAt`, `formatVersion`, `appVersion`.
+- [x] Serialize vault internal ke JSON.
+- [x] Enkripsi seluruh JSON menggunakan kunci vault aktif (AES-256-GCM). Lini produk data sama dengan vault.
+- [x] Generate `.json.encr` atau file khusus dengan extension `.spm` (SecurePass Manager).
+- [x] Simpan metadata: `exportedAt`, `formatVersion`, `appVersion`.
 
 ### Sub-Task 3.3: Export ke JSON Plain Text
-- [ ] Serialize vault internal ke JSON tanpa enkripsi.
-- [ ] Warning yang eksplisit: "Data Anda akan tersimpan tanpa enkripsi..."
-- [ ] Field `password` langsung ada sebagai plain text.
-- [ ] Simpan ke `.json`.
+- [x] Serialize vault internal ke JSON tanpa enkripsi.
+- [x] Warning yang eksplisit: "Data Anda akan tersimpan tanpa enkripsi..."
+- [x] Field `password` langsung ada sebagai plain text.
+- [x] Simpan ke `.json`.
 
 ### Sub-Task 3.4: Export ke CSV Plain Text
-- [ ] Serialize vault internal ke CSV.
-- [ ] Warning keamanan yang sama seperti JSON plain text.
-- [ ] Handle kolom `notes` dengan escaping jika ada newline atau koma.
-- [ ] Simpan ke `.csv`.
+- [x] Serialize vault internal ke CSV.
+- [x] Warning keamanan yang sama seperti JSON plain text.
+- [x] Handle kolom `notes` dengan escaping jika ada newline atau koma.
+- [x] Simpan ke `.csv`.
 
 ### Sub-Task 3.5: Progress Indikator
-- [ ] Untuk vault dengan ribuan item, tampilkan progress bar sederhana karena serialization/decryption mungkin membutuhkan waktu > 100ms.
+- [x] Untuk vault dengan ribuan item, tampilkan progress bar sederhana karena serialization/decryption mungkin membutuhkan waktu > 100ms.
 
 ---
 
@@ -156,11 +156,11 @@ Pengguna SecurePass Manager harus dapat melakukan migrasi data masuk dan keluar 
 - [x] Sub-Task 2.5: 1Password CSV Parser
 - [x] Sub-Task 2.6: Generic CSV Parser + Mapper
 - [x] Sub-Task 2.7: Duplicate Handling
-- [ ] Sub-Task 2.8: Encrypted JSON Import
-- [ ] Sub-Task 3.1: UI Export Dialog
-- [ ] Sub-Task 3.2: Encrypted JSON Export
-- [ ] Sub-Task 3.3: JSON Plain Export
-- [ ] Sub-Task 3.4: CSV Plain Export
-- [ ] Sub-Task 3.5: Progress Bar
+- [x] Sub-Task 2.8: Encrypted JSON Import
+- [x] Sub-Task 3.1: UI Export Dialog
+- [x] Sub-Task 3.2: Encrypted JSON Export
+- [x] Sub-Task 3.3: JSON Plain Export
+- [x] Sub-Task 3.4: CSV Plain Export
+- [x] Sub-Task 3.5: Progress Bar
 - [ ] Sub-Task 4.1-4.4: Tests
 - [ ] Sub-Task 5.1-5.3: UX Polish

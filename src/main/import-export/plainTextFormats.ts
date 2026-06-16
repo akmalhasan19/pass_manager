@@ -30,11 +30,13 @@ export function unescapeCsvField(field: string): string {
     return '';
   }
 
-  let str = String(field).trim();
+  let str = String(field);
 
   if (str.startsWith('"') && str.endsWith('"')) {
     str = str.slice(1, -1);
     str = str.replace(/""/g, '"');
+  } else {
+    str = str.trim();
   }
 
   return str;
@@ -53,8 +55,13 @@ export function parseCsvLine(line: string): string[] {
       if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
         current += '"';
         i += 2;
+      } else if (!inQuotes && current === '') {
+        inQuotes = true;
+        i++;
+      } else if (inQuotes) {
+        inQuotes = false;
+        i++;
       } else {
-        inQuotes = !inQuotes;
         current += char;
         i++;
       }
@@ -70,6 +77,62 @@ export function parseCsvLine(line: string): string[] {
 
   fields.push(current);
   return fields.map(unescapeCsvField);
+}
+
+export function parseCsvRecords(csv: string): string[][] {
+  const records: string[][] = [];
+  let currentRecord: string[] = [];
+  let currentField = '';
+  let inQuotes = false;
+  let i = 0;
+
+  while (i < csv.length) {
+    const char = csv[i];
+
+    if (char === '"') {
+      if (inQuotes && i + 1 < csv.length && csv[i + 1] === '"') {
+        currentField += '"';
+        i += 2;
+      } else if (!inQuotes && currentField === '') {
+        inQuotes = true;
+        i++;
+      } else if (inQuotes) {
+        inQuotes = false;
+        i++;
+      } else {
+        currentField += char;
+        i++;
+      }
+    } else if (char === ',' && !inQuotes) {
+      currentRecord.push(currentField);
+      currentField = '';
+      i++;
+    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+      currentRecord.push(currentField);
+      currentField = '';
+      if (currentRecord.length > 0 && currentRecord.some((f) => f.trim() !== '')) {
+        records.push(currentRecord);
+      }
+      currentRecord = [];
+      if (char === '\r' && i + 1 < csv.length && csv[i + 1] === '\n') {
+        i += 2;
+      } else {
+        i++;
+      }
+    } else {
+      currentField += char;
+      i++;
+    }
+  }
+
+  if (currentField !== '' || currentRecord.length > 0) {
+    currentRecord.push(currentField);
+    if (currentRecord.length > 0 && currentRecord.some((f) => f.trim() !== '')) {
+      records.push(currentRecord);
+    }
+  }
+
+  return records.map((record) => record.map(unescapeCsvField));
 }
 
 export function itemsToCsv(items: PlainTextExportItem[]): string {
@@ -88,13 +151,13 @@ export function itemsToCsv(items: PlainTextExportItem[]): string {
 }
 
 export function csvToItems(csv: string): PlainTextExportItem[] {
-  const lines = csv.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  const records = parseCsvRecords(csv);
 
-  if (lines.length === 0) {
+  if (records.length === 0) {
     return [];
   }
 
-  const headerFields = parseCsvLine(lines[0]);
+  const headerFields = records[0];
   const columnMap = new Map<CsvColumn, number>();
 
   headerFields.forEach((field, index) => {
@@ -113,8 +176,8 @@ export function csvToItems(csv: string): PlainTextExportItem[] {
 
   const items: PlainTextExportItem[] = [];
 
-  for (let i = 1; i < lines.length; i++) {
-    const fields = parseCsvLine(lines[i]);
+  for (let i = 1; i < records.length; i++) {
+    const fields = records[i];
 
     if (fields.length === 0 || fields.every((f) => f.trim() === '')) {
       continue;

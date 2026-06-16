@@ -22,6 +22,15 @@ const api = {
     }) => ipcRenderer.invoke(IPC_CHANNELS.IMPORT_COMMIT, params),
   },
 
+  export: {
+    exportData: (format: 'encrypted-json' | 'json-plain' | 'csv') =>
+      ipcRenderer.invoke(IPC_CHANNELS.EXPORT_DATA, { format }),
+    onProgress: (callback: (progress: { percent: number; phase: string }) => void) =>
+      ipcRenderer.on(IPC_CHANNELS.EXPORT_PROGRESS, (_event, progress) => callback(progress)),
+    removeProgressListener: () =>
+      ipcRenderer.removeAllListeners(IPC_CHANNELS.EXPORT_PROGRESS),
+  },
+
   auth: {
     init: (masterPassword: string) =>
       ipcRenderer.invoke(IPC_CHANNELS.AUTH_INIT, { masterPassword }),

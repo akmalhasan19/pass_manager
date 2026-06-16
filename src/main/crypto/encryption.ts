@@ -59,7 +59,7 @@ function serializeEncrypted(data: EncryptedData): Buffer {
   return Buffer.concat([ivLength, tagLength, data.iv, data.tag, data.ciphertext]);
 }
 
-function deserializeEncrypted(buffer: Buffer): EncryptedData {
+export function deserializeEncrypted(buffer: Buffer): EncryptedData {
   let offset = 0;
   const ivLength = buffer.readUInt8(offset);
   offset += 1;

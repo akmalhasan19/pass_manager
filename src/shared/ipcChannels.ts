@@ -60,6 +60,9 @@ export const IPC_CHANNELS = {
   IMPORT_CHECK_DUPLICATES: 'import:checkDuplicates',
   IMPORT_COMMIT: 'import:commit',
 
+  EXPORT_DATA: 'export:data',
+  EXPORT_PROGRESS: 'export:progress',
+
   WINDOW_MINIMIZE: 'window:minimize',
   WINDOW_MAXIMIZE: 'window:maximize',
   WINDOW_CLOSE: 'window:close',

@@ -3,6 +3,7 @@ import { createKeePassXmlImporter } from './parsers/keepassXmlParser';
 import { createBitwardenJsonImporter } from './parsers/bitwardenJsonParser';
 import { createOnePasswordCsvImporter } from './parsers/onePasswordCsvParser';
 import { createGenericCsvImporter } from './parsers/genericCsvParser';
+import { createEncryptedJsonImporter } from './parsers/encryptedJsonParser';
 import type { ImportFormat, CsvColumnMapping } from '../../shared/types';
 
 export function createDefaultImporterFactory(): ImporterFactory {
@@ -17,6 +18,7 @@ export function createImporterFactoryWithAllDefaults(): ImporterFactory {
   factory.register('bitwarden-json', () => createBitwardenJsonImporter());
   factory.register('1password-csv', () => createOnePasswordCsvImporter());
   factory.register('generic-csv', () => createGenericCsvImporter());
+  factory.register('encrypted-json', () => createEncryptedJsonImporter());
   return factory;
 }
 
