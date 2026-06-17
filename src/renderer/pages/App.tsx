@@ -3,6 +3,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useItemStore } from '../stores/itemStore';
 import { useFolderStore } from '../stores/folderStore';
 import { useTheme } from '../hooks/useTheme';
+import { useAuthNotifications } from '../hooks/useAuthNotifications';
 import LockScreenPage from './LockScreenPage';
 import MainAppPage from './MainAppPage';
 import DebugPanel from '../components/debug/DebugPanel';
@@ -15,6 +16,9 @@ export default function App(): React.ReactElement {
 
   // Apply theme before any rendered content appears to avoid flashes.
   useTheme();
+
+  // Listen for auth state changes and show notifications
+  useAuthNotifications();
 
   useEffect(() => {
     if (authError) captureError(authError, 'authStore');

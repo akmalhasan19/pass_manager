@@ -39,6 +39,19 @@ function interpolate(template: string, params?: Record<string, string | number>)
   });
 }
 
+/**
+ * Translation function for use outside React components (e.g., in Zustand stores).
+ * Accesses the translation store directly.
+ */
+export function t(key: string, params?: Record<string, string | number>): string {
+  const translations = useTranslationStore.getState().translations;
+  const template = translations[key];
+  if (template === undefined) {
+    return key.split('.').pop() ?? key;
+  }
+  return interpolate(template, params);
+}
+
 export function useTranslation() {
   const translations = useTranslationStore((s) => s.translations);
   const locale = useTranslationStore((s) => s.locale);

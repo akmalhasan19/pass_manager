@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import type { ToastType } from '../../stores/toastStore';
+import { useTranslation } from '../../i18n/useTranslation';
 
 export interface ToastProps {
   id: string;
@@ -70,6 +71,7 @@ export default function Toast({
   durationMs,
   onDismiss,
 }: ToastProps): React.ReactElement {
+  const { t } = useTranslation();
   useEffect(() => {
     const timer = setTimeout(() => {
       onDismiss(id);
@@ -94,7 +96,7 @@ export default function Toast({
         type="button"
         onClick={() => onDismiss(id)}
         className="ml-1 rounded p-0.5 transition-colors hover:bg-white/20"
-        aria-label="Dismiss notification"
+        aria-label={t('toast.dismiss')}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

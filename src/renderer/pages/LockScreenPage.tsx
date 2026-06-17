@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef, useId } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { useTranslation } from '../i18n/useTranslation';
 import {
   evaluateStrength,
   getStrengthBarColor,
@@ -8,10 +9,12 @@ import {
 } from '../utils/passwordStrength';
 import ImportDialog from '../components/import-export/ImportDialog';
 import DropZone from '../components/import-export/DropZone';
+import SecurityIndicator from '../components/security/SecurityIndicator';
 import type { ImportFormat } from '../../shared/types';
 
 export default function LockScreenPage(): React.ReactElement {
   const { status, error, initApp, unlock, clearError } = useAuthStore();
+  const { t } = useTranslation();
 
   const isSetup = status === 'setup';
 
@@ -90,17 +93,17 @@ export default function LockScreenPage(): React.ReactElement {
       setLocalError('');
 
       if (!password) {
-        setLocalError('Please enter a master password');
+        setLocalError(t('auth.error.passwordRequired'));
         return;
       }
 
       if (isSetup) {
         if (password.length < 8) {
-          setLocalError('Master password must be at least 8 characters');
+          setLocalError(t('auth.error.passwordTooShort'));
           return;
         }
         if (password !== confirmPassword) {
-          setLocalError('Passwords do not match');
+          setLocalError(t('auth.error.passwordMismatch'));
           return;
         }
         await initApp(password);
@@ -113,7 +116,7 @@ export default function LockScreenPage(): React.ReactElement {
       setPassword('');
       setConfirmPassword('');
     },
-    [password, confirmPassword, isSetup, initApp, unlock],
+    [password, confirmPassword, isSetup, initApp, unlock, t],
   );
 
   const handleKeyDown = useCallback(
@@ -160,9 +163,12 @@ export default function LockScreenPage(): React.ReactElement {
             SecurePass Manager
           </h1>
           <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">
-            {isSetup ? 'Create your master password' : 'Enter your master password to unlock'}
+            {isSetup ? t('auth.heading.setup') : t('auth.heading.unlock')}
           </p>
         </div>
+
+        {/* Security Indicator (shown when vault is locked) */}
+        {!isSetup && <SecurityIndicator isVisible={!isSetup} />}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -172,7 +178,7 @@ export default function LockScreenPage(): React.ReactElement {
               htmlFor="master-password"
               className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-surface-500 dark:text-surface-400"
             >
-              Master Password
+              {t('auth.label.masterPassword')}
             </label>
             <div className="relative">
               <input
@@ -181,7 +187,7 @@ export default function LockScreenPage(): React.ReactElement {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={handlePasswordChange}
-                placeholder="Enter master password"
+                placeholder={t('auth.placeholder.enterPassword')}
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -196,7 +202,7 @@ export default function LockScreenPage(): React.ReactElement {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-surface-400 transition-colors hover:text-surface-600 dark:hover:text-surface-300"
                 tabIndex={-1}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? t('auth.button.hidePassword') : t('auth.button.showPassword')}
               >
                 {showPassword ? (
                   <svg
@@ -245,7 +251,7 @@ export default function LockScreenPage(): React.ReactElement {
                 htmlFor="confirm-password"
                 className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-surface-500 dark:text-surface-400"
               >
-                Confirm Password
+                {t('auth.label.masterPassword')}
               </label>
               <div className="relative">
                 <input
@@ -253,7 +259,7 @@ export default function LockScreenPage(): React.ReactElement {
                   type={showConfirm ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={handleConfirmChange}
-                  placeholder="Confirm master password"
+                  placeholder={t('auth.placeholder.confirmPassword')}
                   autoComplete="off"
                   disabled={isLoading}
                   aria-invalid={!!localError || undefined}
@@ -265,7 +271,7 @@ export default function LockScreenPage(): React.ReactElement {
                   onClick={() => setShowConfirm(!showConfirm)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-surface-400 transition-colors hover:text-surface-600 dark:hover:text-surface-300"
                   tabIndex={-1}
-                  aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}
+                  aria-label={showConfirm ? t('auth.button.hideConfirm') : t('auth.button.showConfirm')}
                 >
                   {showConfirm ? (
                     <svg
@@ -313,7 +319,7 @@ export default function LockScreenPage(): React.ReactElement {
             <div className="animate-slide-up space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-surface-500 dark:text-surface-400">
-                  Password strength
+                  {t('lockScreen.passwordStrength')}
                 </span>
                 <span className={`text-xs font-medium ${getStrengthTextColor(strength.score)}`}>
                   {strength.label}
@@ -332,7 +338,7 @@ export default function LockScreenPage(): React.ReactElement {
                 ))}
               </div>
               <p className="text-xs text-surface-400 dark:text-surface-500">
-                {strength.entropy} bits of entropy
+                {t('lockScreen.entropyBits', { entropy: strength.entropy })}
               </p>
             </div>
           )}
@@ -392,7 +398,7 @@ export default function LockScreenPage(): React.ReactElement {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                {isSetup ? 'Creating vault...' : 'Unlocking...'}
+                {isSetup ? t('auth.button.setupLoading') : t('auth.button.unlockLoading')}
               </span>
             ) : (
               <span className="flex items-center gap-2">
@@ -412,7 +418,7 @@ export default function LockScreenPage(): React.ReactElement {
                         d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                       />
                     </svg>
-                    Create Vault
+                    {t('auth.button.setup')}
                   </>
                 ) : (
                   <>
@@ -430,7 +436,7 @@ export default function LockScreenPage(): React.ReactElement {
                         d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"
                       />
                     </svg>
-                    Unlock
+                    {t('auth.button.unlock')}
                   </>
                 )}
               </span>
@@ -442,8 +448,8 @@ export default function LockScreenPage(): React.ReactElement {
         <div className="mt-6 flex flex-col items-center gap-3">
           <p className="text-center text-xs text-surface-400 dark:text-surface-500">
             {isSetup
-              ? 'Your master password encrypts all data locally. It cannot be recovered.'
-              : 'Press Esc to clear the form'}
+              ? t('auth.footer.setupInfo')
+              : t('auth.footer.unlockInfo')}
           </p>
           {!isSetup && (
             <div className="flex w-full flex-col items-center gap-2">
@@ -457,7 +463,7 @@ export default function LockScreenPage(): React.ReactElement {
                 </div>
                 <div className="relative flex justify-center text-xs">
                   <span className="bg-surface-50 px-2 text-surface-400 dark:bg-surface-900 dark:text-surface-500">
-                    or
+                    {t('lockScreen.or')}
                   </span>
                 </div>
               </div>
@@ -480,7 +486,7 @@ export default function LockScreenPage(): React.ReactElement {
                     d="M4 16v-4a1 1 0 011-1h4m6 0h4a1 1 0 011 1v4m-5-5l-3-3m0 0l3-3m-3 3h12"
                   />
                 </svg>
-                Import Data
+                {t('lockScreen.importData')}
               </button>
             </div>
           )}

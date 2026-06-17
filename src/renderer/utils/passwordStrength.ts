@@ -10,6 +10,15 @@ export interface StrengthResult {
 
 const LABELS: StrengthLabel[] = ['Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
 
+/** i18n keys for each strength score */
+export const STRENGTH_I18N_KEYS: Record<StrengthScore, string> = {
+  0: 'strength.veryWeak',
+  1: 'strength.weak',
+  2: 'strength.fair',
+  3: 'strength.strong',
+  4: 'strength.veryStrong',
+};
+
 const STROKE_COLORS: Record<StrengthScore, string> = {
   0: 'bg-danger-500',
   1: 'bg-danger-400',

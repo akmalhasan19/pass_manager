@@ -85,9 +85,9 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
         }
 
         if (!result.success) {
-          setErrorMessage(result.error ?? 'Export failed.');
+          setErrorMessage(result.error ?? t('export.error.unknown'));
           setStep('error');
-          showError(result.error ?? 'Export failed.');
+          showError(result.error ?? t('export.error.unknown'));
           return;
         }
 
@@ -99,7 +99,7 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
           cleanupRef.current();
           cleanupRef.current = null;
         }
-        const msg = err instanceof Error ? err.message : 'Unknown error during export.';
+        const msg = err instanceof Error ? err.message : t('export.error.unknown');
         setErrorMessage(msg);
         setStep('error');
         showError(msg);

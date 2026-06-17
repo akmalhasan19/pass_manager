@@ -2,14 +2,15 @@ import React, { useState, useCallback, useEffect, useId } from 'react';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useAuthStore } from '../../stores/authStore';
 import { APP_NAME, APP_VERSION } from '../../../shared/constants';
+import { useTranslation } from '../../i18n/useTranslation';
 import ImportDialog from '../import-export/ImportDialog';
 import ExportDialog from '../import-export/ExportDialog';
 
 const AUTO_LOCK_OPTIONS = [
-  { value: 60000, label: '1 minute' },
-  { value: 300000, label: '5 minutes' },
-  { value: 900000, label: '15 minutes' },
-  { value: 0, label: 'Never' },
+  { value: 60000, labelKey: 'settings.autoLock.1min' },
+  { value: 300000, labelKey: 'settings.autoLock.5min' },
+  { value: 900000, labelKey: 'settings.autoLock.15min' },
+  { value: 0, labelKey: 'settings.autoLock.never' },
 ] as const;
 
 type ThemeOption = 'light' | 'dark' | 'system';
@@ -17,6 +18,7 @@ type ThemeOption = 'light' | 'dark' | 'system';
 export default function SettingsView(): React.ReactElement {
   const { settings, loadSettings, updateSetting } = useSettingsStore();
   const { changePassword } = useAuthStore();
+  const { t } = useTranslation();
 
   const [activeSection, setActiveSection] = useState<string>('general');
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
@@ -55,21 +57,21 @@ export default function SettingsView(): React.ReactElement {
     setPasswordError('');
     setPasswordSuccess('');
     if (!oldPassword) {
-      setPasswordError('Current password is required');
+      setPasswordError(t('auth.error.currentPasswordRequired'));
       return;
     }
     if (newPassword.length < 8) {
-      setPasswordError('New password must be at least 8 characters');
+      setPasswordError(t('auth.error.newPasswordTooShort'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError('New passwords do not match');
+      setPasswordError(t('auth.error.newPasswordMismatch'));
       return;
     }
     setIsChangingPassword(true);
     try {
       await changePassword(oldPassword, newPassword);
-      setPasswordSuccess('Master password changed successfully');
+      setPasswordSuccess(t('auth.success.passwordChanged'));
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -78,11 +80,11 @@ export default function SettingsView(): React.ReactElement {
         setPasswordSuccess('');
       }, 2000);
     } catch (err) {
-      setPasswordError(err instanceof Error ? err.message : 'Failed to change password');
+      setPasswordError(err instanceof Error ? err.message : t('auth.error.failedChangePassword'));
     } finally {
       setIsChangingPassword(false);
     }
-  }, [oldPassword, newPassword, confirmPassword, changePassword]);
+  }, [oldPassword, newPassword, confirmPassword, changePassword, t]);
 
   const handleExportBackup = useCallback(async () => {
     setShowExportDialog(true);
@@ -93,39 +95,39 @@ export default function SettingsView(): React.ReactElement {
   }, []);
 
   const handlePurgeTrash = useCallback(async () => {
-    if (confirm('Permanently delete all items in trash? This cannot be undone.')) {
+    if (confirm(t('settings.security.purgeConfirm'))) {
       try {
         await window.electron.trash.empty();
       } catch {
         // Error handled silently
       }
     }
-  }, []);
+  }, [t]);
 
   const sections = [
     {
       id: 'general',
-      label: 'General',
+      label: t('settings.section.general'),
       icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
     },
     {
       id: 'security',
-      label: 'Security',
+      label: t('settings.section.security'),
       icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
     },
     {
       id: 'passwordDefaults',
-      label: 'Password Defaults',
+      label: t('settings.section.passwordDefaults'),
       icon: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z',
     },
     {
       id: 'data',
-      label: 'Data',
+      label: t('settings.section.data'),
       icon: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4',
     },
     {
       id: 'about',
-      label: 'About',
+      label: t('settings.section.about'),
       icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
     },
   ];
@@ -166,13 +168,13 @@ export default function SettingsView(): React.ReactElement {
           {activeSection === 'general' && (
             <section>
               <h2 className="mb-6 text-lg font-semibold text-surface-900 dark:text-surface-50">
-                General
+                {t('settings.general.heading')}
               </h2>
 
               {/* Theme */}
               <div className="space-y-3">
                 <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
-                  Theme
+                  {t('settings.general.theme')}
                 </label>
                 <div className="flex gap-2">
                   {(['light', 'dark', 'system'] as ThemeOption[]).map((theme) => (
@@ -242,7 +244,7 @@ export default function SettingsView(): React.ReactElement {
               {/* Auto-lock timer */}
               <div className="mt-6 space-y-3">
                 <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
-                  Auto-lock timer
+                  {t('settings.general.autoLock')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {AUTO_LOCK_OPTIONS.map((option) => (
@@ -255,7 +257,7 @@ export default function SettingsView(): React.ReactElement {
                           : 'border-surface-200 text-surface-600 hover:border-surface-300 dark:border-surface-700 dark:text-surface-400 dark:hover:border-surface-600'
                       }`}
                     >
-                      {option.label}
+                      {t(option.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -267,14 +269,14 @@ export default function SettingsView(): React.ReactElement {
           {activeSection === 'security' && (
             <section>
               <h2 className="mb-6 text-lg font-semibold text-surface-900 dark:text-surface-50">
-                Security
+                {t('settings.security.heading')}
               </h2>
 
               {/* Change master password */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
-                    Master Password
+                    {t('settings.security.masterPassword')}
                   </label>
                   <button
                     className="notion-button-ghost h-8 text-xs"
@@ -287,7 +289,7 @@ export default function SettingsView(): React.ReactElement {
                       setConfirmPassword('');
                     }}
                   >
-                    {changePasswordOpen ? 'Cancel' : 'Change Password'}
+                    {changePasswordOpen ? t('settings.security.cancel') : t('settings.security.changePassword')}
                   </button>
                 </div>
 
@@ -297,7 +299,7 @@ export default function SettingsView(): React.ReactElement {
                       <input
                         className="notion-input h-9"
                         type="password"
-                        placeholder="Current master password"
+                        placeholder={t('settings.security.currentPassword')}
                         value={oldPassword}
                         onChange={(e) => setOldPassword(e.target.value)}
                         aria-invalid={!!passwordError || undefined}
@@ -308,7 +310,7 @@ export default function SettingsView(): React.ReactElement {
                       <input
                         className="notion-input h-9"
                         type="password"
-                        placeholder="New master password (min. 8 characters)"
+                        placeholder={t('settings.security.newPassword')}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         aria-invalid={!!passwordError || undefined}
@@ -319,7 +321,7 @@ export default function SettingsView(): React.ReactElement {
                       <input
                         className="notion-input h-9"
                         type="password"
-                        placeholder="Confirm new master password"
+                        placeholder={t('settings.security.confirmNewPassword')}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         aria-invalid={!!passwordError || undefined}
@@ -341,21 +343,20 @@ export default function SettingsView(): React.ReactElement {
                       onClick={handleChangePassword}
                       disabled={isChangingPassword}
                     >
-                      {isChangingPassword ? 'Changing...' : 'Update Master Password'}
+                      {isChangingPassword ? t('settings.security.changing') : t('settings.security.updatePassword')}
                     </button>
                   </div>
                 )}
 
                 <p className="text-xs text-surface-400 dark:text-surface-500">
-                  Changing your master password will re-encrypt your entire database. This may take
-                  a moment.
+                  {t('settings.security.reencryptNote')}
                 </p>
               </div>
 
               {/* Trash auto-purge */}
               <div className="mt-6 space-y-3">
                 <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
-                  Auto-purge trash after
+                  {t('settings.security.autoPurge')}
                 </label>
                 <select
                   className="notion-input h-9 w-48"
@@ -373,11 +374,10 @@ export default function SettingsView(): React.ReactElement {
               {/* Password health: old password threshold */}
               <div className="mt-6 space-y-3">
                 <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
-                  Flag passwords as outdated after
+                  {t('settings.security.flagOutdated')}
                 </label>
                 <p className="text-xs text-surface-400 dark:text-surface-500">
-                  Passwords not changed within this period will appear in the outdated list on the
-                  Health view.
+                  {t('settings.security.flagOutdatedDesc')}
                 </p>
                 <select
                   className="notion-input h-9 w-48"
@@ -398,7 +398,7 @@ export default function SettingsView(): React.ReactElement {
           {activeSection === 'passwordDefaults' && (
             <section>
               <h2 className="mb-6 text-lg font-semibold text-surface-900 dark:text-surface-50">
-                Password Generator Defaults
+                {t('settings.passwordDefaults.heading')}
               </h2>
 
               <div className="space-y-5">
@@ -406,7 +406,7 @@ export default function SettingsView(): React.ReactElement {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
-                      Length
+                      {t('settings.passwordDefaults.length')}
                     </label>
                     <span className="text-sm text-surface-500 dark:text-surface-400">
                       {settings.defaultPasswordLength}
@@ -429,15 +429,15 @@ export default function SettingsView(): React.ReactElement {
                 {/* Character sets */}
                 <div className="space-y-3">
                   {[
-                    { key: 'defaultPasswordUppercase' as const, label: 'A-Z (Uppercase)' },
-                    { key: 'defaultPasswordLowercase' as const, label: 'a-z (Lowercase)' },
-                    { key: 'defaultPasswordNumbers' as const, label: '0-9 (Numbers)' },
-                    { key: 'defaultPasswordSymbols' as const, label: '!@#$% (Symbols)' },
+                    { key: 'defaultPasswordUppercase' as const, labelKey: 'settings.passwordDefaults.uppercase' },
+                    { key: 'defaultPasswordLowercase' as const, labelKey: 'settings.passwordDefaults.lowercase' },
+                    { key: 'defaultPasswordNumbers' as const, labelKey: 'settings.passwordDefaults.numbers' },
+                    { key: 'defaultPasswordSymbols' as const, labelKey: 'settings.passwordDefaults.symbols' },
                     {
                       key: 'defaultPasswordExcludeAmbiguous' as const,
-                      label: 'Exclude ambiguous (0, O, l, 1)',
+                      labelKey: 'settings.passwordDefaults.excludeAmbiguous',
                     },
-                  ].map(({ key, label }) => (
+                  ].map(({ key, labelKey }) => (
                     <label key={key} className="flex cursor-pointer items-center gap-3">
                       <div
                         className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-colors ${
@@ -461,7 +461,7 @@ export default function SettingsView(): React.ReactElement {
                         )}
                       </div>
                       <span className="select-none text-sm text-surface-700 dark:text-surface-300">
-                        {label}
+                        {t(labelKey)}
                       </span>
                     </label>
                   ))}
@@ -474,16 +474,16 @@ export default function SettingsView(): React.ReactElement {
           {activeSection === 'data' && (
             <section>
               <h2 className="mb-6 text-lg font-semibold text-surface-900 dark:text-surface-50">
-                Data Management
+                {t('settings.data.heading')}
               </h2>
 
               <div className="space-y-4">
                 <div className="rounded-lg border border-surface-200 p-4 dark:border-surface-700">
                   <h3 className="mb-1 text-sm font-medium text-surface-800 dark:text-surface-200">
-                    Export Backup
+                    {t('settings.data.exportBackup')}
                   </h3>
                   <p className="mb-3 text-xs text-surface-400">
-                    Download an encrypted copy of your entire database.
+                    {t('settings.data.exportDesc')}
                   </p>
                   <button className="notion-button-ghost h-8 text-xs" onClick={handleExportBackup}>
                     <svg
@@ -500,16 +500,16 @@ export default function SettingsView(): React.ReactElement {
                         d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                       />
                     </svg>
-                    Export Database
+                    {t('settings.data.exportButton')}
                   </button>
                 </div>
 
                 <div className="rounded-lg border border-surface-200 p-4 dark:border-surface-700">
                   <h3 className="mb-1 text-sm font-medium text-surface-800 dark:text-surface-200">
-                    Import Backup
+                    {t('settings.data.importBackup')}
                   </h3>
                   <p className="mb-3 text-xs text-surface-400">
-                    Restore from a previously exported backup file.
+                    {t('settings.data.importDesc')}
                   </p>
                   <button className="notion-button-ghost h-8 text-xs" onClick={handleImportBackup}>
                     <svg
@@ -526,16 +526,16 @@ export default function SettingsView(): React.ReactElement {
                         d="M4 16v-4a1 1 0 011-1h4m6 0h4a1 1 0 011 1v4m-5-5l-3-3m0 0l3-3m-3 3h12"
                       />
                     </svg>
-                    Import Database
+                    {t('settings.data.importButton')}
                   </button>
                 </div>
 
                 <div className="rounded-lg border border-surface-200 p-4 dark:border-surface-700">
                   <h3 className="mb-1 text-sm font-medium text-surface-800 dark:text-surface-200">
-                    Purge Trash
+                    {t('settings.data.purgeTrash')}
                   </h3>
                   <p className="mb-3 text-xs text-surface-400">
-                    Permanently delete all items currently in the trash.
+                    {t('settings.data.purgeDesc')}
                   </p>
                   <button className="notion-button-danger h-8 text-xs" onClick={handlePurgeTrash}>
                     <svg
@@ -552,7 +552,7 @@ export default function SettingsView(): React.ReactElement {
                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                       />
                     </svg>
-                    Purge Trash
+                    {t('settings.data.purgeButton')}
                   </button>
                 </div>
               </div>
@@ -563,7 +563,7 @@ export default function SettingsView(): React.ReactElement {
           {activeSection === 'about' && (
             <section>
               <h2 className="mb-6 text-lg font-semibold text-surface-900 dark:text-surface-50">
-                About
+                {t('settings.about.heading')}
               </h2>
 
               <div className="space-y-6">
@@ -575,53 +575,51 @@ export default function SettingsView(): React.ReactElement {
                     <h3 className="text-xl font-bold text-surface-900 dark:text-surface-50">
                       {APP_NAME}
                     </h3>
-                    <p className="text-sm text-surface-500">Version {APP_VERSION}</p>
+                    <p className="text-sm text-surface-500">{t('settings.about.versionValue', { version: APP_VERSION })}</p>
                   </div>
                 </div>
 
                 <div className="divide-y divide-surface-200 rounded-lg border border-surface-200 dark:divide-surface-700 dark:border-surface-700">
                   <div className="flex justify-between px-4 py-3">
                     <span className="text-sm text-surface-600 dark:text-surface-400">
-                      Application
+                      {t('settings.about.application')}
                     </span>
                     <span className="text-sm font-medium text-surface-800 dark:text-surface-200">
                       {APP_NAME}
                     </span>
                   </div>
                   <div className="flex justify-between px-4 py-3">
-                    <span className="text-sm text-surface-600 dark:text-surface-400">Version</span>
+                    <span className="text-sm text-surface-600 dark:text-surface-400">{t('settings.about.version')}</span>
                     <span className="text-sm font-medium text-surface-800 dark:text-surface-200">
                       {APP_VERSION}
                     </span>
                   </div>
                   <div className="flex justify-between px-4 py-3">
                     <span className="text-sm text-surface-600 dark:text-surface-400">
-                      Architecture
+                      {t('settings.about.architecture')}
                     </span>
                     <span className="text-sm font-medium text-surface-800 dark:text-surface-200">
-                      Zero-Knowledge, Local-First
+                      {t('settings.about.architectureValue')}
                     </span>
                   </div>
                   <div className="flex justify-between px-4 py-3">
                     <span className="text-sm text-surface-600 dark:text-surface-400">
-                      Encryption
+                      {t('settings.about.encryption')}
                     </span>
                     <span className="text-sm font-medium text-surface-800 dark:text-surface-200">
-                      AES-256-GCM + SQLCipher
+                      {t('settings.about.encryptionValue')}
                     </span>
                   </div>
                   <div className="flex justify-between px-4 py-3">
-                    <span className="text-sm text-surface-600 dark:text-surface-400">License</span>
+                    <span className="text-sm text-surface-600 dark:text-surface-400">{t('settings.about.license')}</span>
                     <span className="text-sm font-medium text-surface-800 dark:text-surface-200">
-                      MIT
+                      {t('settings.about.licenseValue')}
                     </span>
                   </div>
                 </div>
 
                 <p className="text-xs leading-relaxed text-surface-400 dark:text-surface-500">
-                  SecurePass Manager is a zero-knowledge, local-first password manager. Your master
-                  password never leaves your device. All data is encrypted before being written to
-                  disk.
+                  {t('settings.about.description')}
                 </p>
               </div>
             </section>

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import Modal from '../ui/Modal';
+import { useTranslation } from '../../i18n/useTranslation';
 
 interface PasswordOptions {
   length: number;
@@ -66,7 +67,7 @@ function evaluateStrength(password: string): { score: number; label: string; ent
   else if (length < 12 || entropy < 60) score = 2;
   else if (length < 16 || entropy < 80) score = 3;
   else score = 4;
-  const labels = ['Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
+  const labels = ['strength.veryWeak', 'strength.weak', 'strength.fair', 'strength.strong', 'strength.veryStrong'];
   return { score, label: labels[score], entropy: Math.round(entropy) };
 }
 
@@ -82,6 +83,7 @@ export default function PasswordGenerator({
   onUsePassword,
   onClose,
 }: PasswordGeneratorProps): React.ReactElement {
+  const { t } = useTranslation();
   const [length, setLength] = useState(20);
   const [uppercase, setUppercase] = useState(true);
   const [lowercase, setLowercase] = useState(true);
@@ -123,12 +125,12 @@ export default function PasswordGenerator({
     if (!currentPassword) return;
     try {
       await navigator.clipboard.writeText(currentPassword);
-      setCopyFeedback('Copied!');
+      setCopyFeedback(t('generator.copied'));
       setTimeout(() => setCopyFeedback(''), 2000);
     } catch {
       // Clipboard not available
     }
-  }, [currentPassword]);
+  }, [currentPassword, t]);
 
   const handleUse = useCallback(() => {
     onUsePassword(currentPassword);
@@ -152,7 +154,7 @@ export default function PasswordGenerator({
       <div>
         <div className="flex items-center justify-between border-b border-surface-200 px-5 py-4 dark:border-surface-700">
           <h2 className="text-sm font-semibold text-surface-900 dark:text-surface-50">
-            Password Generator
+            {t('generator.heading')}
           </h2>
           <button className="notion-button-ghost h-7 w-7 p-0" onClick={onClose} aria-label="Close">
             <svg
@@ -238,9 +240,9 @@ export default function PasswordGenerator({
                         : 'text-success-500'
                   }`}
                 >
-                  {strength.label}
+                  {t(strength.label)}
                 </span>
-                <span className="text-surface-400">{strength.entropy} bits</span>
+                <span className="text-surface-400">{t('generator.entropyBits', { entropy: strength.entropy })}</span>
               </div>
             </div>
           )}
@@ -249,7 +251,7 @@ export default function PasswordGenerator({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
-                Length
+                {t('generator.length')}
               </label>
               <span className="text-sm text-surface-500 dark:text-surface-400">{length}</span>
             </div>
@@ -273,21 +275,21 @@ export default function PasswordGenerator({
               [
                 {
                   key: 'uppercase',
-                  label: 'A-Z (Uppercase)',
+                  label: t('settings.passwordDefaults.uppercase'),
                   value: uppercase,
                   setter: setUppercase,
                 },
                 {
                   key: 'lowercase',
-                  label: 'a-z (Lowercase)',
+                  label: t('settings.passwordDefaults.lowercase'),
                   value: lowercase,
                   setter: setLowercase,
                 },
-                { key: 'numbers', label: '0-9 (Numbers)', value: numbers, setter: setNumbers },
-                { key: 'symbols', label: '!@#$% (Symbols)', value: symbols, setter: setSymbols },
+                { key: 'numbers', label: t('settings.passwordDefaults.numbers'), value: numbers, setter: setNumbers },
+                { key: 'symbols', label: t('settings.passwordDefaults.symbols'), value: symbols, setter: setSymbols },
                 {
                   key: 'excludeAmbiguous',
-                  label: 'Exclude ambiguous (0, O, l, 1)',
+                  label: t('settings.passwordDefaults.excludeAmbiguous'),
                   value: excludeAmbiguous,
                   setter: setExcludeAmbiguous,
                 },
@@ -339,7 +341,7 @@ export default function PasswordGenerator({
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
-                History ({history.length})
+                {t('generator.history', { count: history.length })}
               </button>
               {historyOpen && (
                 <div className="max-h-[120px] space-y-1 overflow-y-auto">
@@ -356,7 +358,7 @@ export default function PasswordGenerator({
                         {pw}
                       </span>
                       {i === 0 && (
-                        <span className="text-[10px] font-medium text-accent-500">Current</span>
+                        <span className="text-[10px] font-medium text-accent-500">{t('generator.current')}</span>
                       )}
                     </div>
                   ))}
@@ -369,7 +371,7 @@ export default function PasswordGenerator({
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-surface-200 bg-surface-50 px-5 py-3 dark:border-surface-700 dark:bg-surface-800/50">
           <button className="notion-button-ghost h-8 text-xs" onClick={onClose}>
-            Cancel
+            {t('generator.cancel')}
           </button>
           <button className="notion-button-primary h-8 gap-1.5 text-xs" onClick={handleUse}>
             <svg
@@ -382,7 +384,7 @@ export default function PasswordGenerator({
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
-            Use password
+            {t('generator.usePassword')}
           </button>
         </div>
       </div>

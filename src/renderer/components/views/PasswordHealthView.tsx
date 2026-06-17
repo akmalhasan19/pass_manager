@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { HealthReport } from '../../../shared/types';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useTranslation } from '../../i18n/useTranslation';
 
 interface PasswordHealthViewProps {
   onSelectItem?: (id: string) => void;
@@ -35,11 +36,11 @@ const SCORE_COLORS: Record<string, { bg: string; text: string; ring: string }> =
 };
 
 const SCORE_LABELS: Record<string, string> = {
-  A: 'Excellent',
-  B: 'Good',
-  C: 'Fair',
-  D: 'Poor',
-  F: 'Critical',
+  A: 'health.score.excellent',
+  B: 'health.score.good',
+  C: 'health.score.fair',
+  D: 'health.score.poor',
+  F: 'health.score.critical',
 };
 
 interface StatCardProps {
@@ -96,6 +97,7 @@ function LoadingSkeleton({ lines = 4 }: LoadingSkeletonProps) {
 const CHART_COLORS = ['#22c55e', '#ef4444', '#f59e0b', '#f97316'];
 
 function Gobtn({ onClick }: { onClick: () => void }) {
+  const { t } = useTranslation();
   return (
     <button
       className="notion-button-ghost h-7 shrink-0 gap-1 text-xs"
@@ -118,7 +120,7 @@ function Gobtn({ onClick }: { onClick: () => void }) {
           d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
         />
       </svg>
-      Go to item
+      {t('health.goToItem')}
     </button>
   );
 }
@@ -130,20 +132,21 @@ export default function PasswordHealthView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { settings } = useSettingsStore();
+  const { t } = useTranslation();
 
   const loadReport = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const result = await window.electron.health.analyze(settings.passwordHealthOldDays);
-      if (!result.success) throw new Error(result.error || 'Failed to analyze password health');
+      if (!result.success) throw new Error(result.error || t('health.error.analyzeFailed'));
       setReport(result.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to analyze password health');
+      setError(err instanceof Error ? err.message : t('health.error.analyzeFailed'));
     } finally {
       setLoading(false);
     }
-  }, [settings.passwordHealthOldDays]);
+  }, [settings.passwordHealthOldDays, t]);
 
   useEffect(() => {
     loadReport();
@@ -166,7 +169,7 @@ export default function PasswordHealthView({
         <div className="text-4xl">⚠️</div>
         <p className="text-sm text-surface-500 dark:text-surface-400">{error}</p>
         <button className="notion-button-primary h-8 text-xs" onClick={loadReport}>
-          Retry
+          {t('health.retry')}
         </button>
       </div>
     );
@@ -176,9 +179,9 @@ export default function PasswordHealthView({
     return (
       <div className="notion-empty-state h-full">
         <div className="notion-empty-state-icon">🛡️</div>
-        <p className="notion-empty-state-title">Password Health</p>
+        <p className="notion-empty-state-title">{t('health.empty.title')}</p>
         <p className="notion-empty-state-description">
-          Add some passwords to see your security health report.
+          {t('health.empty.description')}
         </p>
       </div>
     );
@@ -203,7 +206,7 @@ export default function PasswordHealthView({
   return (
     <div className="notion-scrollbar space-y-6 overflow-y-auto p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-surface-900 dark:text-white">Password Health</h1>
+        <h1 className="text-xl font-semibold text-surface-900 dark:text-white">{t('health.heading')}</h1>
         <button className="notion-button-ghost h-8 gap-1.5 text-xs" onClick={loadReport}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -219,7 +222,7 @@ export default function PasswordHealthView({
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
             />
           </svg>
-          Refresh
+          {t('health.refresh')}
         </button>
       </div>
 
@@ -230,42 +233,42 @@ export default function PasswordHealthView({
           <span className={`text-3xl font-bold ${color.text}`}>{report.score}</span>
         </div>
         <div>
-          <div className={`text-lg font-semibold ${color.text}`}>{SCORE_LABELS[report.score]}</div>
+          <div className={`text-lg font-semibold ${color.text}`}>{t(SCORE_LABELS[report.score])}</div>
           <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">
-            {report.total} password{report.total !== 1 ? 's' : ''} analyzed
+            {t('health.analyzed', { count: report.total })}
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard
-          label="Total Passwords"
+          label={t('health.totalPasswords')}
           value={report.total}
           icon="🔐"
           color="bg-surface-100 dark:bg-surface-800"
         />
         <StatCard
-          label="Strong"
+          label={t('health.strong')}
           value={report.strong}
           icon="✅"
           color="bg-emerald-100 dark:bg-emerald-900/40"
           total={report.total}
         />
         <StatCard
-          label="Weak"
+          label={t('health.weak')}
           value={report.weak}
           icon="⚠️"
           color="bg-red-100 dark:bg-red-900/40"
           total={report.total}
         />
         <StatCard
-          label="Reused"
+          label={t('health.reused')}
           value={report.reused}
           icon="♻️"
           color="bg-amber-100 dark:bg-amber-900/40"
         />
         <StatCard
-          label="Outdated"
+          label={t('health.outdated')}
           value={report.old}
           icon="📅"
           color="bg-orange-100 dark:bg-orange-900/40"
@@ -276,17 +279,17 @@ export default function PasswordHealthView({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
         {/* Progress bars */}
         <div className="notion-card space-y-3 p-4 md:col-span-3">
-          <h3 className="text-sm font-medium text-surface-700 dark:text-surface-300">Overview</h3>
-          <ProgressBar label="Strong" pct={strongPct} color="bg-emerald-500" />
-          <ProgressBar label="Weak" pct={weakPct} color="bg-red-500" />
-          <ProgressBar label="Reused" pct={reusedPct} color="bg-amber-500" />
-          <ProgressBar label="Outdated" pct={oldPct} color="bg-orange-500" />
+          <h3 className="text-sm font-medium text-surface-700 dark:text-surface-300">{t('health.overview')}</h3>
+          <ProgressBar label={t('health.strong')} pct={strongPct} color="bg-emerald-500" />
+          <ProgressBar label={t('health.weak')} pct={weakPct} color="bg-red-500" />
+          <ProgressBar label={t('health.reused')} pct={reusedPct} color="bg-amber-500" />
+          <ProgressBar label={t('health.outdated')} pct={oldPct} color="bg-orange-500" />
         </div>
 
         {/* Donut chart */}
         <div className="notion-card flex flex-col items-center justify-center gap-3 p-4 md:col-span-2">
           <h3 className="self-start text-sm font-medium text-surface-700 dark:text-surface-300">
-            Distribution
+            {t('health.distribution')}
           </h3>
           <svg viewBox="0 0 100 100" className="h-28 w-28">
             <circle
@@ -320,7 +323,7 @@ export default function PasswordHealthView({
       {report.weakPasswords.length > 0 && (
         <div className="notion-card p-4">
           <h3 className="mb-3 text-sm font-medium text-surface-700 dark:text-surface-300">
-            Weak Passwords ({report.weakPasswords.length})
+            {t('health.weakPasswords', { count: report.weakPasswords.length })}
           </h3>
           <div className="space-y-1">
             {report.weakPasswords.map((wp) => (
@@ -345,8 +348,7 @@ export default function PasswordHealthView({
       {report.reusedPasswords.length > 0 && (
         <div className="notion-card p-4">
           <h3 className="mb-3 text-sm font-medium text-surface-700 dark:text-surface-300">
-            Reused Passwords ({report.reusedPasswords.length} group
-            {report.reusedPasswords.length !== 1 ? 's' : ''})
+            {t('health.reusedPasswords', { count: report.reusedPasswords.length })}
           </h3>
           <div className="space-y-3">
             {report.reusedPasswords.map((rp) => (
@@ -356,7 +358,7 @@ export default function PasswordHealthView({
               >
                 <div className="mb-1 flex items-center gap-2">
                   <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                    Used in {rp.count} items
+                    {t('health.usedInItems', { count: rp.count })}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -393,7 +395,7 @@ export default function PasswordHealthView({
       {report.oldPasswords.length > 0 && (
         <div className="notion-card p-4">
           <h3 className="mb-3 text-sm font-medium text-surface-700 dark:text-surface-300">
-            Outdated Passwords ({report.oldPasswords.length})
+            {t('health.outdatedPasswords', { count: report.oldPasswords.length })}
           </h3>
           <div className="space-y-1">
             {report.oldPasswords.map((op) => (
@@ -409,7 +411,7 @@ export default function PasswordHealthView({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="shrink-0 text-xs text-surface-400 dark:text-surface-500">
-                    {op.daysSinceChange}d ago
+                    {t('health.daysAgo', { days: op.daysSinceChange })}
                   </span>
                   <Gobtn onClick={() => goToItem(op.itemId)} />
                 </div>

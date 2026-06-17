@@ -4,6 +4,7 @@ import { useItemStore } from './itemStore';
 import { useFolderStore } from './folderStore';
 import { useToastStore } from './toastStore';
 import { useErrorStore } from './errorStore';
+import { t } from '../i18n/useTranslation';
 
 export type AuthStatus = 'idle' | 'checking' | 'setup' | 'locked' | 'unlocked' | 'error';
 
@@ -48,16 +49,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ status: 'checking', error: null, ...deriveFlags('checking') });
     try {
       if (!window.electron) {
-        throw new Error('Electron IPC not available. Please restart the application.');
+        throw new Error(t('auth.error.ipcUnavailable'));
       }
       const result = await window.electron.auth.init(password);
       if (!result.success) {
-        set({ status: 'setup', error: result.error || 'Failed to initialize', ...deriveFlags('setup') });
+        set({ status: 'setup', error: result.error || t('auth.error.failedInit'), ...deriveFlags('setup') });
         return;
       }
       set({ status: 'unlocked', error: null, ...deriveFlags('unlocked') });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to initialize';
+      const message = err instanceof Error ? err.message : t('auth.error.failedInit');
       set({ status: 'setup', error: message, ...deriveFlags('setup') });
     }
   },
@@ -66,16 +67,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ status: 'checking', error: null, ...deriveFlags('checking') });
     try {
       if (!window.electron) {
-        throw new Error('Electron IPC not available. Please restart the application.');
+        throw new Error(t('auth.error.ipcUnavailable'));
       }
       const result = await window.electron.auth.unlock(password);
       if (!result.success) {
-        set({ status: 'locked', error: result.error || 'Incorrect master password', ...deriveFlags('locked') });
+        set({ status: 'locked', error: result.error || t('auth.error.incorrectPassword'), ...deriveFlags('locked') });
         return;
       }
       set({ status: 'unlocked', error: null, ...deriveFlags('unlocked') });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to unlock';
+      const message = err instanceof Error ? err.message : t('auth.error.failedUnlock');
       set({ status: 'locked', error: message, ...deriveFlags('locked') });
     }
   },
@@ -111,11 +112,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ error: null });
     try {
       if (!window.electron) {
-        throw new Error('Electron IPC not available. Please restart the application.');
+        throw new Error(t('auth.error.ipcUnavailable'));
       }
       await window.electron.auth.changePassword(oldPassword, newPassword);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to change password';
+      const message = err instanceof Error ? err.message : t('auth.error.failedChangePassword');
       set({ error: message });
       throw err;
     }

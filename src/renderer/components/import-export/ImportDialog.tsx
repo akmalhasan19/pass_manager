@@ -86,18 +86,18 @@ export default function ImportDialog({ isOpen, onClose, initialFile }: ImportDia
         try {
           const headersResult = await window.electron.import.getCsvHeaders(content);
           if (!headersResult.success) {
-            setErrorMessage(headersResult.error ?? 'Failed to read CSV headers.');
+            setErrorMessage(headersResult.error ?? t('import.error.failedReadHeaders'));
             setStep('error');
-            showError(headersResult.error ?? 'Failed to read CSV headers.');
+            showError(headersResult.error ?? t('import.error.failedReadHeaders'));
             return;
           }
           setCsvHeaders(headersResult.data.headers);
           setCsvSampleRow(headersResult.data.sampleRow);
           setStep('column-mapping');
         } catch (err) {
-          setErrorMessage(err instanceof Error ? err.message : 'Unknown error.');
+          setErrorMessage(err instanceof Error ? err.message : t('import.error.unknown'));
           setStep('error');
-          showError(err instanceof Error ? err.message : 'Failed to process file.');
+          showError(err instanceof Error ? err.message : t('import.error.failedProcessFile'));
         }
       };
       parseGeneric();
@@ -112,9 +112,9 @@ export default function ImportDialog({ isOpen, onClose, initialFile }: ImportDia
           });
 
           if (!parseResult.success) {
-            setErrorMessage(parseResult.error ?? 'Failed to parse file.');
+            setErrorMessage(parseResult.error ?? t('import.error.failedParseFile'));
             setStep('error');
-            showError(parseResult.error ?? 'Failed to parse file.');
+            showError(parseResult.error ?? t('import.error.failedParseFile'));
             return;
           }
 
@@ -124,9 +124,9 @@ export default function ImportDialog({ isOpen, onClose, initialFile }: ImportDia
           const dupResult = await window.electron.import.checkDuplicates(payload);
 
           if (!dupResult.success) {
-            setErrorMessage(dupResult.error ?? 'Failed to check duplicates.');
+            setErrorMessage(dupResult.error ?? t('import.error.failedCheckDuplicates'));
             setStep('error');
-            showError(dupResult.error ?? 'Failed to check duplicates.');
+            showError(dupResult.error ?? t('import.error.failedCheckDuplicates'));
             return;
           }
 
@@ -147,9 +147,9 @@ export default function ImportDialog({ isOpen, onClose, initialFile }: ImportDia
             });
 
             if (!commitResult.success) {
-              setErrorMessage(commitResult.error ?? 'Failed to import data.');
+              setErrorMessage(commitResult.error ?? t('import.error.failedImportData'));
               setStep('error');
-              showError(commitResult.error ?? 'Failed to import data.');
+              showError(commitResult.error ?? t('import.error.failedImportData'));
               return;
             }
 
@@ -162,9 +162,9 @@ export default function ImportDialog({ isOpen, onClose, initialFile }: ImportDia
             }
           }
         } catch (err) {
-          setErrorMessage(err instanceof Error ? err.message : 'Unknown error.');
+          setErrorMessage(err instanceof Error ? err.message : t('import.error.unknown'));
           setStep('error');
-          showError(err instanceof Error ? err.message : 'Import failed.');
+          showError(err instanceof Error ? err.message : t('import.error.failedImportData'));
         }
       };
       parseFile();

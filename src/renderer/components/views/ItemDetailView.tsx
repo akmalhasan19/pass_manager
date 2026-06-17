@@ -300,7 +300,7 @@ export default function ItemDetailView({
         if (field === 'title' && !success) {
           setFieldErrors((prev) => ({
             ...prev,
-            title: 'An item with this title already exists in this folder.',
+            title: t('item.error.duplicateTitle'),
           }));
         } else if (field === 'title' && success) {
           setFieldErrors((prev) => {
@@ -389,7 +389,7 @@ export default function ItemDetailView({
     (pw: string): { label: string; color: string; score: number; borderColor: string } => {
       if (!pw)
         return {
-          label: 'Empty',
+          label: t('strength.empty'),
           color: 'bg-surface-300',
           score: 0,
           borderColor: 'border-surface-300',
@@ -401,7 +401,7 @@ export default function ItemDetailView({
       if (/\d/.test(pw)) score++;
       if (/[^a-zA-Z0-9]/.test(pw)) score++;
       if (pw.length >= 20) score++;
-      const labels = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
+      const labelKeys = ['strength.weak', 'strength.fair', 'strength.strong', 'strength.strong', 'strength.veryStrong'];
       const colors = [
         'bg-danger-500',
         'bg-warning-500',
@@ -417,9 +417,9 @@ export default function ItemDetailView({
         'border-success-500',
       ];
       const idx = Math.min(score, 4);
-      return { label: labels[idx], color: colors[idx], score, borderColor: borderColors[idx] };
+      return { label: t(labelKeys[idx]), color: colors[idx], score, borderColor: borderColors[idx] };
     },
-    [],
+    [t],
   );
 
   const strength = useMemo(() => getStrengthLabel(password), [password, getStrengthLabel]);
@@ -444,10 +444,10 @@ export default function ItemDetailView({
         <div className="text-center">
           <div className="mb-3 text-5xl">🔑</div>
           <p className="text-lg font-semibold text-surface-600 dark:text-surface-400">
-            Select an item
+            {t('item.selectPrompt')}
           </p>
           <p className="mt-1 text-sm text-surface-400 dark:text-surface-500">
-            Choose a password entry from the list to see its details.
+            {t('item.selectDescription')}
           </p>
         </div>
       </div>
@@ -459,7 +459,7 @@ export default function ItemDetailView({
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="border-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
-          <p className="text-sm text-surface-400">Loading...</p>
+          <p className="text-sm text-surface-400">{t('item.loading')}</p>
         </div>
       </div>
     );
@@ -512,7 +512,7 @@ export default function ItemDetailView({
                 >
                   <input
                     className="w-full border-0 bg-transparent text-3xl font-semibold text-surface-900 placeholder:text-surface-300 focus:outline-none focus:ring-0 dark:text-surface-50 dark:placeholder:text-surface-600"
-                    placeholder="Untitled"
+                    placeholder={t('item.untitled')}
                     value={title}
                     maxLength={MAX_FIELD_LENGTHS.ITEM_TITLE}
                     onChange={(e) => handleFieldChange('title', e.target.value, setTitle)}
@@ -523,13 +523,13 @@ export default function ItemDetailView({
               </div>
             ) : (
               <h2 className="text-3xl font-semibold text-surface-900 dark:text-surface-50">
-                {item.title || 'Untitled'}
+                {item.title || t('item.untitled')}
               </h2>
             )}
             <p className="mt-1 text-sm text-surface-500">
               {isNewItem
-                ? 'New item'
-                : `Updated ${formatDate(item.updatedAt)} \u2022 Created ${formatDate(item.createdAt)}`}
+                ? t('item.newItem')
+                : t('item.lastUpdated', { date: formatDate(item.updatedAt) })}
             </p>
           </div>
           <div className="flex gap-2">
@@ -541,7 +541,7 @@ export default function ItemDetailView({
               }`}
               onClick={() => setEditMode(!editMode)}
             >
-              {editMode ? 'Done' : 'Edit'}
+              {editMode ? t('item.done') : t('item.edit')}
             </button>
             <button
               className="rounded-lg border border-surface-200 p-2 transition-colors hover:bg-surface-100 dark:border-surface-700 dark:hover:bg-surface-800"
@@ -570,7 +570,7 @@ export default function ItemDetailView({
           {/* Website / URL */}
           <div className="group space-y-2">
             <label className="text-xs font-bold uppercase tracking-wider text-surface-400">
-              Website
+              {t('item.website')}
             </label>
             <div className="group-focus-within:border-primary flex items-center justify-between border-b border-surface-200 py-1 transition-colors dark:border-surface-700">
               {editMode ? (
@@ -582,7 +582,7 @@ export default function ItemDetailView({
                   >
                     <input
                       className="w-full border-0 bg-transparent p-0 text-base text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
-                      placeholder="https://example.com"
+                      placeholder={t('item.websitePlaceholder')}
                       value={url}
                       maxLength={MAX_FIELD_LENGTHS.URL}
                       onChange={(e) => handleFieldChange('url', e.target.value, setUrl)}
@@ -642,7 +642,7 @@ export default function ItemDetailView({
           {/* Username */}
           <div className="group space-y-2">
             <label className="text-xs font-bold uppercase tracking-wider text-surface-400">
-              Username
+              {t('item.username')}
             </label>
             <div className="group-focus-within:border-primary flex items-center justify-between border-b border-surface-200 py-1 transition-colors dark:border-surface-700">
               {editMode ? (
@@ -654,7 +654,7 @@ export default function ItemDetailView({
                   >
                     <input
                       className="w-full border-0 bg-transparent p-0 text-base text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
-                      placeholder="username@example.com"
+                      placeholder={t('item.usernamePlaceholder')}
                       value={username}
                       maxLength={MAX_FIELD_LENGTHS.USERNAME}
                       onChange={(e) => handleFieldChange('username', e.target.value, setUsername)}
@@ -670,7 +670,7 @@ export default function ItemDetailView({
               {username && (
                 <button
                   className="hover:text-primary p-1 transition-colors"
-                  onClick={() => handleCopy(username, 'Username copied')}
+                    onClick={() => handleCopy(username, t('item.usernameCopied'))}
                   aria-label="Copy username"
                 >
                   <svg
@@ -695,7 +695,7 @@ export default function ItemDetailView({
           {/* Password */}
           <div className="group space-y-2">
             <label className="text-xs font-bold uppercase tracking-wider text-surface-400">
-              Password
+              {t('item.passwordLabel')}
             </label>
             <div className="group-focus-within:border-primary flex items-center justify-between border-b border-surface-200 py-1 transition-colors dark:border-surface-700">
               {editMode ? (
@@ -708,7 +708,7 @@ export default function ItemDetailView({
                     <input
                       className="w-full border-0 bg-transparent p-0 font-mono text-lg tracking-widest text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-0 dark:text-surface-200"
                       type={showPassword ? 'text' : 'password'}
-                      placeholder="Enter password"
+                      placeholder={t('item.passwordPlaceholder')}
                       value={password}
                       maxLength={MAX_FIELD_LENGTHS.PASSWORD}
                       onChange={(e) => handleFieldChange('password', e.target.value, setPassword)}
@@ -726,7 +726,7 @@ export default function ItemDetailView({
                   <button
                     className="hover:text-primary p-1 transition-colors"
                     onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showPassword ? t('item.hidePassword') : t('item.showPassword')}
                   >
                     {showPassword ? (
                       <svg
@@ -769,7 +769,7 @@ export default function ItemDetailView({
                 {password && (
                   <button
                     className="hover:text-primary p-1 transition-colors"
-                    onClick={() => handleCopy(password, 'Password copied')}
+                    onClick={() => handleCopy(password, t('item.passwordCopied'))}
                     aria-label="Copy password"
                   >
                     <svg
@@ -819,15 +819,15 @@ export default function ItemDetailView({
           {/* Password Generator Widget */}
           <div className="flex flex-col gap-4 rounded-2xl border border-surface-200/30 bg-surface-50 p-6 dark:bg-surface-800/50">
             <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-surface-800 dark:text-surface-200">Generator</h4>
-              <span className="text-primary text-xs font-bold">SECURE</span>
+              <h4 className="font-semibold text-surface-800 dark:text-surface-200">{t('item.generator')}</h4>
+              <span className="text-primary text-xs font-bold">{t('item.secure')}</span>
             </div>
             <div className="text-primary rounded-xl border border-surface-200/50 bg-white p-3 text-center font-mono tracking-tight dark:bg-surface-800">
-              {password || 'Click Generate'}
+              {password || t('item.clickGenerate')}
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-[10px] font-bold text-surface-400">
-                <span>STRENGTH</span>
+                <span>{t('item.strength')}</span>
                 <span>{strength.label}</span>
               </div>
               <div className="h-1 w-full overflow-hidden rounded-full bg-surface-200 dark:bg-surface-700">
@@ -841,7 +841,7 @@ export default function ItemDetailView({
               className="bg-primary text-on-primary hover:bg-primary-container w-full rounded-lg py-2 text-sm font-medium transition-colors"
               onClick={() => setPasswordGeneratorOpen(true)}
             >
-              Generate Password
+              {t('item.generatePassword')}
             </button>
           </div>
 
@@ -856,7 +856,7 @@ export default function ItemDetailView({
             </div>
             <p className="font-semibold text-surface-800 dark:text-surface-200">{strength.label}</p>
             <p className="text-[10px] text-surface-400">
-              {isNewItem ? 'New item' : `Last updated ${formatDate(item.updatedAt)}`}
+              {isNewItem ? t('item.newItem') : t('item.lastUpdated', { date: formatDate(item.updatedAt) })}
             </p>
           </div>
         </div>
@@ -864,7 +864,7 @@ export default function ItemDetailView({
         {/* Tags */}
         <div className="mb-8">
           <label className="mb-3 block text-xs font-bold uppercase tracking-wider text-surface-400">
-            Tags
+            {t('item.tags')}
           </label>
           <div className="flex flex-wrap items-center gap-2">
             {itemTags.map((tag) => (
@@ -911,7 +911,7 @@ export default function ItemDetailView({
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                   </svg>
-                  Add tag
+                  {t('item.addTag')}
                 </button>
                 {isTagDropdownOpen && (
                   <div
@@ -923,7 +923,7 @@ export default function ItemDetailView({
                       <div className="p-2">
                         <input
                           className="focus:border-primary h-8 w-full rounded-lg border border-surface-200 px-2 text-xs focus:outline-none dark:border-surface-700 dark:bg-surface-800"
-                          placeholder="Tag name..."
+                          placeholder={t('item.tagNamePlaceholder')}
                           value={newTagName}
                           maxLength={MAX_FIELD_LENGTHS.TAG_NAME}
                           onChange={(e) => setNewTagName(e.target.value)}
@@ -941,7 +941,7 @@ export default function ItemDetailView({
                             className="bg-primary text-on-primary hover:bg-primary-container flex-1 rounded-lg py-1 text-xs font-medium"
                             onClick={handleCreateTag}
                           >
-                            Create
+                            {t('item.create')}
                           </button>
                           <button
                             className="rounded-lg px-2 py-1 text-xs text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-700"
@@ -950,7 +950,7 @@ export default function ItemDetailView({
                               setNewTagName('');
                             }}
                           >
-                            Cancel
+                            {t('item.cancel')}
                           </button>
                         </div>
                       </div>
@@ -971,7 +971,7 @@ export default function ItemDetailView({
                             </button>
                           ))
                         ) : (
-                          <p className="px-3 py-2 text-xs text-surface-400">No tags available</p>
+                          <p className="px-3 py-2 text-xs text-surface-400">{t('item.noTags')}</p>
                         )}
                         <div className="my-1 h-px bg-surface-200 dark:bg-surface-700" />
                         <button
@@ -988,7 +988,7 @@ export default function ItemDetailView({
                           >
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                           </svg>
-                          Create new tag
+                          {t('item.createNewTag')}
                         </button>
                       </>
                     )}
@@ -1002,20 +1002,20 @@ export default function ItemDetailView({
         {/* Notes Section */}
         <div className="mb-20">
           <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-surface-400">
-            Notes
+            {t('item.notes')}
           </h4>
           {editMode ? (
             <RichTextEditor
               content={notes}
               onChange={(json) => handleFieldChange('notes', json, setNotes)}
-              placeholder="Add notes..."
+              placeholder={t('item.addNotes')}
             />
           ) : notes ? (
             <div className="prose prose-sm max-w-none leading-relaxed text-surface-600 dark:text-surface-400">
               {typeof notes === 'string' ? <p>{notes}</p> : <p>{JSON.stringify(notes)}</p>}
             </div>
           ) : (
-            <p className="text-sm italic text-surface-400">No notes yet.</p>
+            <p className="text-sm italic text-surface-400">{t('item.noNotes')}</p>
           )}
         </div>
 
@@ -1023,7 +1023,7 @@ export default function ItemDetailView({
         <div className="mb-20">
           <div className="mb-4 flex items-center justify-between">
             <h4 className="text-xs font-bold uppercase tracking-wider text-surface-400">
-              Attachments
+              {t('item.attachments')}
             </h4>
             {editMode && (
               <button
@@ -1044,12 +1044,12 @@ export default function ItemDetailView({
                     d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
                   />
                 </svg>
-                Attach file
+                {t('item.attachFile')}
               </button>
             )}
           </div>
           {isLoadingAttachments ? (
-            <p className="text-xs text-surface-400">Loading attachments...</p>
+            <p className="text-xs text-surface-400">{t('item.loadingAttachments')}</p>
           ) : attachments.length > 0 ? (
             <div className="space-y-2">
               {attachments.map((att) => (
@@ -1101,7 +1101,7 @@ export default function ItemDetailView({
                     <button
                       className="rounded-lg p-1.5 text-danger-500 transition-colors hover:bg-danger-50 dark:hover:bg-danger-500/10"
                       onClick={() => {
-                        if (confirm(`Delete attachment "${att.fileName}"?`)) {
+                        if (confirm(t('item.deleteAttachmentConfirm', { name: att.fileName }))) {
                           handleFileDeleteClick(att.id);
                         }
                       }}
@@ -1127,7 +1127,7 @@ export default function ItemDetailView({
               ))}
             </div>
           ) : (
-            <p className="text-xs text-surface-400">No attachments yet.</p>
+            <p className="text-xs text-surface-400">{t('item.noAttachments')}</p>
           )}
         </div>
       </div>
@@ -1149,9 +1149,9 @@ export default function ItemDetailView({
 
       <ConfirmDialog
         isOpen={showDeleteConfirm}
-        title="Delete item"
-        message="Are you sure you want to delete this item? It will be moved to trash."
-        confirmLabel="Delete"
+        title={t('item.deleteItem')}
+        message={t('item.deleteItemConfirm')}
+        confirmLabel={t('item.delete')}
         variant="danger"
         onConfirm={() => {
           if (item) {
