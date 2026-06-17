@@ -97,9 +97,10 @@ export class EncryptedJsonImporter implements Importer {
 
     let decryptedPayload: ExportPayload;
     let plaintextBuffer: Buffer | null = null;
+    let payloadJson: string | null = null;
     try {
       plaintextBuffer = decryptAES256GCM({ ciphertext, iv, tag }, masterKey);
-      const payloadJson = plaintextBuffer.toString('utf-8');
+      payloadJson = plaintextBuffer.toString('utf-8');
       const parsedPayload = JSON.parse(payloadJson);
       decryptedPayload = validateExportPayloadSchema(parsedPayload);
     } catch (cause) {
@@ -117,6 +118,11 @@ export class EncryptedJsonImporter implements Importer {
       secureClear(iv);
       secureClear(tag);
       secureClear(ciphertext);
+      // SECURITY: Drop reference to immutable plaintext string to allow GC.
+      // V8 strings cannot be zeroed in place, but we minimize exposure.
+      if (payloadJson) {
+        payloadJson = null;
+      }
     }
 
     const payload = createImportPayload();

@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
 import { MAX_FIELD_LENGTHS } from '../../shared/constants';
 import { sanitizeField, validateCharacters } from '../../shared/validation';
-import { secureClear } from '../../shared/secureMemory';
+import { secureClear, secureClearString } from '../../shared/secureMemory';
 import type { Item, ItemDecrypted } from '../../shared/types';
 import { FolderRepository } from '../database/repositories/FolderRepository';
 import { ItemRepository } from '../database/repositories/ItemRepository';
@@ -294,6 +294,10 @@ export function registerItemHandlers(): void {
           coverImage: fields.coverImage ?? null,
         });
 
+        // SECURITY: Wipe encrypted buffers after they've been persisted to DB
+        secureClear(passwordEncrypted as unknown as Buffer);
+        secureClear(notesEncrypted as unknown as Buffer);
+
         const data = decryptItem(item, key);
         return { success: true, data };
       } catch (error) {
@@ -462,6 +466,14 @@ export function registerItemHandlers(): void {
           return { success: false, error: 'Failed to update item.' };
         }
 
+        // SECURITY: Wipe encrypted buffers after they've been persisted to DB
+        if (updateFields.passwordEncrypted !== undefined) {
+          secureClear(updateFields.passwordEncrypted as unknown as Buffer);
+        }
+        if (updateFields.notesEncrypted !== undefined) {
+          secureClear(updateFields.notesEncrypted as unknown as Buffer);
+        }
+
         const data = decryptItem(item, key);
         return { success: true, data };
       } catch (error) {
@@ -534,6 +546,9 @@ export function registerItemHandlers(): void {
       secureClear(encryptedBuf);
 
       const itemData = deserializeItemFromTrash(decrypted);
+      // SECURITY: Wipe immutable string reference — V8 strings cannot be
+      // zeroed in place, but we drop the reference to allow GC collection.
+      secureClearString(decrypted);
 
       const db = getDatabase();
       if (!db) {
@@ -567,6 +582,10 @@ export function registerItemHandlers(): void {
           itemData.sortOrder ?? 0,
         ],
       );
+
+      // SECURITY: Wipe deserialized encrypted buffers after DB insert
+      secureClear(itemData.passwordEncrypted);
+      secureClear(itemData.notesEncrypted);
 
       trashRepo.removeByOriginalId(id);
 

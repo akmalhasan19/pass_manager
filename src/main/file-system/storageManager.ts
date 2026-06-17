@@ -193,6 +193,8 @@ export function deleteStoredFile(storagePath: string): void {
         }
       } finally {
         closeSync(fd);
+        // SECURITY: Wipe the random overwrite buffer after use
+        secureClear(overwriteBuffer);
       }
     }
 

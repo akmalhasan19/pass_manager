@@ -22,7 +22,7 @@ Security audit dan memory wipe adalah fondasi integritas zero-knowledge. Jika ku
 ---
 
 ## 1. Task: Memory Buffer & ArrayBuffer Audit
-- [ ] Task 1 Complete
+- [x] Task 1 Complete
 
 ### Sub-Task 1.1: Identifikasi Semua Buffer Kunci
 - [x] Audit seluruh code path yang menyimpan kunci dekripsi (AES key, master key, derived key) dalam variabel `Buffer`, `ArrayBuffer`, `Uint8Array`, atau typed arrays lainnya.
@@ -35,65 +35,65 @@ Security audit dan memory wipe adalah fondasi integritas zero-knowledge. Jika ku
 - [x] Lakukan overwrite untuk setiap instance buffer yang berisi kunci, termasuk buffer hasil pembacaan dari file vault atau input password.
 
 ### Sub-Task 1.3: String Kunci di Memory
-- [ ] Verifikasi bahwa kunci dekripsi tidak pernah di-*convert* ke `String` (terutama dari `ArrayBuffer`/`Buffer`) untuk menghindari immutable interning di V8.
-- [ ] Jika ada konversi string yang tidak dapat dihindari (misal untuk IPC), lakukan overwrite manual atau gunakan `Buffer.fill(0)` segera setelah penggunaan.
-- [ ] Audit penggunaan `.toString()` pada buffer kunci dan ganti dengan metode aman jika memungkinkan.
+- [x] Verifikasi bahwa kunci dekripsi tidak pernah di-*convert* ke `String` (terutama dari `ArrayBuffer`/`Buffer`) untuk menghindari immutable interning di V8.
+- [x] Jika ada konversi string yang tidak dapat dihindari (misal untuk IPC), lakukan overwrite manual atau gunakan `Buffer.fill(0)` segera setelah penggunaan.
+- [x] Audit penggunaan `.toString()` pada buffer kunci dan ganti dengan metode aman jika memungkinkan.
 
 ---
 
 ## 2. Task: Garbage Collector Reference Audit
-- [ ] Task 2 Complete
+- [x] Task 2 Complete
 
 ### Sub-Task 2.1: Verifikasi Referensi Kunci Tidak Bertahan
-- [ ] Audit closure, event listener, dan callback yang mungkin *capture* variabel kunci secara tidak langsung, mencegah GC membersihkannya.
-- [ ] Pastikan setelah fungsi derivasi kunci selesai, semua variabel interim (salt, pepper, intermediate hash) juga di-nullify dan di-overwrite.
+- [x] Audit closure, event listener, dan callback yang mungkin *capture* variabel kunci secara tidak langsung, mencegah GC membersihkannya.
+- [x] Pastikan setelah fungsi derivasi kunci selesai, semua variabel interim (salt, pepper, intermediate hash) juga di-nullify dan di-overwrite.
 
 ### Sub-Task 2.2: Handle Lock Screen State
-- [ ] Saat aplikasi lock (user menekan tombol lock atau timeout), pastikan kunci dekripsi utama dihapus dari memory renderer process.
-- [ ] Kunci h boleh disimpan di `main` process jika benar-benar diperlukan untuk operasi dekripsi/enkripsi, tetapi tetap harus di-wipe saat lock atau shutdown.
-- [ ] Pastikan state management (Zustand/Redux store di renderer) tidak menyimpan salinan kunci atau decrypted data setelah lock.
+- [x] Saat aplikasi lock (user menekan tombol lock atau timeout), pastikan kunci dekripsi utama dihapus dari memory renderer process.
+- [x] Kunci h boleh disimpan di `main` process jika benar-benar diperlukan untuk operasi dekripsi/enkripsi, tetapi tetap harus di-wipe saat lock atau shutdown.
+- [x] Pastikan state management (Zustand/Redux store di renderer) tidak menyimpan salinan kunci atau decrypted data setelah lock.
 
 ### Sub-Task 2.3: IPC & Inter-Process Communication
-- [ ] Audit pesan IPC antara `main` dan `renderer` yang membawa data sensitif; minimalisasi atau enkripsi data dalam transit.
-- [ ] Pastikan tidak ada *lingering* data di IPC channel atau event listener setelah operasi selesai.
-- [ ] Implementasi `ipcRenderer.removeAllListeners` atau pendengar spesifik untuk membersihkan referensi setelah callback dieksekusi.
+- [x] Audit pesan IPC antara `main` dan `renderer` yang membawa data sensitif; minimalisasi atau enkripsi data dalam transit.
+- [x] Pastikan tidak ada *lingering* data di IPC channel atau event listener setelah operasi selesai.
+- [x] Implementasi `ipcRenderer.removeAllListeners` atau pendengar spesifik untuk membersihkan referensi setelah callback dieksekusi.
 
 ---
 
 ## 3. Task: Secure Memory Clearing Implementation
-- [ ] Task 3 Complete
+- [x] Task 3 Complete
 
 ### Sub-Task 3.1: Helper Function Secure Clear
-- [ ] Buat fungsi utilitas `secureClear(buffer: Buffer | ArrayBuffer | null): void` yang mengisi buffer dengan zero dan kemudian menetapkan referensi ke `null`.
-- [ ] Fungsi ini harus digunakan secara konsisten di seluruh codebase untuk membersihkan data sensitif.
-- [ ] Tambahkan *unit test* untuk `secureClear` yang memverifikasi buffer di-overwrite dan referensi di-nullify.
+- [x] Buat fungsi utilitas `secureClear(buffer: Buffer | ArrayBuffer | null): void` yang mengisi buffer dengan zero dan kemudian menetapkan referensi ke `null`.
+- [x] Fungsi ini harus digunakan secara konsisten di seluruh codebase untuk membersihkan data sensitif.
+- [x] Tambahkan *unit test* untuk `secureClear` yang memverifikasi buffer di-overwrite dan referensi di-nullify.
 
 ### Sub-Task 3.2: Integrasi dengan Crypto Layer
-- [ ] Pastikan fungsi enkripsi/dekripsi (misal di `src/main/crypto.ts` atau sejenisnya) selalu memanggil `secureClear` pada kunci sementara setelah operasi selesai.
-- [ ] Periksa bahwa stream cipher atau mode operasi lain tidak menyimpan salinan kunci internal setelah finalisasi.
+- [x] Pastikan fungsi enkripsi/dekripsi (misal di `src/main/crypto.ts` atau sejenisnya) selalu memanggil `secureClear` pada kunci sementara setelah operasi selesai.
+- [x] Periksa bahwa stream cipher atau mode operasi lain tidak menyimpan salinan kunci internal setelah finalisasi.
 
 ### Sub-Task 3.3: Password Input Handling
-- [ ] Field input password di UI harus di-*clear* secara eksplisit dari state komponen setelah digunakan untuk derivasi kunci.
-- [ ] Pastikan tidak ada *undo history* atau *value caching* di komponen input yang menyimpan password dalam plain text di memory.
+- [x] Field input password di UI harus di-*clear* secara eksplisit dari state komponen setelah digunakan untuk derivasi kunci.
+- [x] Pastikan tidak ada *undo history* atau *value caching* di komponen input yang menyimpan password dalam plain text di memory.
 
 ---
 
 ## 4. Task: DevTools & Debug Security
-- [ ] Task 4 Complete
+- [x] Task 4 Complete
 
 ### Sub-Task 4.1: Disable DevTools di Production
-- [ ] Pastikan DevTools Electron tidak dapat dibuka di build *production* / *packaged* app.
-- [ ] Konfigurasi `webPreferences` (`devTools: false`) untuk renderer windows di production environment.
-- [ ] Pastikan shortcut keyboard (F12, Ctrl+Shift+I) tidak membuka DevTools.
+- [x] Pastikan DevTools Electron tidak dapat dibuka di build *production* / *packaged* app.
+- [x] Konfigurasi `webPreferences` (`devTools: false`) untuk renderer windows di production environment.
+- [x] Pastikan shortcut keyboard (F12, Ctrl+Shift+I) tidak membuka DevTools.
 
 ### Sub-Task 4.2: Log & Console Sanitization
-- [ ] Audit seluruh `console.log`, `console.error`, dan mechanism logging di aplikasi untuk memastikan tidak ada kunci, hash, atau data sensitif yang tercetak.
-- [ ] Gunakan logger terpusat yang memiliki *sanitization middleware* untuk secara otomatis menyaring field sensitif sebelum output ke log.
-- [ ] Hapus atau *comment out* log debug yang mengandung raw data setelah fase development selesai.
+- [x] Audit seluruh `console.log`, `console.error`, dan mechanism logging di aplikasi untuk memastikan tidak ada kunci, hash, atau data sensitif yang tercetak.
+- [x] Gunakan logger terpusat yang memiliki *sanitization middleware* untuk secara otomatis menyaring field sensitif sebelum output ke log.
+- [x] Hapus atau *comment out* log debug yang mengandung raw data setelah fase development selesai.
 
 ### Sub-Task 4.3: Source Map & Symbol Security
-- [ ] Pastikan source map (`*.js.map`) tidak di-bundle bersama aplikasi production jika tidak diperlukan, untuk mengurangi exposure internal logic.
-- [ ] Jika source map diperlukan untuk error reporting, pertimbangkan hosting di server privat dengan autentikasi.
+- [x] Pastikan source map (`*.js.map`) tidak di-bundle bersama aplikasi production jika tidak diperlukan, untuk mengurangi exposure internal logic.
+- [x] Jika source map diperlukan untuk error reporting, pertimbangkan hosting di server privat dengan autentikasi.
 
 ---
 
@@ -134,16 +134,16 @@ Security audit dan memory wipe adalah fondasi integritas zero-knowledge. Jika ku
 
 - [x] Sub-Task 1.1: Identifikasi Semua Buffer Kunci (file, fungsi, variabel)
 - [x] Sub-Task 1.2: Implementasi Secure Overwrite (fill zero/random, prevent optimization)
-- [ ] Sub-Task 1.3: String Kunci di Memory (avoid .toString(), handle IPC strings)
-- [ ] Sub-Task 2.1: Verifikasi Referensi Kunci Tidak Bertahan (closure, listener, callback)
-- [ ] Sub-Task 2.2: Handle Lock Screen State (wipe on lock, state management cleanup)
-- [ ] Sub-Task 2.3: IPC & Inter-Process Communication (sanitize channel, remove listeners)
-- [ ] Sub-Task 3.1: Helper Function Secure Clear (unified utility, unit test)
-- [ ] Sub-Task 3.2: Integrasi dengan Crypto Layer (post-operation wipe)
-- [ ] Sub-Task 3.3: Password Input Handling (clear from React/Vue/Angular state & input caching)
-- [ ] Sub-Task 4.1: Disable DevTools di Production (webPreferences, shortcuts)
-- [ ] Sub-Task 4.2: Log & Console Sanitization (audit console.log, centralized sanitization)
-- [ ] Sub-Task 4.3: Source Map & Symbol Security (exclude production maps)
+- [x] Sub-Task 1.3: String Kunci di Memory (avoid .toString(), handle IPC strings)
+- [x] Sub-Task 2.1: Verifikasi Referensi Kunci Tidak Bertahan (closure, listener, callback)
+- [x] Sub-Task 2.2: Handle Lock Screen State (wipe on lock, state management cleanup)
+- [x] Sub-Task 2.3: IPC & Inter-Process Communication (sanitize channel, remove listeners)
+- [x] Sub-Task 3.1: Helper Function Secure Clear (unified utility, unit test)
+- [x] Sub-Task 3.2: Integrasi dengan Crypto Layer (post-operation wipe)
+- [x] Sub-Task 3.3: Password Input Handling (clear from React/Vue/Angular state & input caching)
+- [x] Sub-Task 4.1: Disable DevTools di Production (webPreferences, shortcuts)
+- [x] Sub-Task 4.2: Log & Console Sanitization (audit console.log, centralized sanitization)
+- [x] Sub-Task 4.3: Source Map & Symbol Security (exclude production maps)
 - [ ] Sub-Task 5.1-5.3: Unit, Memory Leak, Regression Tests
 - [ ] Sub-Task 6.1: Security Indicator (visual feedback on lock)
 - [ ] Sub-Task 6.2: Localization (I18n Ready)

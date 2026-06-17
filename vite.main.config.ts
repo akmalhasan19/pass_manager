@@ -2,6 +2,10 @@ import { resolve } from 'path';
 import { defineConfig } from 'vite';
 import { builtinModules } from 'module';
 
+// SECURITY: Source maps are disabled in production builds to prevent
+// exposure of internal logic, variable names, and code structure.
+const isProduction = process.env.NODE_ENV === 'production';
+
 export default defineConfig({
   resolve: {
     alias: {
@@ -24,7 +28,7 @@ export default defineConfig({
         ...builtinModules.map((m) => `node:${m}`),
       ],
     },
-    minify: process.env.NODE_ENV === 'production',
-    sourcemap: true,
+    minify: isProduction,
+    sourcemap: !isProduction,
   },
 });

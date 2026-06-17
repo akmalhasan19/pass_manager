@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { logger } from '../../shared/logger';
 
 export interface ErrorEntry {
   id: string;
@@ -34,7 +35,9 @@ export const useErrorStore = create<ErrorState>((set) => ({
       errors: [...state.errors, errorEntry],
       isOpen: true,
     }));
-    console.error(`[${entry.source}] ${entry.message}`, entry.stack || '');
+    // SECURITY: Use centralized logger with sanitization to prevent
+    // leaking sensitive data (keys, passwords) in log output.
+    logger.error(`[${entry.source}] ${entry.message}`, entry.stack || '');
     return id;
   },
 

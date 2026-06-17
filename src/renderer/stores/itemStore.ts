@@ -43,6 +43,7 @@ export interface ItemState {
   setSelectedItem: (id: string | null) => void;
   searchItems: (query: string) => Promise<void>;
   clearSearch: () => void;
+  clearSensitiveData: () => void;
   reset: () => void;
 }
 
@@ -208,6 +209,23 @@ export const useItemStore = create<ItemState>((set, get) => ({
     if (currentFolderId) {
       get().loadItems(currentFolderId);
     }
+  },
+
+  clearSensitiveData: () => {
+    // SECURITY: Overwrite decrypted passwords and notes in all cached items
+    // before releasing references. V8 strings are immutable, but overwriting
+    // the property ensures the old value becomes unreachable for GC.
+    const { items } = get();
+    for (const id of Object.keys(items)) {
+      const item = items[id];
+      if ('password' in item && typeof item.password === 'string') {
+        (item as ItemDecrypted).password = '';
+      }
+      if ('notes' in item && typeof item.notes === 'string') {
+        (item as ItemDecrypted).notes = null;
+      }
+    }
+    get().reset();
   },
 
   reset: () =>

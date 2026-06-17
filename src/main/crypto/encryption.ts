@@ -11,6 +11,13 @@ export interface EncryptedData {
   tag: Buffer;
 }
 
+/**
+ * Encrypt plaintext with AES-256-GCM.
+ *
+ * SECURITY: Callers MUST wipe the `plaintext` buffer after the returned
+ * ciphertext is no longer needed. Use `secureClear(plaintext)` to zero
+ * the buffer before releasing the reference.
+ */
 export function encryptAES256GCM(plaintext: Buffer, key: Buffer): EncryptedData {
   if (key.length !== KEY_BYTES) {
     throw new Error(`Key must be ${KEY_BYTES} bytes (got ${key.length})`);
@@ -24,6 +31,14 @@ export function encryptAES256GCM(plaintext: Buffer, key: Buffer): EncryptedData 
   return { ciphertext, iv, tag };
 }
 
+/**
+ * Decrypt AES-256-GCM ciphertext.
+ *
+ * SECURITY: Callers MUST wipe the `data` components (iv, tag, ciphertext)
+ * after the returned plaintext is no longer needed. If these are subarray
+ * views, wiping them zeros the underlying buffer. Use `secureClear()` on
+ * the original encrypted blob buffer to wipe all components at once.
+ */
 export function decryptAES256GCM(data: EncryptedData, key: Buffer): Buffer {
   if (key.length !== KEY_BYTES) {
     throw new Error(`Key must be ${KEY_BYTES} bytes (got ${key.length})`);
@@ -48,6 +63,10 @@ export function encryptString(value: string, key: Buffer): Buffer {
 export function decryptString(encryptedBlob: Buffer, key: Buffer): string {
   const data = deserializeEncrypted(encryptedBlob);
   const decrypted = decryptAES256GCM(data, key);
+  // SECURITY: toString() creates an immutable V8 string that cannot be zeroed.
+  // The decrypted buffer is wiped below, but the returned string will persist in
+  // memory until GC collects it. Callers MUST minimize the lifetime of the
+  // returned string and call secureClearString() when done.
   const result = decrypted.toString('utf-8');
   // SECURITY: Wipe decrypted buffer before returning the string
   secureClear(decrypted);
@@ -62,6 +81,10 @@ export function encryptJSON(value: unknown, key: Buffer): Buffer {
 export function decryptJSON<T>(encryptedBlob: Buffer, key: Buffer): T {
   const data = deserializeEncrypted(encryptedBlob);
   const decrypted = decryptAES256GCM(data, key);
+  // SECURITY: toString() creates an immutable V8 string that cannot be zeroed.
+  // The decrypted buffer is wiped below, but the intermediate string will persist
+  // in memory until GC collects it. The returned parsed object may also contain
+  // sensitive string values — callers should handle with care.
   const result = decrypted.toString('utf-8');
   // SECURITY: Wipe decrypted buffer before returning the parsed result
   secureClear(decrypted);

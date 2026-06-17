@@ -34,6 +34,15 @@ export default function LockScreenPage(): React.ReactElement {
     inputRef.current?.focus();
   }, []);
 
+  // SECURITY: Clear password fields from React state on unmount to minimize
+  // the window where plaintext password is held in memory.
+  useEffect(() => {
+    return () => {
+      setPassword('');
+      setConfirmPassword('');
+    };
+  }, []);
+
   useEffect(() => {
     setStrength(evaluateStrength(password));
   }, [password]);
@@ -98,6 +107,11 @@ export default function LockScreenPage(): React.ReactElement {
       } else {
         await unlock(password);
       }
+
+      // SECURITY: Clear password fields from React state after submission
+      // to minimize the window where plaintext password is held in memory.
+      setPassword('');
+      setConfirmPassword('');
     },
     [password, confirmPassword, isSetup, initApp, unlock],
   );

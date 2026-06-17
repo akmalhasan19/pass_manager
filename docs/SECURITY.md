@@ -151,3 +151,4 @@ If you discover a security vulnerability in SecurePass Manager, please report it
 - [x] `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`
 - [x] Auth metadata: salt + SHA-256 hash only (no raw key)
 - [x] Constant-time hash comparison via `timingSafeEqual`
+- [x] Source maps excluded from production builds (Vite conditional + electron-builder negation + postbuild strip script)

@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { useUIStore } from './uiStore';
 import { useItemStore } from './itemStore';
 import { useFolderStore } from './folderStore';
+import { useToastStore } from './toastStore';
+import { useErrorStore } from './errorStore';
 
 export type AuthStatus = 'idle' | 'checking' | 'setup' | 'locked' | 'unlocked' | 'error';
 
@@ -87,9 +89,20 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       // Lock should always proceed even if IPC fails
     } finally {
-      useItemStore.getState().reset();
+      // SECURITY: Wipe all decrypted data from renderer stores before lock.
+      // clearSensitiveData overwrites plaintext passwords/notes before reset.
+      useItemStore.getState().clearSensitiveData();
       useFolderStore.getState().reset();
       useUIStore.getState().reset();
+      useToastStore.getState().clearToasts();
+      useErrorStore.getState().clearAll();
+      // SECURITY: Remove all IPC listeners to prevent lingering references
+      // that could hold sensitive data in closure scope after lock.
+      try {
+        window.electron?.auth?.cleanupListeners?.();
+      } catch {
+        // Cleanup should not block lock
+      }
       set({ status: 'locked', error: null, ...deriveFlags('locked') });
     }
   },

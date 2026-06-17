@@ -25,6 +25,8 @@ export interface ElectronAuthAPI {
   lock(): Promise<IpcResult<void>>;
   changePassword(oldPassword: string, newPassword: string): Promise<IpcResult<void>>;
   check(): Promise<{ initialized: boolean }>;
+  // SECURITY: Remove all IPC listeners to prevent lingering references on lock
+  cleanupListeners(): void;
 }
 
 export interface ElectronFoldersAPI {
@@ -148,6 +150,19 @@ export interface ElectronHealthAPI {
   analyze(oldDays?: number): Promise<IpcResult<HealthReport>>;
 }
 
+export interface ElectronUpdatesAPI {
+  check(): Promise<boolean>;
+  download(): Promise<void>;
+  quitAndInstall(): void;
+  onAvailable(callback: (info: { version: string }) => void): void;
+  onNotAvailable(callback: () => void): void;
+  onDownloadProgress(callback: (progress: { percent: number }) => void): void;
+  onDownloaded(callback: () => void): void;
+  onError(callback: (error: { message: string }) => void): void;
+  // SECURITY: Remove all update-related IPC listeners to prevent lingering references
+  removeAllListeners(): void;
+}
+
 export interface ElectronAPI {
   auth: ElectronAuthAPI;
   import: ElectronImportAPI;
@@ -162,6 +177,7 @@ export interface ElectronAPI {
   trash: ElectronTrashAPI;
   health: ElectronHealthAPI;
   window: ElectronWindowAPI;
+  updates: ElectronUpdatesAPI;
 }
 
 declare global {

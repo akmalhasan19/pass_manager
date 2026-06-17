@@ -52,8 +52,12 @@ export function hashKeyForVerification(key: Buffer): string {
 }
 
 export function verifyKeyAgainstHash(key: Buffer, storedHash: string): boolean {
-  const computedHash = hashKeyForVerification(key);
-  return timingSafeEqual(computedHash, storedHash);
+  let computedHash = hashKeyForVerification(key);
+  const result = timingSafeEqual(computedHash, storedHash);
+  // SECURITY: Drop reference to key-derived hash string. V8 strings are
+  // immutable and cannot be zeroed, but we release the reference to allow GC.
+  computedHash = '';
+  return result;
 }
 
 export function timingSafeEqual(a: string, b: string): boolean {

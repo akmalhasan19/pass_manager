@@ -34,6 +34,16 @@ export default function SettingsView(): React.ReactElement {
     loadSettings();
   }, [loadSettings]);
 
+  // SECURITY: Clear password fields from React state on unmount to minimize
+  // the window where plaintext passwords are held in memory.
+  useEffect(() => {
+    return () => {
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    };
+  }, []);
+
   const handleThemeChange = useCallback(
     (theme: ThemeOption) => {
       updateSetting('theme', theme);

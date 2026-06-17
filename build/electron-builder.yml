@@ -10,6 +10,10 @@ files:
   - dist/**/*
   - dist-electron/**/*
   - public/**/*
+  # SECURITY: Exclude source maps from packaged app.
+  # Source maps expose internal logic, variable names, and code structure.
+  # Even though Vite config disables sourcemaps in production, these negation
+  # patterns provide defense-in-depth in case a build misconfiguration generates them.
   - '!dist/**/*.map'
   - '!dist-electron/**/*.map'
   - '!dist-electron/**/sql-wasm.wasm'

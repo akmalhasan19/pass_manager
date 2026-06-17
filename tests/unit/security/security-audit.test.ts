@@ -215,6 +215,68 @@ describe('9.4.4 — XSS Resistance', () => {
 });
 
 // =========================================================================
+// 9.4.7: DevTools disabled in production
+// =========================================================================
+describe('9.4.7 — DevTools Disabled in Production', () => {
+  const mainPath = srcDir('main/index.ts');
+  let mainSrc: string;
+
+  try {
+    mainSrc = readFileSync(mainPath, 'utf-8');
+  } catch {
+    mainSrc = '';
+  }
+
+  it('should set devTools: false in webPreferences for production', () => {
+    expect(mainSrc).toBeTruthy();
+    // devTools should be set to isDev (false in production, true in dev)
+    expect(mainSrc).toContain('devTools: isDev');
+  });
+
+  it('should not hardcode devTools: true (would enable in production)', () => {
+    expect(mainSrc).toBeTruthy();
+    // Ensure devTools is not unconditionally true
+    expect(mainSrc).not.toMatch(/devTools:\s*true/);
+  });
+
+  it('should block F12 keyboard shortcut in production', () => {
+    expect(mainSrc).toBeTruthy();
+    expect(mainSrc).toContain("input.key === 'F12'");
+    expect(mainSrc).toContain('before-input-event');
+  });
+
+  it('should block Ctrl+Shift+I keyboard shortcut in production', () => {
+    expect(mainSrc).toBeTruthy();
+    // Check for Ctrl+Shift+I detection
+    expect(mainSrc).toContain("input.key === 'I'");
+    expect(mainSrc).toContain('input.control');
+    expect(mainSrc).toContain('input.shift');
+  });
+
+  it('should block Ctrl+Shift+J (Console) keyboard shortcut in production', () => {
+    expect(mainSrc).toBeTruthy();
+    expect(mainSrc).toContain("input.key === 'J'");
+  });
+
+  it('should block Cmd+Option+I shortcut on macOS', () => {
+    expect(mainSrc).toBeTruthy();
+    expect(mainSrc).toContain('input.meta');
+    expect(mainSrc).toContain('input.alt');
+  });
+
+  it('should call preventDefault to block shortcuts', () => {
+    expect(mainSrc).toBeTruthy();
+    expect(mainSrc).toContain('preventDefault');
+  });
+
+  it('should only block shortcuts in production (not dev)', () => {
+    expect(mainSrc).toBeTruthy();
+    // The shortcut blocking should be wrapped in if (!isDev)
+    expect(mainSrc).toMatch(/if\s*\(\s*!isDev\s*\)/);
+  });
+});
+
+// =========================================================================
 // 9.4.5: Preload script API whitelist
 // =========================================================================
 describe('9.4.5 — Preload API Whitelist', () => {

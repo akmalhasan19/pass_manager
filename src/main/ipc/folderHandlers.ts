@@ -7,7 +7,7 @@ import { TrashRepository } from '../database/repositories/TrashRepository';
 import { isDatabaseOpen, getDatabase } from '../database/connection';
 import { getMasterKey } from './authHandlers';
 import { encryptString, decryptString } from '../crypto/encryption';
-import { secureClear } from '../../shared/secureMemory';
+import { secureClear, secureClearString } from '../../shared/secureMemory';
 
 const folderRepo = new FolderRepository();
 const trashRepo = new TrashRepository();
@@ -293,6 +293,9 @@ export function registerFolderHandlers(): void {
         // SECURITY: Wipe temporary buffer containing encrypted data
         secureClear(dataBuf);
         folderData = JSON.parse(decrypted);
+        // SECURITY: Wipe immutable string reference — V8 strings cannot be
+        // zeroed in place, but we drop the reference to allow GC collection.
+        secureClearString(decrypted);
       } else {
         return { success: false, error: 'No data in trash entry.' };
       }
@@ -327,6 +330,9 @@ export function registerFolderHandlers(): void {
         // SECURITY: Wipe temporary buffer containing encrypted data
         secureClear(descDataBuf);
         const childData = JSON.parse(decrypted);
+        // SECURITY: Wipe immutable string reference — V8 strings cannot be
+        // zeroed in place, but we drop the reference to allow GC collection.
+        secureClearString(decrypted);
 
         const parentStillExists = folderRepo.getById(childData.parentId);
         if (!parentStillExists) {

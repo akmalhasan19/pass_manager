@@ -108,6 +108,17 @@ export default function PasswordGenerator({
     regenerate();
   }, [regenerate]);
 
+  // SECURITY: Clear generated passwords from React state on unmount to minimize
+  // the window where plaintext passwords are held in memory. The history array
+  // stores up to 10 previously generated passwords that must not persist after
+  // the generator modal is closed.
+  useEffect(() => {
+    return () => {
+      setCurrentPassword('');
+      setHistory([]);
+    };
+  }, []);
+
   const handleCopy = useCallback(async () => {
     if (!currentPassword) return;
     try {

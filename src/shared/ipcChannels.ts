@@ -4,6 +4,7 @@ export const IPC_CHANNELS = {
   AUTH_LOCK: 'auth:lock',
   AUTH_CHANGE_PASSWORD: 'auth:change-password',
   AUTH_CHECK: 'auth:check',
+  AUTH_LOCKED: 'auth:locked',
 
   FOLDER_GET_TREE: 'folder:getTree',
   FOLDER_CREATE: 'folder:create',

@@ -40,6 +40,9 @@ const api = {
     changePassword: (oldPassword: string, newPassword: string) =>
       ipcRenderer.invoke(IPC_CHANNELS.AUTH_CHANGE_PASSWORD, { oldPassword, newPassword }),
     check: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_CHECK),
+    // SECURITY: Clean up all IPC listeners to prevent lingering references
+    // after lock or when the renderer no longer needs them.
+    cleanupListeners: () => removeAllSensitiveListeners(),
   },
 
   folders: {
@@ -168,16 +171,42 @@ const api = {
       ipcRenderer.on(IPC_CHANNELS.UPDATE_DOWNLOADED, () => callback()),
     onError: (callback: (error: { message: string }) => void) =>
       ipcRenderer.on(IPC_CHANNELS.UPDATE_ERROR, (_event, error) => callback(error)),
+    // SECURITY: Remove all update-related IPC listeners to prevent
+    // lingering references after operations complete or on lock.
+    removeAllListeners: () => {
+      ipcRenderer.removeAllListeners(IPC_CHANNELS.UPDATE_AVAILABLE);
+      ipcRenderer.removeAllListeners(IPC_CHANNELS.UPDATE_NOT_AVAILABLE);
+      ipcRenderer.removeAllListeners(IPC_CHANNELS.UPDATE_DOWNLOAD_PROGRESS);
+      ipcRenderer.removeAllListeners(IPC_CHANNELS.UPDATE_DOWNLOADED);
+      ipcRenderer.removeAllListeners(IPC_CHANNELS.UPDATE_ERROR);
+    },
   },
 };
 
-// Forward power monitor events to renderer as DOM events
-ipcRenderer.on(IPC_CHANNELS.POWER_MONITOR_LOCK_SCREEN, () => {
+// Forward power monitor events to renderer as DOM events.
+// SECURITY: Store handler references so they can be removed on lock/cleanup.
+const powerMonitorLockHandler = () => {
   window.dispatchEvent(new CustomEvent('power-monitor-lock-screen'));
-});
-
-ipcRenderer.on(IPC_CHANNELS.POWER_MONITOR_SUSPEND, () => {
+};
+const powerMonitorSuspendHandler = () => {
   window.dispatchEvent(new CustomEvent('power-monitor-suspend'));
-});
+};
+ipcRenderer.on(IPC_CHANNELS.POWER_MONITOR_LOCK_SCREEN, powerMonitorLockHandler);
+ipcRenderer.on(IPC_CHANNELS.POWER_MONITOR_SUSPEND, powerMonitorSuspendHandler);
+
+// SECURITY: Expose cleanup for all IPC listeners to prevent lingering references.
+function removeAllSensitiveListeners(): void {
+  // Remove power monitor IPC listeners
+  ipcRenderer.removeListener(IPC_CHANNELS.POWER_MONITOR_LOCK_SCREEN, powerMonitorLockHandler);
+  ipcRenderer.removeListener(IPC_CHANNELS.POWER_MONITOR_SUSPEND, powerMonitorSuspendHandler);
+  // Remove all update-related listeners
+  ipcRenderer.removeAllListeners(IPC_CHANNELS.UPDATE_AVAILABLE);
+  ipcRenderer.removeAllListeners(IPC_CHANNELS.UPDATE_NOT_AVAILABLE);
+  ipcRenderer.removeAllListeners(IPC_CHANNELS.UPDATE_DOWNLOAD_PROGRESS);
+  ipcRenderer.removeAllListeners(IPC_CHANNELS.UPDATE_DOWNLOADED);
+  ipcRenderer.removeAllListeners(IPC_CHANNELS.UPDATE_ERROR);
+  // Remove export progress listener
+  ipcRenderer.removeAllListeners(IPC_CHANNELS.EXPORT_PROGRESS);
+}
 
 contextBridge.exposeInMainWorld('electron', api);

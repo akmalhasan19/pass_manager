@@ -5,6 +5,11 @@ import electron from 'vite-plugin-electron';
 import renderer from 'vite-plugin-electron-renderer';
 import { builtinModules } from 'module';
 
+// SECURITY: Source maps are disabled in production builds to prevent
+// exposure of internal logic, variable names, and code structure.
+// Source maps are only generated during development (dev server).
+const isProduction = process.env.NODE_ENV === 'production';
+
 export default defineConfig({
   plugins: [
     react(),
@@ -20,8 +25,8 @@ export default defineConfig({
           },
           build: {
             outDir: 'dist-electron/main',
-            minify: process.env.NODE_ENV === 'production',
-            sourcemap: true,
+            minify: isProduction,
+            sourcemap: !isProduction,
             rollupOptions: {
               external: [
                 'electron',
@@ -43,8 +48,8 @@ export default defineConfig({
           },
           build: {
             outDir: 'dist-electron/preload',
-            minify: process.env.NODE_ENV === 'production',
-            sourcemap: true,
+            minify: isProduction,
+            sourcemap: !isProduction,
           },
         },
       },
@@ -59,7 +64,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: !isProduction,
   },
   server: {
     port: 5173,

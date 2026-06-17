@@ -427,7 +427,14 @@ export default function ItemDetailView({
   useEffect(() => {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      pendingSaveRef.current = null;
+      // SECURITY: Wipe sensitive data from pendingSaveRef before releasing reference.
+      // The ref may hold a plaintext password if a save was queued.
+      if (pendingSaveRef.current) {
+        pendingSaveRef.current = null;
+      }
+      // SECURITY: Clear password field from React state on unmount to minimize
+      // the window where plaintext password is held in memory.
+      setPassword('');
     };
   }, []);
 

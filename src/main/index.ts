@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, session, powerMonitor } from 'electron';
 import { join } from 'node:path';
-import { registerAuthHandlers } from './ipc/authHandlers';
+import { registerAuthHandlers, clearKeys } from './ipc/authHandlers';
 import { registerFolderHandlers } from './ipc/folderHandlers';
 import { registerItemHandlers } from './ipc/itemHandlers';
 import { registerSearchHandlers } from './ipc/searchHandlers';
@@ -39,8 +39,32 @@ function createWindow(): void {
       webSecurity: true,
       sandbox: true,
       spellcheck: false,
+      // SECURITY: Disable DevTools in production to prevent inspection of
+      // sensitive data, memory dumps, and runtime manipulation.
+      devTools: isDev,
     },
   });
+
+  // SECURITY: Block keyboard shortcuts that open DevTools in production.
+  // Prevents F12, Ctrl+Shift+I (Cmd+Option+I on macOS), and Ctrl+Shift+J
+  // from opening DevTools in packaged builds.
+  if (!isDev) {
+    win.webContents.on('before-input-event', (_event, input) => {
+      const isF12 = input.key === 'F12';
+      const isCtrlShiftI =
+        input.key === 'I' && input.control && input.shift && !input.alt && !input.meta;
+      const isCmdOptionI =
+        input.key === 'I' && input.meta && input.alt && !input.control && !input.shift;
+      const isCtrlShiftJ =
+        input.key === 'J' && input.control && input.shift && !input.alt && !input.meta;
+      const isCmdOptionJ =
+        input.key === 'J' && input.meta && input.alt && !input.control && !input.shift;
+
+      if (isF12 || isCtrlShiftI || isCmdOptionI || isCtrlShiftJ || isCmdOptionJ) {
+        _event.preventDefault();
+      }
+    });
+  }
 
   if (isDev) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL!);
@@ -167,6 +191,8 @@ if (!gotTheLock) {
   });
 
   app.on('before-quit', () => {
+    // SECURITY: Wipe decryption keys from memory before process exits
+    clearKeys();
     disposeAutoUpdater();
     mainWindow = null;
   });

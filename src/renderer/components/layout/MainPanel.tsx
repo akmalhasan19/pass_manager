@@ -5,6 +5,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useFolderStore } from '../../stores/folderStore';
 import { useItemStore } from '../../stores/itemStore';
+import { logger } from '../../../shared/logger';
 import ItemDetailView from '../views/ItemDetailView';
 import type { Folder, Item, Tag, ItemDecrypted } from '../../../shared/types';
 
@@ -96,7 +97,8 @@ export default function MainPanel(): React.ReactElement {
         await loadItems(currentFolderId);
       }
     } catch (err) {
-      console.error('Failed to create new item:', err);
+      // SECURITY: Use centralized logger — sanitization prevents key/password leakage
+      logger.error('Failed to create new item:', err);
     }
   }, [currentFolderId, createItem, setSelectedItem, setActiveView, loadItems]);
 
@@ -214,7 +216,7 @@ export default function MainPanel(): React.ReactElement {
       try {
         await window.electron.files.attach(itemId, (file as File & { path: string }).path);
       } catch (err) {
-        console.error('Failed to attach file:', err);
+        logger.error('Failed to attach file:', err);
       }
     };
     input.click();
@@ -224,7 +226,7 @@ export default function MainPanel(): React.ReactElement {
     try {
       await window.electron.files.download(attachmentId);
     } catch (err) {
-      console.error('Failed to download file:', err);
+      logger.error('Failed to download file:', err);
     }
   }, []);
 
@@ -232,7 +234,7 @@ export default function MainPanel(): React.ReactElement {
     try {
       await window.electron.files.delete(attachmentId);
     } catch (err) {
-      console.error('Failed to delete file:', err);
+      logger.error('Failed to delete file:', err);
     }
   }, []);
 
