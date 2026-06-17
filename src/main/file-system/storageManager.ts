@@ -10,6 +10,7 @@ import {
   existsSync,
   mkdirSync,
   statSync,
+  rmSync,
 } from 'node:fs';
 import { join, basename, resolve, isAbsolute } from 'node:path';
 import { app } from 'electron';
@@ -26,6 +27,7 @@ import {
   resolveVaultDatabasePath as resolveManagedVaultDatabasePath,
   updateVault,
 } from './vaultRegistry';
+import { deleteVaultAuthMetadata } from './vaultAuthStorage';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_BYTES = 12;
@@ -145,7 +147,7 @@ export function updateVaultMetadata(
 
 export function deleteVaultMetadata(
   vaultId: string,
-  options: { deleteDatabaseFile?: boolean } = {},
+  options: { deleteDatabaseFile?: boolean; deleteAttachments?: boolean } = {},
 ): VaultRegistryEntry {
   const entry = readVaultMetadata(vaultId);
   const removed = deleteVault(vaultId);
@@ -153,6 +155,23 @@ export function deleteVaultMetadata(
   if (options.deleteDatabaseFile && existsSync(entry.databasePath)) {
     unlinkSync(entry.databasePath);
   }
+
+  if (options.deleteAttachments) {
+    const attachmentsDir = join(getUserDataPath(), 'attachments', vaultId);
+    if (existsSync(attachmentsDir)) {
+      rmSync(attachmentsDir, { recursive: true, force: true });
+    }
+
+    const coversDir = join(getUserDataPath(), 'covers', vaultId);
+    if (existsSync(coversDir)) {
+      rmSync(coversDir, { recursive: true, force: true });
+    }
+  }
+
+  // Always delete per-vault auth metadata when removing a vault.
+  // This ensures no orphaned auth files remain and the vault's
+  // cryptographic material is fully cleaned up.
+  deleteVaultAuthMetadata(vaultId);
 
   return removed;
 }
@@ -199,8 +218,8 @@ export function resolveNewVaultDatabasePath(vaultId: string, customPath?: string
   return databasePath;
 }
 
-export function getStoragePath(): string {
-  const dir = join(getUserDataPath(), 'attachments');
+export function getStoragePath(vaultId: string): string {
+  const dir = join(getUserDataPath(), 'attachments', vaultId);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
@@ -215,7 +234,7 @@ function getTempPath(): string {
   return dir;
 }
 
-export async function encryptAndStoreFile(sourcePath: string, key: Buffer): Promise<string> {
+export async function encryptAndStoreFile(sourcePath: string, key: Buffer, vaultId: string): Promise<string> {
   if (key.length !== KEY_BYTES) {
     throw new Error(`Key must be ${KEY_BYTES} bytes (got ${key.length})`);
   }
@@ -224,7 +243,7 @@ export async function encryptAndStoreFile(sourcePath: string, key: Buffer): Prom
   const cipher = createCipheriv(ALGORITHM, key, iv);
 
   const storageName = `${Date.now()}-${randomBytes(6).toString('hex')}.enc`;
-  const storagePath = join(getStoragePath(), storageName);
+  const storagePath = join(getStoragePath(vaultId), storageName);
 
   const readStream = createReadStream(sourcePath, { highWaterMark: STREAM_CHUNK_SIZE });
   const writeStream = createWriteStream(storagePath);
@@ -252,7 +271,7 @@ export async function encryptAndStoreFile(sourcePath: string, key: Buffer): Prom
   });
 }
 
-export async function decryptAndRetrieveFile(storagePath: string, key: Buffer): Promise<string> {
+export async function decryptAndRetrieveFile(storagePath: string, key: Buffer, vaultId: string): Promise<string> {
   if (key.length !== KEY_BYTES) {
     throw new Error(`Key must be ${KEY_BYTES} bytes (got ${key.length})`);
   }
@@ -262,8 +281,8 @@ export async function decryptAndRetrieveFile(storagePath: string, key: Buffer): 
     throw new Error('Invalid storage path: path traversal detected.');
   }
 
-  // Validate path is within storage directory
-  const storageDir = getStoragePath();
+  // Validate path is within vault-scoped storage directory
+  const storageDir = getStoragePath(vaultId);
   if (!isPathWithinDirectory(storageDir, storagePath)) {
     throw new Error('Storage path is outside the allowed directory.');
   }
@@ -334,14 +353,14 @@ export async function decryptAndRetrieveFile(storagePath: string, key: Buffer): 
   });
 }
 
-export function deleteStoredFile(storagePath: string): void {
+export function deleteStoredFile(storagePath: string, vaultId: string): void {
   // Validate path for traversal attacks
   if (containsPathTraversal(storagePath)) {
     throw new Error('Invalid storage path: path traversal detected.');
   }
 
-  // Validate path is within storage directory
-  const storageDir = getStoragePath();
+  // Validate path is within vault-scoped storage directory
+  const storageDir = getStoragePath(vaultId);
   if (!isPathWithinDirectory(storageDir, storagePath)) {
     throw new Error('Storage path is outside the allowed directory.');
   }

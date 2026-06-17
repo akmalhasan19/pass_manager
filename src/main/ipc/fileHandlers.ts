@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { app } from 'electron';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
 import { FileAttachmentRepository } from '../database/repositories/FileAttachmentRepository';
-import { isDatabaseOpen } from '../database/connection';
+import { isDatabaseOpen, getActiveVaultId } from '../database/connection';
 import { getMasterKey } from './authHandlers';
 import { encryptAES256GCM, decryptAES256GCM } from '../crypto/encryption';
 import {
@@ -51,9 +51,9 @@ function getMimeType(fileName: string): string {
   return MIME_TYPES[ext] ?? 'application/octet-stream';
 }
 
-function getAttachmentsDir(): string {
+function getAttachmentsDir(vaultId: string): string {
   const userDataPath = app?.getPath?.('userData') ?? join(process.cwd(), 'data');
-  const dir = join(userDataPath, 'attachments');
+  const dir = join(userDataPath, 'attachments', vaultId);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
@@ -115,6 +115,11 @@ export function registerFileHandlers(): void {
           return { success: false, error: 'Database is not open.' };
         }
 
+        const vaultId = getActiveVaultId();
+        if (!vaultId) {
+          return { success: false, error: 'No active vault.' };
+        }
+
         const key = getMasterKey();
         if (!key) {
           return { success: false, error: 'No master key available. Unlock first.' };
@@ -148,7 +153,7 @@ export function registerFileHandlers(): void {
         // SECURITY: Wipe plaintext file data after encryption
         secureClear(fileBuffer);
 
-        const attachmentsDir = getAttachmentsDir();
+        const attachmentsDir = getAttachmentsDir(vaultId);
         const storageName = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}.enc`;
         const storagePath = join(attachmentsDir, storageName);
 
@@ -184,6 +189,11 @@ export function registerFileHandlers(): void {
           return { success: false, error: 'Database is not open.' };
         }
 
+        const vaultId = getActiveVaultId();
+        if (!vaultId) {
+          return { success: false, error: 'No active vault.' };
+        }
+
         const key = getMasterKey();
         if (!key) {
           return { success: false, error: 'No master key available. Unlock first.' };
@@ -194,9 +204,14 @@ export function registerFileHandlers(): void {
           return { success: false, error: 'Attachment not found.' };
         }
 
-        // Validate storage path is within attachments directory
+        // Validate storage path is within vault-scoped attachments directory
         if (containsPathTraversal(attachment.storagePath)) {
           return { success: false, error: 'Invalid attachment storage path.' };
+        }
+
+        const attachmentsDir = getAttachmentsDir(vaultId);
+        if (!attachment.storagePath.startsWith(attachmentsDir)) {
+          return { success: false, error: 'Attachment storage path is outside the allowed directory.' };
         }
 
         if (!existsSync(attachment.storagePath)) {
@@ -243,9 +258,24 @@ export function registerFileHandlers(): void {
           return { success: false, error: 'Database is not open.' };
         }
 
+        const vaultId = getActiveVaultId();
+        if (!vaultId) {
+          return { success: false, error: 'No active vault.' };
+        }
+
         const attachment = fileRepo.getById(attachmentId);
         if (!attachment) {
           return { success: false, error: 'Attachment not found.' };
+        }
+
+        // Validate storage path is within vault-scoped attachments directory
+        if (containsPathTraversal(attachment.storagePath)) {
+          return { success: false, error: 'Invalid attachment storage path.' };
+        }
+
+        const attachmentsDir = getAttachmentsDir(vaultId);
+        if (!attachment.storagePath.startsWith(attachmentsDir)) {
+          return { success: false, error: 'Attachment storage path is outside the allowed directory.' };
         }
 
         if (existsSync(attachment.storagePath)) {

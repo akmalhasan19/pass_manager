@@ -153,7 +153,6 @@ describe('Regression Security Tests', () => {
   // ========================================================================
   describe('5.3.1 — Lock Screen Heap Snapshot', () => {
     it('should not retain decrypted item data or key material after lock', () => {
-      let snapshotAfter: string;
       let probePaths: string[] = [];
 
       // Simulate an unlocked vault with decrypted items and a key buffer.
@@ -201,7 +200,7 @@ describe('Regression Security Tests', () => {
 
       forceGc();
 
-      snapshotAfter = v8.writeHeapSnapshot();
+      const snapshotAfter = v8.writeHeapSnapshot();
       snapshotsToClean.push(snapshotAfter);
 
       for (const probePath of probePaths) {

@@ -4,7 +4,6 @@ import {
   createImportItem,
   makeImportPayload,
   ImportFormatError,
-  ImportParseError,
   type Importer,
 } from '../importer';
 import { parseCsvLine } from '../plainTextFormats';
@@ -23,15 +22,6 @@ type OnePasswordColumn = (typeof ONEPASSWORD_EXPECTED_COLUMNS)[number];
 
 function normalizeHeader(raw: string): string {
   return raw.toLowerCase().trim();
-}
-
-function parseTagsField(raw: string): string[] {
-  if (!raw || raw.trim().length === 0) return [];
-
-  return raw
-    .split(',')
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0);
 }
 
 export class OnePasswordCsvImporter implements Importer {
@@ -97,7 +87,6 @@ export class OnePasswordCsvImporter implements Importer {
 
       const url = columnMap.has('url') ? fields[columnMap.get('url')!]?.trim() || '' : '';
       const notes = columnMap.has('notes') ? fields[columnMap.get('notes')!]?.trim() || null : null;
-      const tagsRaw = columnMap.has('tags') ? fields[columnMap.get('tags')!] || '' : '';
 
       payload.items.push(
         createImportItem({

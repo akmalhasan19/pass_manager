@@ -30,7 +30,7 @@ const ALLOWED_TAGS = [
 
 const ALLOWED_ATTR = ['href', 'title', 'target', 'rel'];
 
-const SAFE_URI_REGEXP = /^(?:(?:https?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
+const SAFE_URI_REGEXP = /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.:_-]|$))/i;
 
 const BLOCK_TAGS = new Set([
   'p', 'div', 'ol', 'ul', 'li', 'blockquote', 'pre',

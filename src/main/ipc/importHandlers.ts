@@ -3,7 +3,6 @@ import { readFileSync, existsSync } from 'node:fs';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
 import {
   IMPORT_FORMAT_EXTENSIONS,
-  IMPORT_FORMAT_MIME_TYPES,
   IMPORT_FORMAT_LABELS,
   type ImportFormat,
   type ImportDialogResult,
@@ -33,17 +32,6 @@ const FORMAT_FILTERS: Record<ImportFormat, Electron.FileFilter> = {
 
 function getAllowedExtensions(format: ImportFormat): string[] {
   return IMPORT_FORMAT_EXTENSIONS[format];
-}
-
-function getFormatForExtension(fileName: string): ImportFormat | null {
-  const lower = fileName.toLowerCase();
-  for (const format of Object.keys(IMPORT_FORMAT_EXTENSIONS) as ImportFormat[]) {
-    const exts = IMPORT_FORMAT_EXTENSIONS[format];
-    if (exts.some((ext) => lower.endsWith(ext))) {
-      return format;
-    }
-  }
-  return null;
 }
 
 function validateFileExtension(filePath: string, format: ImportFormat): boolean {
@@ -98,10 +86,7 @@ export function registerImportHandlers(): void {
           };
         }
 
-        const fileName = filePath.split(/[/\\]/).pop() ?? 'unknown';
         const content = readFileSync(filePath, 'utf-8');
-
-        const detectedFormat = getFormatForExtension(fileName);
 
         return {
           success: true,
@@ -122,7 +107,7 @@ export function registerImportHandlers(): void {
 
   ipcMain.handle(
     IPC_CHANNELS.IMPORT_PARSE_FILE,
-    async (_event, { format, filePath, content }: ImportDialogResult): Promise<{ success: boolean; data?: ImportPayload; error?: string }> => {
+    async (_event, { format, filePath: _filePath, content }: ImportDialogResult): Promise<{ success: boolean; data?: ImportPayload; error?: string }> => {
       try {
         if (!content) {
           return { success: false, error: 'No file content provided.' };
@@ -263,7 +248,7 @@ export function registerImportHandlers(): void {
         }
 
         let importedCount = 0;
-        let replacedCount = 0;
+        const replacedCount = 0;
 
         db.run('BEGIN TRANSACTION');
 

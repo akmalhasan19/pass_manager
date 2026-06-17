@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import enTranslations from './locales/en.json';
-import type idTranslations from './locales/id.json';
 
 export type Locale = 'en' | 'id';
 

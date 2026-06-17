@@ -27,10 +27,6 @@ function hasControlCharacters(value: string): boolean {
  * Allows all printable characters including emoji, CJK, RTL, etc.
  * Blocks only ASCII control characters (\x00-\x1F, \x7F).
  */
-function containsOnlyPrintable(value: string): boolean {
-  ALL_CONTROL_CHAR_REGEX.lastIndex = 0;
-  return !ALL_CONTROL_CHAR_REGEX.test(value);
-}
 
 export interface ValidationError {
   field: string;

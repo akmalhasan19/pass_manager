@@ -25,6 +25,7 @@ describe('authStore', () => {
       error: null,
       isAuthenticated: false,
       isLoading: true,
+      activeVaultId: null,
     });
   });
 
@@ -126,6 +127,33 @@ describe('authStore', () => {
       expect(useAuthStore.getState().status).toBe('unlocked');
       expect(useAuthStore.getState().isAuthenticated).toBe(true);
       expect(useAuthStore.getState().error).toBeNull();
+    });
+
+    it('should set activeVaultId on successful unlock', async () => {
+      mockElectron.auth.unlock.mockResolvedValue({ success: true, vaultId: 'vault-abc' });
+      await useAuthStore.getState().unlock('masterpw');
+
+      expect(useAuthStore.getState().activeVaultId).toBe('vault-abc');
+      expect(useAuthStore.getState().status).toBe('unlocked');
+    });
+
+    it('should clear activeVaultId on failed unlock', async () => {
+      useAuthStore.setState({ activeVaultId: 'vault-old' });
+      mockElectron.auth.unlock.mockResolvedValue({ success: false, error: 'Incorrect master password' });
+      await useAuthStore.getState().unlock('wrong');
+
+      expect(useAuthStore.getState().activeVaultId).toBeNull();
+      expect(useAuthStore.getState().status).toBe('locked');
+    });
+
+    it('should clear activeVaultId on lock', async () => {
+      useAuthStore.setState({ status: 'unlocked', isAuthenticated: true, isLoading: false, activeVaultId: 'vault-1' });
+      mockElectron.auth.lock.mockResolvedValue(undefined);
+
+      await useAuthStore.getState().lock();
+
+      expect(useAuthStore.getState().activeVaultId).toBeNull();
+      expect(useAuthStore.getState().status).toBe('locked');
     });
 
     it('should set error on unlock failure (false)', async () => {

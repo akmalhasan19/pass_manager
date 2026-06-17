@@ -281,7 +281,7 @@ describe('Encrypted JSON Export', () => {
     const folder = folderRepo.create(null, 'Roundtrip', '🔄');
     const encryptedPw = encryptString('roundtripSecret', TEST_KEY);
 
-    const item = itemRepo.create(folder.id, {
+    itemRepo.create(folder.id, {
       title: 'Roundtrip Item',
       username: 'roundtrip@example.com',
       passwordEncrypted: encryptedPw,
@@ -467,9 +467,9 @@ describe('Encrypted JSON Export', () => {
 
     it('should maintain folder hierarchy through round trip', () => {
       const root1 = folderRepo.create(null, 'Root1', '🌳');
-      const root2 = folderRepo.create(null, 'Root2', '🌲');
+      folderRepo.create(null, 'Root2', '🌲');
       const child1 = folderRepo.create(root1.id, 'Child1', '🌿');
-      const child2 = folderRepo.create(root1.id, 'Child2', '🍃');
+      folderRepo.create(root1.id, 'Child2', '🍃');
       const grandchild = folderRepo.create(child1.id, 'Grandchild', '🌱');
 
       const encryptedPw = encryptString('test', TEST_KEY);
@@ -518,7 +518,7 @@ describe('Encrypted JSON Export', () => {
       });
       itemRepo.update(item1.id, { isFavorite: true });
 
-      const item2 = itemRepo.create(folder.id, {
+      itemRepo.create(folder.id, {
         title: 'Normal Item',
         passwordEncrypted: encryptedPw,
       });

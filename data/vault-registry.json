@@ -2,10 +2,10 @@
   "version": 1,
   "vaults": [
     {
-      "id": "d670a5a3-2630-46cb-9d38-f879b7986663",
+      "id": "4b19d334-9b2e-4b4f-97ec-8bca0a54a809",
       "name": "Keep This",
-      "databasePath": "C:\\Users\\user\\pass_manager\\data\\vaults\\vault-d670a5a3-2630-46cb-9d38-f879b7986663.db",
-      "createdAt": 1781672045494,
+      "databasePath": "C:\\Users\\user\\pass_manager\\data\\vaults\\vault-4b19d334-9b2e-4b4f-97ec-8bca0a54a809.db",
+      "createdAt": 1781680860363,
       "lastOpenedAt": null,
       "lastOpenedVersion": null,
       "description": null,

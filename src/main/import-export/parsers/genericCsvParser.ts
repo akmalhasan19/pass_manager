@@ -4,7 +4,6 @@ import {
   createImportItem,
   makeImportPayload,
   ImportFormatError,
-  ImportParseError,
   type Importer,
 } from '../importer';
 import { parseCsvLine } from '../plainTextFormats';
@@ -44,14 +43,6 @@ function validateMapping(mapping: CsvColumnMapping): void {
     }
     seen.add(val);
   }
-}
-
-function parseTags(value: string): string[] {
-  if (!value || value.trim().length === 0) return [];
-  return value
-    .split(',')
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0);
 }
 
 export class GenericCsvImporter implements Importer {
@@ -129,7 +120,6 @@ export class GenericCsvImporter implements Importer {
 
       const url = getField('url') || '';
       const notes = getField('notes') || null;
-      const tagsRaw = getField('tags') || '';
       const tagIds: string[] = [];
 
       payload.items.push(

@@ -72,7 +72,6 @@ export function applyResolutionMap(
 ): ImportPayload {
   const { items, globalResolution, perItemResolutions } = resolutionMap;
 
-  const duplicateIndexes = new Set(items.map((d) => d.importItemIndex));
   const resolutionByIndex = new Map<number, DuplicateResolution>();
 
   for (const [indexStr, resolution] of Object.entries(perItemResolutions)) {

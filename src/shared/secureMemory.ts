@@ -7,6 +7,8 @@
  * heap indefinitely after a variable goes out of scope.
  */
 
+import { randomBytes } from 'node:crypto';
+
 /**
  * Overwrite a buffer's contents with zero bytes, then fill with random bytes
  * for additional scrubbing. The final fill is zero so that the buffer is
@@ -34,7 +36,6 @@ export function secureClear(buffer: Buffer | ArrayBuffer | null | undefined): vo
 
   // Pass 2 – overwrite with random bytes (adds non-determinism to confuse
   // heap-analysis tools that might look for predictable zero patterns)
-  const { randomBytes } = require('node:crypto') as typeof import('node:crypto');
   const scratch = randomBytes(Math.min(len, 256));
   for (let i = 0; i < len; i += scratch.length) {
     const chunk = scratch.subarray(0, Math.min(scratch.length, len - i));

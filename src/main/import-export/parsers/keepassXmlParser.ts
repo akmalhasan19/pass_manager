@@ -79,11 +79,13 @@ function decodeUuid(uuid: string | undefined): string {
     if (bytes.length === 16) {
       return bytes.toString('base64').replace(/[/+=]/g, '_').slice(0, 21);
     }
-  } catch {}
+  } catch {
+    /* invalid UUID: fall back to nanoid below */
+  }
   return nanoid();
 }
 
-function parseEntry(entry: KeepassEntry, folderId: string): {
+function parseEntry(entry: KeepassEntry, _folderId: string): {
   title: string;
   username: string;
   password: string;

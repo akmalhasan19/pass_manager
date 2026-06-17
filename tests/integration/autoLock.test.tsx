@@ -11,12 +11,21 @@ const mockLoadSettings = vi.fn();
 let mockIsAuthenticated = true;
 let mockIsLoaded = true;
 let mockSettings = { autoLockTime: 60000 };
+let mockActiveVaultId: string | null = 'vault-1';
 
 vi.mock('@renderer/stores/authStore', () => ({
   useAuthStore: (
-    selector?: (s: { isAuthenticated: boolean; lock: () => Promise<void> }) => unknown,
+    selector?: (s: {
+      isAuthenticated: boolean;
+      lock: () => Promise<void>;
+      activeVaultId: string | null;
+    }) => unknown,
   ) => {
-    const state = { isAuthenticated: mockIsAuthenticated, lock: mockLock };
+    const state = {
+      isAuthenticated: mockIsAuthenticated,
+      lock: mockLock,
+      activeVaultId: mockActiveVaultId,
+    };
     return selector ? selector(state) : state;
   },
 }));
@@ -53,6 +62,7 @@ describe('Auto-Lock Timer Integration', () => {
     mockIsAuthenticated = true;
     mockIsLoaded = true;
     mockSettings = { autoLockTime: 60000 };
+    mockActiveVaultId = 'vault-1';
     mockLock.mockClear();
     mockLoadSettings.mockClear();
   });
@@ -195,5 +205,118 @@ describe('Auto-Lock Timer Integration', () => {
       vi.advanceTimersByTime(2000);
     });
     expect(mockLock).toHaveBeenCalled();
+  });
+
+  // --- Vault-aware auto-lock tests ---
+
+  it('should not lock when activeVaultId is null (no vault open)', () => {
+    mockActiveVaultId = null;
+    mockIsAuthenticated = false; // No vault open means not authenticated
+    mockSettings = { autoLockTime: 5000 };
+    render(React.createElement(TestComp, { onResult: () => {} }));
+
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
+    // When no vault is open and not authenticated, the hook should not lock
+    expect(mockLock).not.toHaveBeenCalled();
+  });
+
+  it('should reset timer when activeVaultId changes (vault switch)', () => {
+    mockSettings = { autoLockTime: 10000 };
+
+    const { rerender } = render(
+      React.createElement(TestComp, { onResult: () => {} }),
+    );
+
+    // Advance 8 seconds (near lock threshold)
+    act(() => {
+      vi.advanceTimersByTime(8000);
+    });
+    expect(mockLock).not.toHaveBeenCalled();
+
+    // Simulate vault switch: change activeVaultId
+    mockActiveVaultId = 'vault-2';
+    rerender(React.createElement(TestComp, { onResult: () => {} }));
+
+    // Advance 8 seconds after switch — should NOT lock because timer was reset
+    act(() => {
+      vi.advanceTimersByTime(8000);
+    });
+    expect(mockLock).not.toHaveBeenCalled();
+
+    // Advance remaining 2 seconds — should lock now (full 10s from vault switch)
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(mockLock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not carry idle state from old vault to new vault', () => {
+    mockSettings = { autoLockTime: 5000 };
+
+    const { rerender } = render(
+      React.createElement(TestComp, { onResult: () => {} }),
+    );
+
+    // Advance 4 seconds (close to lock)
+    act(() => {
+      vi.advanceTimersByTime(4000);
+    });
+
+    // Switch vault — this should reset the timer
+    mockActiveVaultId = 'vault-new';
+    rerender(React.createElement(TestComp, { onResult: () => {} }));
+
+    // Advance only 3 seconds after switch — should NOT lock
+    // (old 4s idle should not carry over)
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(mockLock).not.toHaveBeenCalled();
+
+    // Advance to full 5s from switch — should lock
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(mockLock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should lock the active vault (not assume single global vault)', () => {
+    mockActiveVaultId = 'vault-specific';
+    mockSettings = { autoLockTime: 5000 };
+    render(React.createElement(TestComp, { onResult: () => {} }));
+
+    act(() => {
+      vi.advanceTimersByTime(6000);
+    });
+
+    // lock() is called — the authStore.lock() handles locking the active vault
+    expect(mockLock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not reset timer on vault change when not authenticated', () => {
+    mockSettings = { autoLockTime: 5000 };
+    mockIsAuthenticated = true;
+
+    const { rerender } = render(
+      React.createElement(TestComp, { onResult: () => {} }),
+    );
+
+    // Switch vault while authenticated
+    mockActiveVaultId = 'vault-2';
+    rerender(React.createElement(TestComp, { onResult: () => {} }));
+
+    // Now become unauthenticated
+    mockIsAuthenticated = false;
+    mockActiveVaultId = null;
+    rerender(React.createElement(TestComp, { onResult: () => {} }));
+
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
+
+    // Should not lock when not authenticated
+    expect(mockLock).not.toHaveBeenCalled();
   });
 });

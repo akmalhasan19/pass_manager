@@ -20,11 +20,12 @@ export interface UseAutoLockReturn {
  * 2. Shows a warning 30 seconds before the lock timer expires
  * 3. Calls `authStore.lock()` when the timer reaches zero
  * 4. Resets the timer on any activity
+ * 5. Resets the timer when the active vault changes (vault switch)
  *
  * @returns Object with `timeRemaining`, `showWarning`, `extendTimer`, and `isEnabled`
  */
 export function useAutoLock(): UseAutoLockReturn {
-  const { lock, isAuthenticated } = useAuthStore();
+  const { lock, isAuthenticated, activeVaultId } = useAuthStore();
   const { settings, loadSettings, isLoaded } = useSettingsStore();
 
   const [timeRemaining, setTimeRemaining] = useState<number>(Infinity);
@@ -36,6 +37,7 @@ export function useAutoLock(): UseAutoLockReturn {
   const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLockingRef = useRef(false);
+  const prevVaultIdRef = useRef<string | null>(null);
 
   const autoLockTime = settings.autoLockTime;
 
@@ -161,9 +163,10 @@ export function useAutoLock(): UseAutoLockReturn {
     document.addEventListener('visibilitychange', handleVisibility);
 
     const handlePowerMonitor = (_event: Event) => {
-      lastActivityRef.current = Date.now();
-      const elapsed = Date.now() - lastActivityRef.current;
-      if (elapsed >= autoLockTime && !isLockingRef.current) {
+      // SECURITY: On lock-screen or suspend, lock immediately.
+      // The power monitor signals the OS is locking/suspending,
+      // so we should lock regardless of remaining idle time.
+      if (!isLockingRef.current) {
         isLockingRef.current = true;
         lock();
       }
@@ -188,6 +191,23 @@ export function useAutoLock(): UseAutoLockReturn {
       isLockingRef.current = false;
     }
   }, [isAuthenticated]);
+
+  // Reset auto-lock timer when active vault changes.
+  // This prevents carrying over idle time from the old vault to the new one.
+  useEffect(() => {
+    const prevVaultId = prevVaultIdRef.current;
+    prevVaultIdRef.current = activeVaultId;
+
+    // Skip the initial mount (prevVaultId is null on first render)
+    if (prevVaultId === null) return;
+
+    // If the vault changed while authenticated, reset the timer
+    // so the new vault starts with a fresh idle period.
+    if (activeVaultId !== prevVaultId && isAuthenticated && autoLockTime > 0) {
+      isLockingRef.current = false;
+      startTimers();
+    }
+  }, [activeVaultId, isAuthenticated, autoLockTime, startTimers]);
 
   const roundedTimeRemaining =
     timeRemaining === Infinity ? Infinity : Math.ceil(timeRemaining / 1000) * 1000;

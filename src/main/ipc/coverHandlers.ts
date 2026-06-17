@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
 import { saveCoverImage, readCoverImage, deleteCoverImage } from '../file-system/coverImageStorage';
+import { getActiveVaultId } from '../database/connection';
 
 export function registerCoverHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.COVER_UPLOAD, async (_event, { filePath }: { filePath: string }) => {
@@ -9,7 +10,12 @@ export function registerCoverHandlers(): void {
         return { success: false, error: 'No file path provided.' };
       }
 
-      const coverName = saveCoverImage(filePath);
+      const vaultId = getActiveVaultId();
+      if (!vaultId) {
+        return { success: false, error: 'No active vault.' };
+      }
+
+      const coverName = saveCoverImage(filePath, vaultId);
       return { success: true, data: coverName };
     } catch (error) {
       return {
@@ -25,7 +31,12 @@ export function registerCoverHandlers(): void {
         return { success: false, error: 'No cover name provided.' };
       }
 
-      const dataUrl = readCoverImage(coverName);
+      const vaultId = getActiveVaultId();
+      if (!vaultId) {
+        return { success: false, error: 'No active vault.' };
+      }
+
+      const dataUrl = readCoverImage(coverName, vaultId);
       return { success: true, data: dataUrl };
     } catch (error) {
       return {
@@ -43,7 +54,12 @@ export function registerCoverHandlers(): void {
           return { success: false, error: 'No cover name provided.' };
         }
 
-        deleteCoverImage(coverName);
+        const vaultId = getActiveVaultId();
+        if (!vaultId) {
+          return { success: false, error: 'No active vault.' };
+        }
+
+        deleteCoverImage(coverName, vaultId);
         return { success: true };
       } catch (error) {
         return {

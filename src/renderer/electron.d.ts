@@ -15,16 +15,17 @@ import {
   CsvHeaderResult,
   DuplicateReport,
   DuplicateResolutionMap,
+  VaultRegistryEntry,
 } from '../shared/types';
 
 export type IpcResult<T> = { success: boolean; data: T; error?: string };
 
 export interface ElectronAuthAPI {
-  init(masterPassword: string): Promise<IpcResult<void>>;
-  unlock(masterPassword: string): Promise<IpcResult<void>>;
+  init(masterPassword: string, vaultId?: string): Promise<IpcResult<void> & { vaultId?: string }>;
+  unlock(masterPassword: string, vaultId?: string): Promise<IpcResult<void> & { vaultId?: string }>;
   lock(): Promise<IpcResult<void>>;
-  changePassword(oldPassword: string, newPassword: string): Promise<IpcResult<void>>;
-  check(): Promise<{ initialized: boolean }>;
+  changePassword(oldPassword: string, newPassword: string, vaultId?: string): Promise<IpcResult<void>>;
+  check(): Promise<{ initialized: boolean; vaultId?: string | null; vaultName?: string | null }>;
   // SECURITY: Remove all IPC listeners to prevent lingering references on lock
   cleanupListeners(): void;
 }
@@ -163,10 +164,28 @@ export interface ElectronUpdatesAPI {
   removeAllListeners(): void;
 }
 
+export interface ElectronVaultsAPI {
+  list(): Promise<IpcResult<VaultRegistryEntry[]>>;
+  create(params: {
+    name: string;
+    masterPassword: string;
+    description?: string | null;
+    color?: string | null;
+    icon?: string | null;
+    isDefault?: boolean;
+    customDatabasePath?: string;
+  }): Promise<IpcResult<VaultRegistryEntry>>;
+  select(vaultId: string, masterPassword: string): Promise<IpcResult<{ vaultId: string }>>;
+  rename(vaultId: string, name: string): Promise<IpcResult<VaultRegistryEntry>>;
+  delete(vaultId: string, deleteDatabaseFile?: boolean, deleteAttachments?: boolean): Promise<IpcResult<VaultRegistryEntry>>;
+  getActive(): Promise<IpcResult<{ vaultId: string | null; vault: VaultRegistryEntry | null }>>;
+}
+
 export interface ElectronAPI {
   auth: ElectronAuthAPI;
   import: ElectronImportAPI;
   export: ElectronExportAPI;
+  vaults: ElectronVaultsAPI;
   folders: ElectronFoldersAPI;
   items: ElectronItemsAPI;
   tags: ElectronTagsAPI;

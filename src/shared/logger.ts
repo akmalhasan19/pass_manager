@@ -178,12 +178,14 @@ class Logger {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   debug(message: string, ...args: any[]): void {
     if (!this.isDev) return; // Suppress in production
+    // eslint-disable-next-line no-console
     console.debug(`[DEBUG] ${message}`, ...formatArgs(args));
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   info(message: string, ...args: any[]): void {
     if (!this.isDev) return; // Suppress in production
+    // eslint-disable-next-line no-console
     console.info(`[INFO] ${message}`, ...formatArgs(args));
   }
 

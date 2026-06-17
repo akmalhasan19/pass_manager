@@ -23,6 +23,7 @@ interface SettingsState {
   error: string | null;
   loadSettings: () => Promise<void>;
   updateSetting: <K extends SettingKey>(key: K, value: AppSettings[K]) => Promise<void>;
+  reset: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -59,4 +60,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       set({ error: message });
     }
   },
+
+  /**
+   * Reset settings store to unloaded state.
+   * Called during vault switch/lock so the next vault loads its own settings.
+   */
+  reset: () =>
+    set({
+      settings: { ...DEFAULT_SETTINGS },
+      isLoaded: false,
+      isLoading: false,
+      error: null,
+    }),
 }));

@@ -15,7 +15,7 @@ interface DuplicatePreviewProps {
 }
 
 export default function DuplicatePreview({
-  payload,
+  payload: _payload,
   report,
   onConfirm,
   onBack,

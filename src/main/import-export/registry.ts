@@ -4,7 +4,7 @@ import { createBitwardenJsonImporter } from './parsers/bitwardenJsonParser';
 import { createOnePasswordCsvImporter } from './parsers/onePasswordCsvParser';
 import { createGenericCsvImporter } from './parsers/genericCsvParser';
 import { createEncryptedJsonImporter } from './parsers/encryptedJsonParser';
-import type { ImportFormat, CsvColumnMapping } from '../../shared/types';
+import type { CsvColumnMapping } from '../../shared/types';
 
 export function createDefaultImporterFactory(): ImporterFactory {
   const factory = new ImporterFactory();

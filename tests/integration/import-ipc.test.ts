@@ -4,7 +4,6 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { FolderRepository } from '@main/database/repositories/FolderRepository';
 import { ItemRepository } from '@main/database/repositories/ItemRepository';
-import { TagRepository } from '@main/database/repositories/TagRepository';
 import { encryptString, decryptString } from '@main/crypto/encryption';
 import { createImporterFactoryWithAllDefaults } from '@main/import-export/registry';
 import {
@@ -14,7 +13,6 @@ import {
 } from '@main/import-export/duplicateDetection';
 import type {
   ImportPayload,
-  ImportFormat,
   DuplicateResolutionMap,
 } from '@shared/types';
 
@@ -78,7 +76,6 @@ vi.mock('@main/ipc/authHandlers', () => ({
 
 const folderRepo = new FolderRepository();
 const itemRepo = new ItemRepository();
-const tagRepo = new TagRepository();
 
 const TEST_KEY = Buffer.from('0123456789abcdef0123456789abcdef', 'utf-8');
 
@@ -149,14 +146,6 @@ function commitImportPayload(payload: ImportPayload): { importedCount: number } 
   }
 
   return { importedCount };
-}
-
-function emptyResolutionMap(): DuplicateResolutionMap {
-  return {
-    items: [],
-    globalResolution: 'skip',
-    perItemResolutions: {},
-  };
 }
 
 describe('Import IPC Integration', () => {

@@ -32,17 +32,41 @@ const api = {
   },
 
   auth: {
-    init: (masterPassword: string) =>
-      ipcRenderer.invoke(IPC_CHANNELS.AUTH_INIT, { masterPassword }),
-    unlock: (masterPassword: string) =>
-      ipcRenderer.invoke(IPC_CHANNELS.AUTH_UNLOCK, { masterPassword }),
+    init: (masterPassword: string, vaultId?: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.AUTH_INIT, { masterPassword, vaultId }),
+    unlock: (masterPassword: string, vaultId?: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.AUTH_UNLOCK, { masterPassword, vaultId }),
     lock: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOCK),
-    changePassword: (oldPassword: string, newPassword: string) =>
-      ipcRenderer.invoke(IPC_CHANNELS.AUTH_CHANGE_PASSWORD, { oldPassword, newPassword }),
+    changePassword: (oldPassword: string, newPassword: string, vaultId?: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.AUTH_CHANGE_PASSWORD, { oldPassword, newPassword, vaultId }),
     check: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_CHECK),
     // SECURITY: Clean up all IPC listeners to prevent lingering references
     // after lock or when the renderer no longer needs them.
     cleanupListeners: () => removeAllSensitiveListeners(),
+  },
+
+  vaults: {
+    list: () => ipcRenderer.invoke(IPC_CHANNELS.VAULT_LIST),
+    create: (params: {
+      name: string;
+      masterPassword: string;
+      description?: string | null;
+      color?: string | null;
+      icon?: string | null;
+      isDefault?: boolean;
+      customDatabasePath?: string;
+    }) => ipcRenderer.invoke(IPC_CHANNELS.VAULT_CREATE, params),
+    select: (vaultId: string, masterPassword: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.VAULT_SELECT, { vaultId, masterPassword }),
+    rename: (vaultId: string, name: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.VAULT_RENAME, { vaultId, name }),
+    delete: (vaultId: string, deleteDatabaseFile?: boolean, deleteAttachments?: boolean) =>
+      ipcRenderer.invoke(IPC_CHANNELS.VAULT_DELETE, {
+        vaultId,
+        deleteDatabaseFile,
+        deleteAttachments,
+      }),
+    getActive: () => ipcRenderer.invoke(IPC_CHANNELS.VAULT_GET_ACTIVE),
   },
 
   folders: {

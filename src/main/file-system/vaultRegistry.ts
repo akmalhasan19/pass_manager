@@ -9,10 +9,8 @@ import { sanitizeForField } from '../../shared/sanitize';
 import { logger } from '../../shared/logger';
 import {
   generateVaultId,
-  generateVaultFilename,
   isValidVaultId,
   resolveVaultDatabasePath as resolveVaultDbPath,
-  isManagedVaultPath,
 } from '../../shared/vaultPathStrategy';
 
 const REGISTRY_FILENAME = 'vault-registry.json';

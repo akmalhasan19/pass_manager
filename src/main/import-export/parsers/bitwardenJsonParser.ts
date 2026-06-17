@@ -3,7 +3,6 @@ import {
   createImportPayload,
   createImportFolder,
   createImportItem,
-  createImportTag,
   makeImportPayload,
   ImportFormatError,
   ImportParseError,

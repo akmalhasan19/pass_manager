@@ -10,6 +10,7 @@ import { registerSettingsHandlers } from './ipc/settingsHandlers';
 import { registerHealthHandlers } from './ipc/healthHandlers';
 import { registerImportHandlers } from './ipc/importHandlers';
 import { registerExportHandlers } from './ipc/exportHandlers';
+import { registerVaultHandlers } from './ipc/vaultHandlers';
 import {
   initAutoUpdater,
   checkForUpdates,
@@ -121,6 +122,7 @@ function registerAllHandlers(): void {
   registerHealthHandlers();
   registerImportHandlers();
   registerExportHandlers();
+  registerVaultHandlers();
 
   // Auto-updater IPC handlers
   ipcMain.handle(IPC_CHANNELS.CHECK_FOR_UPDATES, async () => {

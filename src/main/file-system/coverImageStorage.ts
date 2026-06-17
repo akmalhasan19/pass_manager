@@ -21,9 +21,9 @@ const MIME_TYPES: Record<string, string> = {
   '.svg': 'image/svg+xml',
 };
 
-export function getCoversDir(): string {
+export function getCoversDir(vaultId: string): string {
   const userDataPath = app?.getPath?.('userData') ?? join(process.cwd(), 'data');
-  const dir = join(userDataPath, COVERS_DIR_NAME);
+  const dir = join(userDataPath, COVERS_DIR_NAME, vaultId);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
@@ -46,9 +46,10 @@ function getMimeType(fileName: string): string {
  * zero-knowledge architecture: only the path/reference is kept in the DB.
  *
  * @param sourcePath - Absolute path to the source image file.
+ * @param vaultId - The vault ID to scope storage to.
  * @returns The generated cover filename (stored in DB metadata).
  */
-export function saveCoverImage(sourcePath: string): string {
+export function saveCoverImage(sourcePath: string, vaultId: string): string {
   // Validate path for traversal attacks
   if (containsPathTraversal(sourcePath)) {
     throw new Error('Invalid file path: path traversal detected.');
@@ -86,7 +87,7 @@ export function saveCoverImage(sourcePath: string): string {
   const id = `${Date.now()}-${randomBytes(6).toString('hex')}`;
   const safeExt = ext.replace(/[^a-z0-9.]/g, '');
   const coverName = `cover-${id}${safeExt}`;
-  const destPath = join(getCoversDir(), coverName);
+  const destPath = join(getCoversDir(vaultId), coverName);
 
   copyFileSync(sourcePath, destPath);
 
@@ -97,15 +98,16 @@ export function saveCoverImage(sourcePath: string): string {
  * Reads a cover image and returns it as a base64 data URL.
  *
  * @param coverName - Filename returned by {@link saveCoverImage}.
+ * @param vaultId - The vault ID to scope the read to.
  * @returns Base64 data URL suitable for `<img src="..." />`.
  */
-export function readCoverImage(coverName: string): string {
+export function readCoverImage(coverName: string, vaultId: string): string {
   // Validate coverName for path traversal
   if (containsPathTraversal(coverName)) {
     throw new Error('Invalid cover image name: path traversal detected.');
   }
 
-  const coversDir = getCoversDir();
+  const coversDir = getCoversDir(vaultId);
   const filePath = join(coversDir, coverName);
 
   // Prevent path traversal: resolved path must be within covers directory
@@ -127,14 +129,15 @@ export function readCoverImage(coverName: string): string {
  * Deletes a cover image from the app's covers directory.
  *
  * @param coverName - Filename returned by {@link saveCoverImage}.
+ * @param vaultId - The vault ID to scope the delete to.
  */
-export function deleteCoverImage(coverName: string): void {
+export function deleteCoverImage(coverName: string, vaultId: string): void {
   // Validate coverName for path traversal
   if (containsPathTraversal(coverName)) {
     throw new Error('Invalid cover image name: path traversal detected.');
   }
 
-  const coversDir = getCoversDir();
+  const coversDir = getCoversDir(vaultId);
   const filePath = join(coversDir, coverName);
 
   // Prevent path traversal: resolved path must be within covers directory

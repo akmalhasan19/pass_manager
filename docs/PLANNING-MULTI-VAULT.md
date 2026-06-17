@@ -55,7 +55,7 @@ Fitur ini harus menjaga isolasi data antar vault. Item, folder, tag, attachment,
 
 ## 2. Task: Storage dan Database Multi-File
 
-- [ ] Task 2 Complete
+- [x] Task 2 Complete
 
 ### Sub-Task 2.1: Update Storage Manager
 
@@ -73,78 +73,78 @@ Fitur ini harus menjaga isolasi data antar vault. Item, folder, tag, attachment,
 
 ### Sub-Task 2.3: Migration per Vault
 
-- [ ] Jalankan `migrations.ts` per file database vault, bukan sekali global.
-- [ ] Simpan schema version di masing-masing database vault.
-- [ ] Saat vault lama dibuka, jalankan migration hanya setelah auth berhasil.
-- [ ] Jika migration gagal, jangan ubah active vault state dan tampilkan error yang bisa dipahami.
+- [x] Jalankan `migrations.ts` per file database vault, bukan sekali global.
+- [x] Simpan schema version di masing-masing database vault.
+- [x] Saat vault lama dibuka, jalankan migration hanya setelah auth berhasil.
+- [x] Jika migration gagal, jangan ubah active vault state dan tampilkan error yang bisa dipahami.
 
 ### Sub-Task 2.4: Attachment dan Cover Image Scope
 
-- [ ] Scope attachment storage berdasarkan `vaultId`.
-- [ ] Scope cover image storage berdasarkan `vaultId`.
-- [ ] Pastikan delete vault juga menawarkan opsi menghapus file attachment terkait.
-- [ ] Cegah collision nama file attachment antar vault.
+- [x] Scope attachment storage berdasarkan `vaultId`.
+- [x] Scope cover image storage berdasarkan `vaultId`.
+- [x] Pastikan delete vault juga menawarkan opsi menghapus file attachment terkait.
+- [x] Cegah collision nama file attachment antar vault.
 
 ---
 
 ## 3. Task: Auth dan Session State Multi-Vault
 
-- [ ] Task 3 Complete
+- [x] Task 3 Complete
 
 ### Sub-Task 3.1: Auth Metadata per Vault
 
-- [ ] Tentukan apakah auth metadata disimpan per vault atau shared registry dengan pointer ke vault.
-- [ ] Rekomendasi awal: master password dan salt per vault agar vault benar-benar independen.
-- [ ] Simpan KDF params, salt, verifier, dan encryption metadata per vault.
-- [ ] Pastikan reset atau delete satu vault tidak memengaruhi vault lain.
+- [x] Tentukan apakah auth metadata disimpan per vault atau shared registry dengan pointer ke vault.
+- [x] Rekomendasi awal: master password dan salt per vault agar vault benar-benar independen.
+- [x] Simpan KDF params, salt, verifier, dan encryption metadata per vault.
+- [x] Pastikan reset atau delete satu vault tidak memengaruhi vault lain.
 
 ### Sub-Task 3.2: Update IPC Auth Handlers
 
-- [ ] Update `authHandlers` agar `initApp`, `unlock`, `lock`, dan `checkAuth` menerima atau mengembalikan konteks `vaultId`.
-- [ ] Tambahkan IPC untuk `listVaults`, `createVault`, `selectVault`, `renameVault`, `deleteVault`, dan `getActiveVault`.
-- [ ] Semua handler item/folder/search/export/import harus membaca active vault dari session yang sudah tervalidasi.
-- [ ] Jangan izinkan operasi data jika vault target belum unlocked.
+- [x] Update `authHandlers` agar `initApp`, `unlock`, `lock`, dan `checkAuth` menerima atau mengembalikan konteks `vaultId`.
+- [x] Tambahkan IPC untuk `listVaults`, `createVault`, `selectVault`, `renameVault`, `deleteVault`, dan `getActiveVault`.
+- [x] Semua handler item/folder/search/export/import harus membaca active vault dari session yang sudah tervalidasi.
+- [x] Jangan izinkan operasi data jika vault target belum unlocked.
 
 ### Sub-Task 3.3: Secure Memory Saat Switch Vault
 
-- [ ] Saat switch vault, panggil lock flow untuk vault aktif sebelum membuka vault target.
-- [ ] Wipe key material, cached derived key, dan sensitive state dari memory.
-- [ ] Reset store renderer yang memuat item, folder, search results, selected item, dan UI state vault-specific.
-- [ ] Tampilkan toast security setelah vault lama terkunci dan vault baru siap dibuka.
+- [x] Saat switch vault, panggil lock flow untuk vault aktif sebelum membuka vault target.
+- [x] Wipe key material, cached derived key, dan sensitive state dari memory.
+- [x] Reset store renderer yang memuat item, folder, search results, selected item, dan UI state vault-specific.
+- [x] Tampilkan toast security setelah vault lama terkunci dan vault baru siap dibuka.
 
 ### Sub-Task 3.4: Auto-Lock per Active Vault
 
-- [ ] Pastikan `useAutoLock` mengunci vault aktif, bukan asumsi single global vault.
-- [ ] Reset timer auto-lock saat active vault berubah.
-- [ ] Jangan membawa status idle vault lama ke vault baru.
-- [ ] Test edge case saat auto-lock terjadi bersamaan dengan switch vault.
+- [x] Pastikan `useAutoLock` mengunci vault aktif, bukan asumsi single global vault.
+- [x] Reset timer auto-lock saat active vault berubah.
+- [x] Jangan membawa status idle vault lama ke vault baru.
+- [x] Test edge case saat auto-lock terjadi bersamaan dengan switch vault.
 
 ---
 
 ## 4. Task: State Management Renderer
 
-- [ ] Task 4 Complete
+- [x] Task 4 Complete
 
 ### Sub-Task 4.1: Update Auth Store
 
-- [ ] Tambahkan state `vaults`, `activeVaultId`, `activeVaultName`, dan `selectedVaultId`.
-- [ ] Bedakan status `setup`, `locked`, dan `unlocked` berdasarkan vault yang dipilih.
-- [ ] Update action `checkAuth`, `initApp`, `unlock`, `lock`, dan `clearError` agar sadar konteks vault.
-- [ ] Handle migration single-vault lama sebagai default vault di store.
+- [x] Tambahkan state `vaults`, `activeVaultId`, `activeVaultName`, dan `selectedVaultId`.
+- [x] Bedakan status `setup`, `locked`, dan `unlocked` berdasarkan vault yang dipilih.
+- [x] Update action `checkAuth`, `initApp`, `unlock`, `lock`, dan `clearError` agar sadar konteks vault.
+- [x] Handle migration single-vault lama sebagai default vault di store.
 
 ### Sub-Task 4.2: Reset Store Saat Switch
 
-- [ ] Tambahkan helper reset untuk `itemStore`, `folderStore`, `uiStore`, dan store lain yang menyimpan data vault-specific.
-- [ ] Jalankan reset setelah lock vault lama dan sebelum load vault baru.
-- [ ] Pastikan selected folder/item tidak menunjuk ID dari vault lama.
-- [ ] Bersihkan cache search dan password health saat vault berubah.
+- [x] Tambahkan helper reset untuk `itemStore`, `folderStore`, `uiStore`, dan store lain yang menyimpan data vault-specific.
+- [x] Jalankan reset setelah lock vault lama dan sebelum load vault baru.
+- [x] Pastikan selected folder/item tidak menunjuk ID dari vault lama.
+- [x] Bersihkan cache search dan password health saat vault berubah.
 
 ### Sub-Task 4.3: Error dan Loading State
 
-- [ ] Tambahkan loading state untuk create vault, list vaults, switch vault, dan delete vault.
-- [ ] Error harus menyebut vault target jika relevan.
-- [ ] Jangan tampilkan item kosong sebagai sukses jika sebenarnya load vault gagal.
-- [ ] Capture error tetap masuk ke `errorStore` dengan context seperti `vaultStore` atau `authStore`.
+- [x] Tambahkan loading state untuk create vault, list vaults, switch vault, dan delete vault.
+- [x] Error harus menyebut vault target jika relevan.
+- [x] Jangan tampilkan item kosong sebagai sukses jika sebenarnya load vault gagal.
+- [x] Capture error tetap masuk ke `errorStore` dengan context seperti `vaultStore` atau `authStore`.
 
 ---
 
@@ -284,15 +284,15 @@ Fitur ini harus menjaga isolasi data antar vault. Item, folder, tag, attachment,
 - [x] Sub-Task 1.3: Strategi ID dan File Path
 - [x] Sub-Task 2.1: Update Storage Manager
 - [x] Sub-Task 2.2: Update Database Connection Layer
-- [ ] Sub-Task 2.3: Migration per Vault
-- [ ] Sub-Task 2.4: Attachment dan Cover Image Scope
-- [ ] Sub-Task 3.1: Auth Metadata per Vault
-- [ ] Sub-Task 3.2: Update IPC Auth Handlers
-- [ ] Sub-Task 3.3: Secure Memory Saat Switch Vault
-- [ ] Sub-Task 3.4: Auto-Lock per Active Vault
-- [ ] Sub-Task 4.1: Update Auth Store
-- [ ] Sub-Task 4.2: Reset Store Saat Switch
-- [ ] Sub-Task 4.3: Error dan Loading State
+- [x] Sub-Task 2.3: Migration per Vault
+- [x] Sub-Task 2.4: Attachment dan Cover Image Scope
+- [x] Sub-Task 3.1: Auth Metadata per Vault
+- [x] Sub-Task 3.2: Update IPC Auth Handlers
+- [x] Sub-Task 3.3: Secure Memory Saat Switch Vault
+- [x] Sub-Task 3.4: Auto-Lock per Active Vault
+- [x] Sub-Task 4.1: Update Auth Store
+- [x] Sub-Task 4.2: Reset Store Saat Switch
+- [x] Sub-Task 4.3: Error dan Loading State
 - [ ] Sub-Task 5.1: Vault Selector di Lock Screen
 - [ ] Sub-Task 5.2: Vault Switcher di Main App
 - [ ] Sub-Task 5.3: Vault Management Dialog

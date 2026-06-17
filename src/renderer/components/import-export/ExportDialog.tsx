@@ -57,12 +57,12 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
     } else {
       setStep('warning');
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- performExport is defined below with stable deps
 
   const handleConfirmWarning = useCallback(() => {
     setStep('exporting');
     performExport(selectedFormat);
-  }, [selectedFormat]);
+  }, [selectedFormat]); // eslint-disable-line react-hooks/exhaustive-deps -- performExport is defined below with stable deps
 
   const handleBackToFormat = useCallback(() => {
     setStep('select-format');
@@ -292,7 +292,7 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
               />
             </svg>
             <p className="mb-3 text-sm text-surface-500 dark:text-surface-400">
-              {t(`export.phase.${progress.phase}` as any) || t('export.phase.default')}
+              {t(`export.phase.${progress.phase}` as string) || t('export.phase.default')}
             </p>
             <div className="w-full max-w-xs">
               <div className="mb-1 flex items-center justify-between">

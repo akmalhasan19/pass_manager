@@ -3,7 +3,7 @@ import { KeePassXmlImporter } from '../../../src/main/import-export/parsers/keep
 import { GenericCsvImporter } from '../../../src/main/import-export/parsers/genericCsvParser';
 import { OnePasswordCsvImporter } from '../../../src/main/import-export/parsers/onePasswordCsvParser';
 import { BitwardenJsonImporter } from '../../../src/main/import-export/parsers/bitwardenJsonParser';
-import { ImportParseError, ImportFormatError } from '../../../src/main/import-export/importer';
+import { ImportParseError } from '../../../src/main/import-export/importer';
 import {
   sanitizeString,
   sanitizeUrl,

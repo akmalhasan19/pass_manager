@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   ImporterFactory,
   ImportError,
@@ -12,7 +12,7 @@ import {
   makeImportPayload,
   type Importer,
 } from '../../../src/main/import-export/importer';
-import type { ImportPayload, ImportFormat } from '../../../src/shared/types';
+import type { ImportFormat } from '../../../src/shared/types';
 
 describe('createImportPayload', () => {
   it('should return an empty payload', () => {
@@ -206,7 +206,7 @@ describe('ImporterFactory', () => {
     const factory = new ImporterFactory();
     const mockImporter: Importer = {
       format: 'generic-csv',
-      parse: (content: string) => {
+      parse: (_content: string) => {
         const payload = createImportPayload();
         payload.items.push(
           createImportItem({ title: 'Custom', username: 'u', password: 'p' }),

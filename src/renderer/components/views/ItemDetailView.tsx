@@ -318,7 +318,7 @@ export default function ItemDetailView({
         }
       }
     },
-    [item, onUpdate, applyFieldSetter, executeSave],
+    [item, onUpdate, applyFieldSetter, executeSave, t],
   );
 
   const handleCopy = useCallback(

@@ -5,10 +5,7 @@ import {
   applyResolutionMap,
   type ExistingItemRef,
 } from '../../../src/main/import-export/duplicateDetection';
-import {
-  createImportPayload,
-  createImportItem,
-} from '../../../src/main/import-export/importer';
+import { createImportItem } from '../../../src/main/import-export/importer';
 import type {
   ImportItem,
   ImportPayload,
@@ -119,8 +116,8 @@ describe('detectDuplicates', () => {
 describe('buildExistingItemRefs', () => {
   it('should convert Item array to ExistingItemRef array', () => {
     const dbItems = [
-      { id: '1', title: 'A', url: 'https://a.com' } as any,
-      { id: '2', title: 'B', url: 'https://b.com' } as any,
+      { id: '1', title: 'A', url: 'https://a.com' } as unknown as Item,
+      { id: '2', title: 'B', url: 'https://b.com' } as unknown as Item,
     ];
 
     const refs = buildExistingItemRefs(dbItems);

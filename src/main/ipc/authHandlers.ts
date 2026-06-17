@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { existsSync, unlinkSync } from 'node:fs';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
 import { secureClear, secureClearString } from '../../shared/secureMemory';
 import type { AuthMetadata } from '../../shared/types';
@@ -13,15 +13,32 @@ import {
 import { decryptString, encryptString } from '../crypto/encryption';
 import {
   initializeSqlJs,
-  openDatabase,
+  openDatabaseForVault,
   closeDatabase,
   saveDatabase,
   getDatabase,
   isDatabaseOpen,
 } from '../database/connection';
-import { initializeDatabase, authFileExists, getAuthPath } from '../database/migrations';
+import { migrateVaultDatabase, getAuthPath } from '../database/migrations';
+import { ensureDefaultVaultRegistry, createVaultMetadata } from '../file-system/storageManager';
+import {
+  readVaultAuthMetadata,
+  writeVaultAuthMetadata,
+  vaultAuthFileExists,
+  migrateLegacyAuthToVault,
+} from '../file-system/vaultAuthStorage';
+import { listVaults, getVaultById } from '../file-system/vaultRegistry';
 import { evaluateStrength } from '../crypto/passwordGenerator';
+import { logger } from '../../shared/logger';
 
+/**
+ * Per-vault session state.
+ *
+ * SECURITY: Only one vault can be unlocked at a time. When a vault is
+ * unlocked, its derived key and KDF params are held here. When locked,
+ * all fields are securely wiped and nulled.
+ */
+let activeVaultId: string | null = null;
 let masterKey: Buffer | null = null;
 let currentSalt: Buffer | null = null;
 let currentKdfAlgorithm: 'pbkdf2' | 'argon2id' = 'pbkdf2';
@@ -43,44 +60,184 @@ export function getCurrentKdfIterations(): number {
   return currentKdfIterations;
 }
 
-function readAuthMetadata(): AuthMetadata {
-  const authPath = getAuthPath();
-  if (!existsSync(authPath)) {
-    throw new Error('App not initialized. Auth metadata not found.');
-  }
-  const raw = readFileSync(authPath, 'utf-8');
-  const parsed = JSON.parse(raw);
-  return {
-    ...parsed,
-    salt: Buffer.from(parsed.salt, 'base64'),
-  };
+/**
+ * Returns the vault ID of the currently unlocked vault, or null if locked.
+ */
+export function getActiveAuthVaultId(): string | null {
+  return activeVaultId;
 }
 
-function writeAuthMetadata(metadata: AuthMetadata): void {
-  const authPath = getAuthPath();
-  const obj = {
-    ...metadata,
-    salt: metadata.salt.toString('base64'),
-  };
-  writeFileSync(authPath, JSON.stringify(obj, null, 2), 'utf-8');
-}
-
+/**
+ * Securely wipes all in-memory key material and resets session state.
+ */
 export function clearKeys(): void {
-  // Security: securely overwrite buffers before releasing references
-  // This prevents sensitive key material from lingering in memory after
-  // the application is locked or the key is no longer needed.
   secureClear(masterKey);
   secureClear(currentSalt);
   masterKey = null;
   currentSalt = null;
+  activeVaultId = null;
   currentKdfAlgorithm = 'pbkdf2';
   currentKdfIterations = DEFAULT_PBKDF2_ITERATIONS;
+}
+
+/**
+ * Locks the currently active vault: saves and closes the database,
+ * wipes key material, and resets session state.
+ *
+ * Returns the vault ID that was locked, or null if no vault was active.
+ */
+export function lockCurrentVault(): string | null {
+  const lockedVaultId = activeVaultId;
+
+  if (isDatabaseOpen()) {
+    saveDatabase();
+    closeDatabase();
+  }
+
+  clearKeys();
+
+  return lockedVaultId;
+}
+
+export interface UnlockVaultResult {
+  success: boolean;
+  vaultId?: string;
+  error?: string;
+}
+
+/**
+ * Unlocks a specific vault by verifying the password against its per-vault
+ * auth metadata, running migrations, opening the database, and setting
+ * the session state.
+ *
+ * This is the core unlock logic shared by AUTH_UNLOCK IPC and selectVault.
+ */
+export async function unlockVault(
+  vaultId: string,
+  masterPassword: string,
+): Promise<UnlockVaultResult> {
+  try {
+    await initializeSqlJs();
+
+    // Read per-vault auth metadata
+    if (!vaultAuthFileExists(vaultId)) {
+      return {
+        success: false,
+        error: 'Auth metadata not found for this vault. It may need to be re-initialized.',
+      };
+    }
+
+    const authMetadata = readVaultAuthMetadata(vaultId);
+    const key = deriveMasterKey(masterPassword, authMetadata.salt, {
+      algorithm: authMetadata.kdfAlgorithm,
+      iterations: authMetadata.kdfIterations,
+    });
+
+    if (!verifyKeyAgainstHash(key, authMetadata.verificationHash)) {
+      return { success: false, error: 'Invalid master password.' };
+    }
+
+    // Run per-vault migration before opening for use
+    try {
+      migrateVaultDatabase(vaultId);
+    } catch (migrationError) {
+      return {
+        success: false,
+        error: `Database migration failed: ${migrationError instanceof Error ? migrationError.message : String(migrationError)}`,
+      };
+    }
+
+    // Open the vault database for ongoing use
+    openDatabaseForVault(vaultId);
+
+    // Set session state
+    activeVaultId = vaultId;
+    masterKey = key;
+    currentSalt = authMetadata.salt;
+    currentKdfAlgorithm = authMetadata.kdfAlgorithm;
+    currentKdfIterations = authMetadata.kdfIterations;
+
+    return { success: true, vaultId };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error during unlock',
+    };
+  }
+}
+
+/**
+ * Checks whether the app has been initialized with at least one vault
+ * that has auth metadata. Also handles migration from legacy global auth.json.
+ */
+function isAppInitialized(): boolean {
+  // Check if any vault auth file exists
+  const vaults = listVaults();
+  for (const vault of vaults) {
+    if (vaultAuthFileExists(vault.id)) {
+      return true;
+    }
+  }
+
+  // Check legacy global auth.json for backward compatibility
+  const legacyPath = getAuthPath();
+  if (existsSync(legacyPath)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Attempts to migrate legacy global auth.json to per-vault auth for the
+ * default vault. Returns the vault ID if migration succeeded or if the
+ * vault already has per-vault auth.
+ */
+function attemptLegacyMigration(): string | null {
+  const legacyPath = getAuthPath();
+  if (!existsSync(legacyPath)) {
+    return null;
+  }
+
+  // Find or create the default vault
+  const vault = ensureDefaultVaultRegistry();
+  if (!vault) {
+    return null;
+  }
+
+  // If the vault already has per-vault auth, just clean up legacy file
+  if (vaultAuthFileExists(vault.id)) {
+    try {
+      unlinkSync(legacyPath);
+    } catch {
+      // Non-fatal: legacy file cleanup is best-effort
+    }
+    return vault.id;
+  }
+
+  // Migrate legacy auth.json to per-vault auth
+  const migrated = migrateLegacyAuthToVault(legacyPath, vault.id);
+  if (migrated) {
+    // Delete legacy auth.json after successful migration
+    try {
+      unlinkSync(legacyPath);
+      logger.info('Legacy auth.json deleted after migration');
+    } catch {
+      // Non-fatal
+    }
+    return vault.id;
+  }
+
+  return null;
 }
 
 export function registerAuthHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.AUTH_INIT,
-    async (_event, { masterPassword }: { masterPassword: string }) => {
+    async (
+      _event,
+      { masterPassword, vaultId: _requestedVaultId }: { masterPassword: string; vaultId?: string },
+    ) => {
       try {
         const strength = evaluateStrength(masterPassword);
         if (strength.score < 2) {
@@ -90,10 +247,29 @@ export function registerAuthHandlers(): void {
           };
         }
 
-        if (authFileExists()) {
+        // Check if the app is already initialized
+        if (isAppInitialized()) {
           return { success: false, error: 'App is already initialized.' };
         }
 
+        await initializeSqlJs();
+
+        // Create the default vault in the registry
+        const vault = createVaultMetadata({ name: 'Default Vault', isDefault: true });
+
+        // Run schema and migrations on the vault's own database file
+        try {
+          migrateVaultDatabase(vault.id);
+        } catch (migrationError) {
+          throw new Error(
+            `Database migration failed for vault "${vault.name}": ${migrationError instanceof Error ? migrationError.message : String(migrationError)}`,
+          );
+        }
+
+        // Re-open the vault database for ongoing use
+        openDatabaseForVault(vault.id);
+
+        // Derive key and create per-vault auth metadata
         const salt = generateSalt();
         const key = deriveMasterKey(masterPassword, salt, {
           algorithm: 'pbkdf2',
@@ -113,20 +289,18 @@ export function registerAuthHandlers(): void {
             createdAt: Date.now(),
           };
 
-          await initializeSqlJs();
-          openDatabase();
-          initializeDatabase();
-          saveDatabase();
-          writeAuthMetadata(authMetadata);
+          // Write per-vault auth metadata
+          writeVaultAuthMetadata(vault.id, authMetadata);
 
+          // Set session state
+          activeVaultId = vault.id;
           masterKey = key;
           currentSalt = salt;
           currentKdfAlgorithm = 'pbkdf2';
           currentKdfIterations = DEFAULT_PBKDF2_ITERATIONS;
 
-          return { success: true };
+          return { success: true, vaultId: vault.id };
         } catch (innerError) {
-          // SECURITY: Wipe derived key if anything fails before it's stored
           secureClear(key);
           throw innerError;
         }
@@ -141,31 +315,35 @@ export function registerAuthHandlers(): void {
 
   ipcMain.handle(
     IPC_CHANNELS.AUTH_UNLOCK,
-    async (_event, { masterPassword }: { masterPassword: string }) => {
+    async (
+      _event,
+      { masterPassword, vaultId: requestedVaultId }: { masterPassword: string; vaultId?: string },
+    ) => {
       try {
-        if (!authFileExists()) {
-          return { success: false, error: 'App not initialized. Please set up first.' };
-        }
-
-        const authMetadata = readAuthMetadata();
-        const key = deriveMasterKey(masterPassword, authMetadata.salt, {
-          algorithm: authMetadata.kdfAlgorithm,
-          iterations: authMetadata.kdfIterations,
-        });
-
-        if (!verifyKeyAgainstHash(key, authMetadata.verificationHash)) {
-          return { success: false, error: 'Invalid master password.' };
-        }
-
         await initializeSqlJs();
-        openDatabase();
 
-        masterKey = key;
-        currentSalt = authMetadata.salt;
-        currentKdfAlgorithm = authMetadata.kdfAlgorithm;
-        currentKdfIterations = authMetadata.kdfIterations;
+        // Determine which vault to unlock
+        let vaultId = requestedVaultId;
 
-        return { success: true };
+        if (!vaultId) {
+          // Try legacy migration first
+          const migratedVaultId = attemptLegacyMigration();
+          if (migratedVaultId) {
+            vaultId = migratedVaultId;
+          } else {
+            // Fall back to default vault
+            const vault = ensureDefaultVaultRegistry();
+            if (!vault) {
+              return {
+                success: false,
+                error: 'No vault found. The vault database file may have been moved or deleted.',
+              };
+            }
+            vaultId = vault.id;
+          }
+        }
+
+        return await unlockVault(vaultId, masterPassword);
       } catch (error) {
         return {
           success: false,
@@ -177,14 +355,8 @@ export function registerAuthHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.AUTH_LOCK, () => {
     try {
-      if (isDatabaseOpen()) {
-        saveDatabase();
-        closeDatabase();
-      }
-
-      clearKeys();
-
-      return { success: true };
+      const lockedVaultId = lockCurrentVault();
+      return { success: true, vaultId: lockedVaultId };
     } catch (error) {
       return {
         success: false,
@@ -195,17 +367,39 @@ export function registerAuthHandlers(): void {
 
   ipcMain.handle(
     IPC_CHANNELS.AUTH_CHANGE_PASSWORD,
-    async (_event, { oldPassword, newPassword }: { oldPassword: string; newPassword: string }) => {
+    async (
+      _event,
+      {
+        oldPassword,
+        newPassword,
+        vaultId: requestedVaultId,
+      }: { oldPassword: string; newPassword: string; vaultId?: string },
+    ) => {
       try {
-        if (!authFileExists()) {
-          return { success: false, error: 'App not initialized.' };
+        // Determine which vault to change password for
+        const vaultId = requestedVaultId ?? activeVaultId;
+        if (!vaultId) {
+          return { success: false, error: 'No vault specified and no vault is currently unlocked.' };
+        }
+
+        if (!vaultAuthFileExists(vaultId)) {
+          return { success: false, error: 'Auth metadata not found for this vault.' };
         }
 
         if (!isDatabaseOpen()) {
           return { success: false, error: 'Database is not open. Unlock first.' };
         }
 
-        const authMetadata = readAuthMetadata();
+        // Verify the vault context matches
+        const currentVaultId = getActiveVaultId();
+        if (currentVaultId !== vaultId) {
+          return {
+            success: false,
+            error: 'The specified vault is not the currently open vault. Unlock it first.',
+          };
+        }
+
+        const authMetadata = readVaultAuthMetadata(vaultId);
 
         const oldKey = deriveMasterKey(oldPassword, authMetadata.salt, {
           algorithm: authMetadata.kdfAlgorithm,
@@ -260,10 +454,7 @@ export function registerAuthHandlers(): void {
               const encryptedBuf = Buffer.from(row.password_encrypted);
               let decrypted = decryptString(encryptedBuf, oldKey);
               newPasswordEnc = encryptString(decrypted, newKey);
-              // SECURITY: Wipe immutable string reference — V8 strings cannot be
-              // zeroed in place, but we drop the reference to allow GC collection.
               decrypted = secureClearString(decrypted);
-              // SECURITY: Wipe sensitive material before leaving scope
               secureClear(encryptedBuf);
             }
 
@@ -271,14 +462,10 @@ export function registerAuthHandlers(): void {
               const encryptedBuf = Buffer.from(row.notes_encrypted);
               let decrypted = decryptString(encryptedBuf, oldKey);
               newNotesEnc = encryptString(decrypted, newKey);
-              // SECURITY: Wipe immutable string reference — V8 strings cannot be
-              // zeroed in place, but we drop the reference to allow GC collection.
               decrypted = secureClearString(decrypted);
-              // SECURITY: Wipe sensitive material before leaving scope
               secureClear(encryptedBuf);
             }
 
-            // SECURITY: Wipe previous iteration's encrypted buffers before overwriting
             if (lastPasswordEnc) secureClear(lastPasswordEnc as unknown as Buffer);
             if (lastNotesEnc) secureClear(lastNotesEnc as unknown as Buffer);
 
@@ -290,7 +477,6 @@ export function registerAuthHandlers(): void {
             lastNotesEnc = newNotesEnc;
           }
 
-          // SECURITY: Wipe encrypted buffers from the final iteration
           if (lastPasswordEnc) secureClear(lastPasswordEnc as unknown as Buffer);
           if (lastNotesEnc) secureClear(lastNotesEnc as unknown as Buffer);
 
@@ -307,20 +493,20 @@ export function registerAuthHandlers(): void {
             createdAt: Date.now(),
           };
 
-          writeAuthMetadata(newAuthMetadata);
+          // Write per-vault auth metadata (replaces old vault auth file)
+          writeVaultAuthMetadata(vaultId, newAuthMetadata);
           saveDatabase();
 
+          // Update session state
           masterKey = newKey;
           currentSalt = newSalt;
           currentKdfAlgorithm = 'pbkdf2';
           currentKdfIterations = DEFAULT_PBKDF2_ITERATIONS;
 
-          // Security: securely overwrite the old key buffer to minimize key material in memory
           secureClear(oldKey);
 
           return { success: true };
         } catch (innerError) {
-          // SECURITY: Wipe new key if anything fails before it's stored
           secureClear(newKey);
           throw innerError;
         }
@@ -334,6 +520,18 @@ export function registerAuthHandlers(): void {
   );
 
   ipcMain.handle(IPC_CHANNELS.AUTH_CHECK, () => {
-    return { initialized: authFileExists() };
+    const initialized = isAppInitialized();
+    const currentVaultId = activeVaultId;
+
+    if (currentVaultId) {
+      const vault = getVaultById(currentVaultId);
+      return {
+        initialized,
+        vaultId: currentVaultId,
+        vaultName: vault?.name ?? null,
+      };
+    }
+
+    return { initialized, vaultId: null, vaultName: null };
   });
 }

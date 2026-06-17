@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { GenericCsvImporter, createGenericCsvImporter } from '../../../src/main/import-export/parsers/genericCsvParser';
-import { ImportFormatError, ImportParseError } from '../../../src/main/import-export/importer';
+import { ImportFormatError } from '../../../src/main/import-export/importer';
 import type { CsvColumnMapping } from '../../../src/shared/types';
 
 const FIXTURE_DIR = join(__dirname, '..', '..', '..', 'test-data', 'fixtures');

@@ -4,6 +4,7 @@ const HTML_TAG_RE = /<[^>]*>/g;
 
 const DANGEROUS_URL_SCHEMES = /^(javascript|data|vbscript)\s*:/i;
 
+// eslint-disable-next-line no-control-regex -- Intentionally matches ASCII control characters for input sanitization
 const CONTROL_CHARS_RE = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
 
 export function sanitizeString(value: string): string {

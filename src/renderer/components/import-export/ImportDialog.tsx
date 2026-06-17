@@ -220,7 +220,7 @@ export default function ImportDialog({ isOpen, onClose, initialFile }: ImportDia
       setStep('error');
       showError(err instanceof Error ? err.message : 'Failed to import file.');
     }
-  }, [selectedFormat]);
+  }, [selectedFormat]); // eslint-disable-line react-hooks/exhaustive-deps -- parseAndCheckDuplicates is defined below with stable deps
 
   const parseAndCheckDuplicates = useCallback(async (content: string) => {
     if (!selectedFormat) return;
@@ -268,7 +268,7 @@ export default function ImportDialog({ isOpen, onClose, initialFile }: ImportDia
       setStep('error');
       showError(err instanceof Error ? err.message : 'Import failed.');
     }
-  }, [selectedFormat, selectedFile]);
+  }, [selectedFormat, selectedFile]); // eslint-disable-line react-hooks/exhaustive-deps -- commitImport is defined below with stable deps
 
   const handleColumnMapping = useCallback(async (mapping: CsvColumnMapping) => {
     if (!fileContent) return;
@@ -316,14 +316,14 @@ export default function ImportDialog({ isOpen, onClose, initialFile }: ImportDia
       setStep('error');
       showError(err instanceof Error ? err.message : 'Import failed.');
     }
-  }, [fileContent]);
+  }, [fileContent]); // eslint-disable-line react-hooks/exhaustive-deps -- commitImport is defined below with stable deps
 
   const handleDuplicateConfirm = useCallback(
     async (resolutionMap: DuplicateResolutionMap) => {
       if (!parsedPayload) return;
       await commitImport(parsedPayload, resolutionMap);
     },
-    [parsedPayload],
+    [parsedPayload], // eslint-disable-line react-hooks/exhaustive-deps -- commitImport is defined below with stable deps
   );
 
   const commitImport = useCallback(

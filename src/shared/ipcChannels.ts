@@ -6,6 +6,13 @@ export const IPC_CHANNELS = {
   AUTH_CHECK: 'auth:check',
   AUTH_LOCKED: 'auth:locked',
 
+  VAULT_LIST: 'vault:list',
+  VAULT_CREATE: 'vault:create',
+  VAULT_SELECT: 'vault:select',
+  VAULT_RENAME: 'vault:rename',
+  VAULT_DELETE: 'vault:delete',
+  VAULT_GET_ACTIVE: 'vault:getActive',
+
   FOLDER_GET_TREE: 'folder:getTree',
   FOLDER_CREATE: 'folder:create',
   FOLDER_UPDATE: 'folder:update',

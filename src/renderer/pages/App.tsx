@@ -10,7 +10,7 @@ import DebugPanel from '../components/debug/DebugPanel';
 import { captureError } from '../stores/errorStore';
 
 export default function App(): React.ReactElement {
-  const { status, checkAuth, error: authError } = useAuthStore();
+  const { status, checkAuth, error: authError, vaultError } = useAuthStore();
   const itemError = useItemStore((s) => s.error);
   const folderError = useFolderStore((s) => s.error);
 
@@ -23,6 +23,10 @@ export default function App(): React.ReactElement {
   useEffect(() => {
     if (authError) captureError(authError, 'authStore');
   }, [authError]);
+
+  useEffect(() => {
+    if (vaultError) captureError(vaultError, 'authStore.vault');
+  }, [vaultError]);
 
   useEffect(() => {
     if (itemError) captureError(itemError, 'itemStore');
