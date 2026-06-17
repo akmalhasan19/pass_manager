@@ -77,6 +77,53 @@ describe('secureClear', () => {
       expect(buffer[i]).toBe(0);
     }
   });
+
+  it('should zero a Buffer and allow the caller reference to be nullified', () => {
+    let buffer: Buffer | null = Buffer.from('sensitive data', 'utf-8');
+
+    secureClear(buffer);
+
+    // The buffer contents must be deterministically wiped to zero.
+    for (let i = 0; i < buffer.length; i++) {
+      expect(buffer[i]).toBe(0);
+    }
+
+    // SECURITY: secureClear cannot drop the caller's variable reference in
+    // JavaScript, so the caller must reassign it to null to release the
+    // buffer for garbage collection.
+    buffer = null;
+    expect(buffer).toBeNull();
+  });
+
+  it('should zero an ArrayBuffer and allow the caller reference to be nullified', () => {
+    let arrayBuffer: ArrayBuffer | null = new ArrayBuffer(32);
+    const view = new Uint8Array(arrayBuffer);
+    for (let i = 0; i < view.length; i++) {
+      view[i] = i + 1;
+    }
+
+    secureClear(arrayBuffer);
+
+    for (let i = 0; i < view.length; i++) {
+      expect(view[i]).toBe(0);
+    }
+
+    arrayBuffer = null;
+    expect(arrayBuffer).toBeNull();
+  });
+
+  it('should zero a Uint8Array and allow the caller reference to be nullified', () => {
+    let uint8Array: Uint8Array | null = new Uint8Array([1, 2, 3, 4, 5]);
+
+    secureClear(uint8Array);
+
+    for (let i = 0; i < uint8Array.length; i++) {
+      expect(uint8Array[i]).toBe(0);
+    }
+
+    uint8Array = null;
+    expect(uint8Array).toBeNull();
+  });
 });
 
 describe('secureClearString', () => {

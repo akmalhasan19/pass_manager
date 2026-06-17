@@ -98,19 +98,19 @@ Security audit dan memory wipe adalah fondasi integritas zero-knowledge. Jika ku
 ---
 
 ## 5. Task: Testing & Verification
-- [ ] Task 5 Complete
+- [x] Task 5 Complete
 
 ### Sub-Task 5.1: Unit Tests untuk Secure Clear
-- [ ] Test `secureClear` dengan berbagai jenis input (`Buffer`, `ArrayBuffer`, `Uint8Array`).
-- [ ] Assert bahwa setelah `secureClear`, buffer mengandung nilai zero dan referensi variabel menjadi `null`.
+- [x] Test `secureClear` dengan berbagai jenis input (`Buffer`, `ArrayBuffer`, `Uint8Array`).
+- [x] Assert bahwa setelah `secureClear`, buffer mengandung nilai zero dan referensi variabel menjadi `null`.
 
 ### Sub-Task 5.2: Memory Leak Tests
-- [ ] Gunakan工具 profiler memory (Chrome DevTools Memory tab) untuk merekam heap sebelum dan sesudah lock/unlock vault.
-- [ ] Assert tidak ada objek berkategori `ArrayBuffer`, `Buffer`, atau plain text string kunci yang bertahan di heap setelah aplikasi di-lock.
+- [x] Gunakan工具 profiler memory (Chrome DevTools Memory tab) untuk merekam heap sebelum dan sesudah lock/unlock vault.
+- [x] Assert tidak ada objek berkategori `ArrayBuffer`, `Buffer`, atau plain text string kunci yang bertahan di heap setelah aplikasi di-lock.
 
 ### Sub-Task 5.3: Regression Security Tests
-- [ ] Test skenario lock screen: setelah lock, lakukan heap snapshot dan cari referensi kunci atau plaintext data item.
-- [ ] Test skenario close app: pastikan tidak ada core dump atau crash log yang mengandung data sensitif.
+- [x] Test skenario lock screen: setelah lock, lakukan heap snapshot dan cari referensi kunci atau plaintext data item.
+- [x] Test skenario close app: pastikan tidak ada core dump atau crash log yang mengandung data sensitif.
 
 ---
 
@@ -144,7 +144,7 @@ Security audit dan memory wipe adalah fondasi integritas zero-knowledge. Jika ku
 - [x] Sub-Task 4.1: Disable DevTools di Production (webPreferences, shortcuts)
 - [x] Sub-Task 4.2: Log & Console Sanitization (audit console.log, centralized sanitization)
 - [x] Sub-Task 4.3: Source Map & Symbol Security (exclude production maps)
-- [ ] Sub-Task 5.1-5.3: Unit, Memory Leak, Regression Tests
+- [x] Sub-Task 5.1-5.3: Unit, Memory Leak, Regression Tests
 - [ ] Sub-Task 6.1: Security Indicator (visual feedback on lock)
 - [ ] Sub-Task 6.2: Localization (I18n Ready)
 - [ ] Sub-Task 6.3: Documentation & Code Comments
