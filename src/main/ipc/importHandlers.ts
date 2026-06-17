@@ -15,8 +15,9 @@ import { createImporterFactoryWithAllDefaults, createGenericCsvImporterWithMappi
 import { parseCsvLine } from '../import-export/plainTextFormats';
 import { detectDuplicates, buildExistingItemRefs, applyResolutionMap } from '../import-export/duplicateDetection';
 import { ItemRepository } from '../database/repositories/ItemRepository';
-import { isDatabaseOpen, getDatabase } from '../database/connection';
+import { isDatabaseOpen, getDatabase, getActiveVaultId } from '../database/connection';
 import { getMasterKey } from './authHandlers';
+import { getVaultById } from '../file-system/vaultRegistry';
 import { encryptString } from '../crypto/encryption';
 import { secureClear } from '../../shared/secureMemory';
 
@@ -42,6 +43,19 @@ function validateFileExtension(filePath: string, format: ImportFormat): boolean 
 
 function validateMimeType(_filePath: string, _format: ImportFormat): boolean {
   return true;
+}
+
+interface ActiveVaultContext {
+  vaultId: string;
+  vaultName: string;
+}
+
+function getActiveVaultContext(): ActiveVaultContext | null {
+  if (!isDatabaseOpen()) return null;
+  const vaultId = getActiveVaultId();
+  if (!vaultId) return null;
+  const vault = getVaultById(vaultId);
+  return { vaultId, vaultName: vault?.name ?? vaultId };
 }
 
 export function registerImportHandlers(): void {
@@ -198,8 +212,9 @@ export function registerImportHandlers(): void {
       { payload }: { payload: ImportPayload },
     ): Promise<{ success: boolean; data?: DuplicateReport; error?: string }> => {
       try {
-        if (!isDatabaseOpen()) {
-          return { success: false, error: 'Database is not open.' };
+        const ctx = getActiveVaultContext();
+        if (!ctx) {
+          return { success: false, error: 'No active vault is unlocked. Please unlock a vault before importing data.' };
         }
 
         const allDbItems = itemRepo.getAll();
@@ -223,8 +238,9 @@ export function registerImportHandlers(): void {
       { payload, resolutionMap }: ImportCommitRequest,
     ): Promise<{ success: boolean; data?: { importedCount: number; replacedCount: number }; error?: string }> => {
       try {
-        if (!isDatabaseOpen()) {
-          return { success: false, error: 'Database is not open.' };
+        const ctx = getActiveVaultContext();
+        if (!ctx) {
+          return { success: false, error: 'No active vault is unlocked. Please unlock a vault before importing data.' };
         }
 
         const key = getMasterKey();

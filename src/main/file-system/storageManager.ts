@@ -11,12 +11,16 @@ import {
   mkdirSync,
   statSync,
   rmSync,
+  copyFileSync,
+  readFileSync,
+  writeFileSync,
 } from 'node:fs';
 import { join, basename, resolve, isAbsolute } from 'node:path';
 import { app } from 'electron';
 import { containsPathTraversal, isPathWithinDirectory } from '../../shared/fileSecurity';
 import { secureClear } from '../../shared/secureMemory';
 import type { VaultRegistryEntry } from '../../shared/types';
+import { logger } from '../../shared/logger';
 import { VaultRegistryError } from '../../shared/types';
 import {
   createVault,
@@ -26,8 +30,12 @@ import {
   listVaults,
   resolveVaultDatabasePath as resolveManagedVaultDatabasePath,
   updateVault,
+  checkVaultFileStatus,
+  backupRegistryFile,
+  restoreRegistryFromBackup,
 } from './vaultRegistry';
 import { deleteVaultAuthMetadata } from './vaultAuthStorage';
+import type { VaultFileStatus } from '../../shared/types';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_BYTES = 12;
@@ -36,6 +44,7 @@ const KEY_BYTES = 32;
 const STREAM_CHUNK_SIZE = 65536;
 const LEGACY_DATABASE_FILENAME = 'securepass.db';
 const DEFAULT_MIGRATED_VAULT_NAME = 'Default Vault';
+const MIGRATION_MARKER_FILENAME = 'single-vault-migration.marker.json';
 
 function getUserDataPath(): string {
   const userDataPath = app?.getPath?.('userData') ?? join(process.cwd(), 'data');
@@ -130,6 +139,31 @@ export function listVaultMetadata(): VaultRegistryEntry[] {
   return vaults;
 }
 
+/**
+ * Lists all vaults from the registry with their current file status.
+ * This is used by the UI to show which vaults are accessible and which
+ * have missing or corrupted database files.
+ */
+export function listVaultsWithStatus(): Array<{ entry: VaultRegistryEntry; status: VaultFileStatus }> {
+  const vaults = listVaults();
+  const result: Array<{ entry: VaultRegistryEntry; status: VaultFileStatus }> = [];
+
+  for (const vault of vaults) {
+    try {
+      validateVaultDatabasePath(vault);
+    } catch {
+      // If path validation fails, still show the vault but mark as error
+      result.push({ entry: vault, status: 'missing' });
+      continue;
+    }
+
+    const status = checkVaultFileStatus(vault.id);
+    result.push({ entry: vault, status });
+  }
+
+  return result;
+}
+
 export function renameVaultMetadata(vaultId: string, name: string): VaultRegistryEntry {
   const entry = updateVault(vaultId, { name });
   validateVaultDatabasePath(entry);
@@ -180,6 +214,42 @@ export function validateVault(vaultId: string): VaultRegistryEntry {
   return readVaultMetadata(vaultId);
 }
 
+function getMigrationMarkerPath(): string {
+  return join(getUserDataPath(), MIGRATION_MARKER_FILENAME);
+}
+
+function hasMigrationMarker(): boolean {
+  return existsSync(getMigrationMarkerPath());
+}
+
+function writeMigrationMarker(legacyPath: string, vaultId: string): void {
+  const marker = {
+    version: 1,
+    migratedAt: Date.now(),
+    legacyDatabasePath: legacyPath,
+    vaultId,
+  };
+  writeFileSync(getMigrationMarkerPath(), JSON.stringify(marker, null, 2), 'utf-8');
+  logger.info('Single-vault migration marker written', { vaultId, legacyPath });
+}
+
+function backupLegacyDatabase(legacyPath: string): string {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupPath = `${legacyPath}.backup.${timestamp}`;
+  copyFileSync(legacyPath, backupPath);
+  logger.info('Legacy database backed up before migration', { legacyPath, backupPath });
+  return backupPath;
+}
+
+function validateBackup(backupPath: string): boolean {
+  if (!existsSync(backupPath)) {
+    return false;
+  }
+  const backupStat = statSync(backupPath);
+  const originalStat = statSync(backupPath.replace(/\.backup\.[^.]+$/, ''));
+  return backupStat.size === originalStat.size && backupStat.size > 0;
+}
+
 export function ensureDefaultVaultRegistry(): VaultRegistryEntry | null {
   const existingVaults = listVaults();
   if (existingVaults.length > 0) {
@@ -188,19 +258,62 @@ export function ensureDefaultVaultRegistry(): VaultRegistryEntry | null {
     return defaultVault;
   }
 
+  // If migration was already performed but all vaults were deleted,
+  // do not recreate from legacy DB again.
+  if (hasMigrationMarker()) {
+    return null;
+  }
+
   const legacyDatabasePath = getLegacyDatabasePath();
   if (!existsSync(legacyDatabasePath)) {
     return null;
   }
 
-  const entry = createVault({
-    name: DEFAULT_MIGRATED_VAULT_NAME,
-    isDefault: true,
-    customDatabasePath: legacyDatabasePath,
-  });
+  // Backup the legacy database before referencing it in the registry
+  const backupPath = backupLegacyDatabase(legacyDatabasePath);
+  if (!validateBackup(backupPath)) {
+    throw new VaultRegistryError(
+      'Failed to create a backup of the legacy database before migration.',
+      'MIGRATION_BACKUP_FAILED',
+    );
+  }
 
-  validateVaultDatabasePath(entry);
-  return entry;
+  // Backup the registry before making changes — enables rollback if
+  // the migration fails partway through.
+  const registryBackup = backupRegistryFile();
+
+  try {
+    const entry = createVault({
+      name: DEFAULT_MIGRATED_VAULT_NAME,
+      isDefault: true,
+      customDatabasePath: legacyDatabasePath,
+    });
+
+    validateVaultDatabasePath(entry);
+
+    // Write migration marker so this process is not repeated
+    writeMigrationMarker(legacyDatabasePath, entry.id);
+
+    return entry;
+  } catch (cause) {
+    // Rollback: restore registry to its pre-migration state if the
+    // vault creation or validation failed partway through.
+    if (registryBackup) {
+      const restored = restoreRegistryFromBackup(registryBackup);
+      if (restored) {
+        logger.error('Registry rolled back after migration failure', {
+          cause: cause instanceof Error ? cause.message : String(cause),
+        });
+      } else {
+        logger.error('Migration failed AND registry rollback failed', {
+          registryBackup,
+          cause: cause instanceof Error ? cause.message : String(cause),
+        });
+      }
+    }
+
+    throw cause;
+  }
 }
 
 export function resolveNewVaultDatabasePath(vaultId: string, customPath?: string): string {

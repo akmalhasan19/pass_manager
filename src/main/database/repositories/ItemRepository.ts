@@ -1,5 +1,6 @@
 import { getDatabase } from '../connection';
-import { Item } from '../../../shared/types';
+import { Item, TotpConfig } from '../../../shared/types';
+import { OTP_DEFAULTS } from '../../../shared/constants';
 import { nanoid } from 'nanoid';
 import { normalizeForComparison } from '../../../shared/validation';
 import { assertValidId, prepareLikePattern } from '../../../shared/sqlSafety';
@@ -15,6 +16,7 @@ export class ItemRepository {
       notesEncrypted?: ArrayBuffer | null;
       emoji?: string | null;
       coverImage?: string | null;
+      otpConfig?: TotpConfig | null;
     },
   ): Item {
     const db = getDatabase();
@@ -33,9 +35,15 @@ export class ItemRepository {
     }
     stmt.free();
 
+    const otpConfig = fields.otpConfig ?? null;
+    const otpSecret = otpConfig?.secret ?? null;
+    const otpPeriod = otpConfig?.period ?? OTP_DEFAULTS.PERIOD;
+    const otpDigits = otpConfig?.digits ?? OTP_DEFAULTS.DIGITS;
+    const otpAlgorithm = otpConfig?.algorithm ?? OTP_DEFAULTS.ALGORITHM;
+
     db.run(
-      `INSERT INTO items (id, folder_id, title, username, password_encrypted, url, notes_encrypted, emoji, cover_image, created_at, updated_at, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO items (id, folder_id, title, username, password_encrypted, url, notes_encrypted, emoji, cover_image, created_at, updated_at, sort_order, otp_secret, otp_period, otp_digits, otp_algorithm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         folderId,
@@ -49,6 +57,10 @@ export class ItemRepository {
         now,
         now,
         maxOrder + 1,
+        otpSecret,
+        otpPeriod,
+        otpDigits,
+        otpAlgorithm,
       ],
     );
 
@@ -103,6 +115,7 @@ export class ItemRepository {
       coverImage: string | null;
       isFavorite: boolean;
       sortOrder: number;
+      otpConfig: TotpConfig | null;
     }>,
   ): Item | null {
     assertValidId(id, 'item');
@@ -148,6 +161,15 @@ export class ItemRepository {
     if (fields.sortOrder !== undefined) {
       sets.push('sort_order = ?');
       params.push(fields.sortOrder);
+    }
+    if (fields.otpConfig !== undefined) {
+      sets.push('otp_secret = ?', 'otp_period = ?', 'otp_digits = ?', 'otp_algorithm = ?');
+      params.push(
+        fields.otpConfig?.secret ?? null,
+        fields.otpConfig?.period ?? OTP_DEFAULTS.PERIOD,
+        fields.otpConfig?.digits ?? OTP_DEFAULTS.DIGITS,
+        fields.otpConfig?.algorithm ?? OTP_DEFAULTS.ALGORITHM,
+      );
     }
 
     if (sets.length === 0) return this.getById(id);
@@ -300,6 +322,17 @@ export class ItemRepository {
   }
 
   private rowToItem(row: Record<string, unknown>): Item {
+    const otpSecret = (row.otp_secret as string) ?? null;
+    const otp: TotpConfig | null =
+      otpSecret !== null
+        ? {
+            secret: otpSecret,
+            period: (row.otp_period as number) ?? OTP_DEFAULTS.PERIOD,
+            digits: (row.otp_digits as number) ?? OTP_DEFAULTS.DIGITS,
+            algorithm: (row.otp_algorithm as string) ?? OTP_DEFAULTS.ALGORITHM,
+          }
+        : null;
+
     return {
       id: row.id as string,
       folderId: row.folder_id as string,
@@ -314,6 +347,7 @@ export class ItemRepository {
       updatedAt: row.updated_at as number,
       isFavorite: (row.is_favorite as number) === 1,
       sortOrder: (row.sort_order as number) ?? 0,
+      otp,
     };
   }
 }

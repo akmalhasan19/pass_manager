@@ -319,4 +319,35 @@ describe('Auto-Lock Timer Integration', () => {
     // Should not lock when not authenticated
     expect(mockLock).not.toHaveBeenCalled();
   });
+
+  it('should reset the lock-in-progress flag when the active vault changes after a lock', () => {
+    mockSettings = { autoLockTime: 5000 };
+
+    const { rerender } = render(
+      React.createElement(TestComp, { onResult: () => {} }),
+    );
+
+    // Let the timer lock the old vault.
+    act(() => {
+      vi.advanceTimersByTime(6000);
+    });
+    expect(mockLock).toHaveBeenCalledTimes(1);
+
+    // Simulate a vault switch/unlock after the lock. The hook must reset its
+    // internal locking flag so the new vault gets a fresh timer instead of
+    // staying disabled or firing a stale lock callback.
+    mockLock.mockClear();
+    mockActiveVaultId = 'vault-after-lock';
+    rerender(React.createElement(TestComp, { onResult: () => {} }));
+
+    act(() => {
+      vi.advanceTimersByTime(4000);
+    });
+    expect(mockLock).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    expect(mockLock).toHaveBeenCalledTimes(1);
+  });
 });

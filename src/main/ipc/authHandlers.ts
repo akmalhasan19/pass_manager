@@ -252,6 +252,18 @@ export function registerAuthHandlers(): void {
           return { success: false, error: 'App is already initialized.' };
         }
 
+        // Before creating a new vault, check if a legacy single-vault
+        // database exists. If so, the user should use the unlock flow
+        // with their existing master password rather than creating a
+        // new vault that would orphan their existing data.
+        const legacyVault = ensureDefaultVaultRegistry();
+        if (legacyVault) {
+          return {
+            success: false,
+            error: 'A legacy vault database was detected. Please unlock it with your existing master password instead of creating a new vault.',
+          };
+        }
+
         await initializeSqlJs();
 
         // Create the default vault in the registry
@@ -340,6 +352,17 @@ export function registerAuthHandlers(): void {
               };
             }
             vaultId = vault.id;
+          }
+        } else {
+          // A vault ID was explicitly provided (e.g., by the vault selector
+          // after ensureDefaultVaultRegistry ran during AUTH_CHECK).
+          // If the vault entry exists but has no auth metadata yet (because
+          // the legacy auth.json migration hasn't run), try migration.
+          if (!vaultAuthFileExists(vaultId)) {
+            const migratedVaultId = attemptLegacyMigration();
+            if (migratedVaultId) {
+              vaultId = migratedVaultId;
+            }
           }
         }
 
@@ -520,6 +543,17 @@ export function registerAuthHandlers(): void {
   );
 
   ipcMain.handle(IPC_CHANNELS.AUTH_CHECK, () => {
+    // Proactively detect any legacy single-vault database and create the
+    // default vault registry entry when the app opens. This ensures the
+    // migration is detected on launch rather than being deferred until
+    // the first unlock attempt.
+    try {
+      ensureDefaultVaultRegistry();
+    } catch {
+      // Non-fatal: if migration fails here (e.g. backup I/O error), the
+      // unlock flow will retry migration when the user attempts to unlock.
+    }
+
     const initialized = isAppInitialized();
     const currentVaultId = activeVaultId;
 

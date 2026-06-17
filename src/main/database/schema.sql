@@ -32,7 +32,11 @@ CREATE TABLE IF NOT EXISTS items (
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     is_favorite INTEGER DEFAULT 0,
-    sort_order INTEGER DEFAULT 0
+    sort_order INTEGER DEFAULT 0,
+    otp_secret TEXT,
+    otp_period INTEGER DEFAULT 30,
+    otp_digits INTEGER DEFAULT 6,
+    otp_algorithm TEXT DEFAULT 'SHA1'
 );
 
 CREATE INDEX IF NOT EXISTS idx_items_folder ON items(folder_id);
@@ -101,6 +105,6 @@ INSERT OR IGNORE INTO settings (key, value) VALUES ('default_password_numbers', 
 INSERT OR IGNORE INTO settings (key, value) VALUES ('default_password_symbols', 'true');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('default_password_exclude_ambiguous', 'true');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('trash_auto_purge_days', '30');
-INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '1');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '2');
 
 

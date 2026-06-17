@@ -8,6 +8,11 @@ const mockElectron = {
     unlock: vi.fn(),
     lock: vi.fn(),
     changePassword: vi.fn(),
+    cleanupListeners: vi.fn(),
+  },
+  vaults: {
+    select: vi.fn(),
+    list: vi.fn(),
   },
 };
 
@@ -233,6 +238,96 @@ describe('authStore', () => {
       await expect(useAuthStore.getState().changePassword('old', 'new')).rejects.toThrow('fail');
 
       expect(useAuthStore.getState().error).toBe('Failed to change password');
+    });
+  });
+
+  describe('selectVault', () => {
+    it('should transition through checking and end unlocked for the target vault', async () => {
+      useAuthStore.setState({
+        status: 'unlocked',
+        isAuthenticated: true,
+        isLoading: false,
+        activeVaultId: 'vault-a',
+        activeVaultName: 'Vault A',
+        selectedVaultId: 'vault-a',
+        vaults: [
+          { id: 'vault-a', name: 'Vault A' } as unknown as import('../../../src/shared/types').VaultRegistryEntry,
+          { id: 'vault-b', name: 'Vault B' } as unknown as import('../../../src/shared/types').VaultRegistryEntry,
+        ],
+      });
+
+      mockElectron.vaults.select.mockResolvedValue({ success: true, vaultId: 'vault-b' });
+      mockElectron.vaults.list.mockResolvedValue({
+        success: true,
+        data: [
+          { id: 'vault-a', name: 'Vault A' } as unknown as import('../../../src/shared/types').VaultRegistryEntry,
+          { id: 'vault-b', name: 'Vault B' } as unknown as import('../../../src/shared/types').VaultRegistryEntry,
+        ],
+      });
+
+      const statuses: string[] = [];
+      const unsubscribe = useAuthStore.subscribe((state) => statuses.push(state.status));
+
+      await useAuthStore.getState().selectVault('vault-b', 'masterpw');
+      unsubscribe();
+
+      expect(statuses).toContain('checking');
+      expect(useAuthStore.getState().status).toBe('unlocked');
+      expect(useAuthStore.getState().activeVaultId).toBe('vault-b');
+      expect(useAuthStore.getState().activeVaultName).toBe('Vault B');
+      expect(useAuthStore.getState().isAuthenticated).toBe(true);
+      expect(mockElectron.vaults.select).toHaveBeenCalledWith('vault-b', 'masterpw');
+    });
+
+    it('should not leave the old vault active when switch fails', async () => {
+      useAuthStore.setState({
+        status: 'unlocked',
+        isAuthenticated: true,
+        isLoading: false,
+        activeVaultId: 'vault-a',
+        activeVaultName: 'Vault A',
+        selectedVaultId: 'vault-a',
+        vaults: [
+          { id: 'vault-a', name: 'Vault A' } as unknown as import('../../../src/shared/types').VaultRegistryEntry,
+          { id: 'vault-b', name: 'Vault B' } as unknown as import('../../../src/shared/types').VaultRegistryEntry,
+        ],
+      });
+
+      mockElectron.vaults.select.mockResolvedValue({
+        success: false,
+        error: 'Incorrect master password',
+      });
+
+      await useAuthStore.getState().selectVault('vault-b', 'wrong');
+
+      expect(useAuthStore.getState().status).toBe('locked');
+      expect(useAuthStore.getState().activeVaultId).toBeNull();
+      expect(useAuthStore.getState().activeVaultName).toBeNull();
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
+      expect(useAuthStore.getState().selectedVaultId).toBe('vault-b');
+    });
+
+    it('should clear old vault state even if the IPC call throws', async () => {
+      useAuthStore.setState({
+        status: 'unlocked',
+        isAuthenticated: true,
+        isLoading: false,
+        activeVaultId: 'vault-a',
+        activeVaultName: 'Vault A',
+        selectedVaultId: 'vault-a',
+        vaults: [
+          { id: 'vault-a', name: 'Vault A' } as unknown as import('../../../src/shared/types').VaultRegistryEntry,
+          { id: 'vault-b', name: 'Vault B' } as unknown as import('../../../src/shared/types').VaultRegistryEntry,
+        ],
+      });
+
+      mockElectron.vaults.select.mockRejectedValue(new Error('IPC crashed'));
+
+      await useAuthStore.getState().selectVault('vault-b', 'masterpw');
+
+      expect(useAuthStore.getState().status).toBe('locked');
+      expect(useAuthStore.getState().activeVaultId).toBeNull();
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
     });
   });
 });

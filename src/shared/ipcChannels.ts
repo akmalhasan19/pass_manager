@@ -16,6 +16,13 @@ export const IPC_CHANNELS = {
   VAULT_GET_ACTIVE: 'vault:getActive',
   VAULT_IMPORT_FILE_DIALOG: 'vault:importFileDialog',
   VAULT_IMPORT: 'vault:import',
+  VAULT_BACKUP_FILE_DIALOG: 'vault:backupFileDialog',
+  VAULT_BACKUP: 'vault:backup',
+  VAULT_RESTORE_FILE_DIALOG: 'vault:restoreFileDialog',
+  VAULT_RESTORE: 'vault:restore',
+  VAULT_RECOVER: 'vault:recover',
+  VAULT_CHECK_FILES: 'vault:checkFiles',
+  VAULT_REMOVE_MISSING: 'vault:removeMissing',
 
   FOLDER_GET_TREE: 'folder:getTree',
   FOLDER_CREATE: 'folder:create',

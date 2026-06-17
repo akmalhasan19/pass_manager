@@ -1,9 +1,13 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
-import { MAX_FIELD_LENGTHS } from '../../shared/constants';
-import { sanitizeField, validateCharacters } from '../../shared/validation';
+import { MAX_FIELD_LENGTHS, OTP_DEFAULTS } from '../../shared/constants';
+import {
+  sanitizeField,
+  sanitizeTotpConfig,
+  validateCharacters,
+} from '../../shared/validation';
 import { secureClear, secureClearString } from '../../shared/secureMemory';
-import type { Item, ItemDecrypted } from '../../shared/types';
+import type { Item, ItemDecrypted, TotpConfig } from '../../shared/types';
 import { FolderRepository } from '../database/repositories/FolderRepository';
 import { ItemRepository } from '../database/repositories/ItemRepository';
 import { TagRepository } from '../database/repositories/TagRepository';
@@ -52,6 +56,14 @@ function decryptItem(item: Item, key: Buffer): ItemDecrypted {
     updatedAt: item.updatedAt,
     isFavorite: item.isFavorite,
     sortOrder: item.sortOrder,
+    otp: item.otp
+      ? {
+          secret: item.otp.secret,
+          period: item.otp.period,
+          digits: item.otp.digits,
+          algorithm: item.otp.algorithm,
+        }
+      : null,
     tags: tags.length > 0 ? tags : undefined,
   };
 }
@@ -89,6 +101,7 @@ function serializeItemForTrash(item: Item): string {
     updatedAt: item.updatedAt,
     isFavorite: item.isFavorite,
     sortOrder: item.sortOrder,
+    otp: item.otp,
   });
 }
 
@@ -180,6 +193,7 @@ export function registerItemHandlers(): void {
         notes?: string | null;
         emoji?: string | null;
         coverImage?: string | null;
+        otpConfig?: TotpConfig | null;
       },
     ) => {
       try {
@@ -260,6 +274,14 @@ export function registerItemHandlers(): void {
             return { success: false, error: 'Notes contain invalid characters.' };
           }
         }
+        let normalizedOtpConfig: TotpConfig | null = null;
+        if (fields.otpConfig !== undefined && fields.otpConfig !== null) {
+          const { sanitized, error } = sanitizeTotpConfig(fields.otpConfig);
+          if (error) {
+            return { success: false, error: 'Invalid OTP configuration: ' + error };
+          }
+          normalizedOtpConfig = sanitized;
+        }
 
         const titleDuplicateExists = itemRepo.existsByFolderIdAndTitle(folderId, trimmedTitle);
         if (titleDuplicateExists) {
@@ -292,6 +314,7 @@ export function registerItemHandlers(): void {
           notesEncrypted,
           emoji: fields.emoji ?? null,
           coverImage: fields.coverImage ?? null,
+          otpConfig: normalizedOtpConfig,
         });
 
         // SECURITY: Wipe encrypted buffers after they've been persisted to DB
@@ -327,6 +350,7 @@ export function registerItemHandlers(): void {
         coverImage?: string | null;
         isFavorite?: boolean;
         sortOrder?: number;
+        otpConfig?: TotpConfig | null;
       },
     ) => {
       try {
@@ -354,6 +378,7 @@ export function registerItemHandlers(): void {
           coverImage: string | null;
           isFavorite: boolean;
           sortOrder: number;
+          otpConfig: TotpConfig | null;
         }> = {};
 
         if (fields.title !== undefined)
@@ -440,6 +465,16 @@ export function registerItemHandlers(): void {
           if (notesCharError) {
             return { success: false, error: 'Notes contain invalid characters.' };
           }
+        }
+
+        if (fields.otpConfig !== undefined && fields.otpConfig !== null) {
+          const { sanitized, error } = sanitizeTotpConfig(fields.otpConfig);
+          if (error) {
+            return { success: false, error: 'Invalid OTP configuration: ' + error };
+          }
+          updateFields.otpConfig = sanitized;
+        } else if (fields.otpConfig === null) {
+          updateFields.otpConfig = null;
         }
 
         if (updateFields.title !== undefined && updateFields.title !== existing.title) {
@@ -562,10 +597,11 @@ export function registerItemHandlers(): void {
         }
       }
 
+      const restoreOtpConfig = itemData.otp ?? null;
       const now = Date.now();
       db.run(
-        `INSERT INTO items (id, folder_id, title, username, password_encrypted, url, notes_encrypted, emoji, cover_image, created_at, updated_at, is_favorite, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO items (id, folder_id, title, username, password_encrypted, url, notes_encrypted, emoji, cover_image, created_at, updated_at, is_favorite, sort_order, otp_secret, otp_period, otp_digits, otp_algorithm)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           itemData.id,
           itemData.folderId,
@@ -580,6 +616,10 @@ export function registerItemHandlers(): void {
           now,
           itemData.isFavorite ? 1 : 0,
           itemData.sortOrder ?? 0,
+          restoreOtpConfig?.secret ?? null,
+          restoreOtpConfig?.period ?? OTP_DEFAULTS.PERIOD,
+          restoreOtpConfig?.digits ?? OTP_DEFAULTS.DIGITS,
+          restoreOtpConfig?.algorithm ?? OTP_DEFAULTS.ALGORITHM,
         ],
       );
 

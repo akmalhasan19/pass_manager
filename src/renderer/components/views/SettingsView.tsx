@@ -17,7 +17,7 @@ type ThemeOption = 'light' | 'dark' | 'system';
 
 export default function SettingsView(): React.ReactElement {
   const { settings, loadSettings, updateSetting } = useSettingsStore();
-  const { changePassword } = useAuthStore();
+  const { changePassword, activeVaultName } = useAuthStore();
   const { t } = useTranslation();
 
   const [activeSection, setActiveSection] = useState<string>('general');
@@ -630,10 +630,12 @@ export default function SettingsView(): React.ReactElement {
       <ImportDialog
         isOpen={showImportDialog}
         onClose={() => setShowImportDialog(false)}
+        activeVaultName={activeVaultName}
       />
       <ExportDialog
         isOpen={showExportDialog}
         onClose={() => setShowExportDialog(false)}
+        activeVaultName={activeVaultName}
       />
     </div>
   );

@@ -10,6 +10,13 @@ export interface Folder {
   children?: Folder[];
 }
 
+export interface TotpConfig {
+  secret: string;
+  period: number;
+  digits: number;
+  algorithm: string;
+}
+
 export interface Item {
   id: string;
   folderId: string;
@@ -24,6 +31,7 @@ export interface Item {
   updatedAt: number;
   isFavorite: boolean;
   sortOrder: number;
+  otp: TotpConfig | null;
   tags?: Tag[];
 }
 
@@ -41,6 +49,7 @@ export interface ItemDecrypted {
   updatedAt: number;
   isFavorite: boolean;
   sortOrder: number;
+  otp: TotpConfig | null;
   tags?: Tag[];
 }
 
@@ -195,6 +204,8 @@ export interface ExportMetadata {
   folderCount: number;
   tagCount: number;
   attachmentCount: number;
+  sourceVaultId?: string;
+  sourceVaultName?: string;
 }
 
 export interface ExportFolder {
@@ -460,6 +471,59 @@ export interface VaultRegistryEntry {
 export interface VaultRegistryFile {
   version: number;
   vaults: VaultRegistryEntry[];
+}
+
+/**
+ * Vault backup file format.
+ *
+ * A vault backup bundles the encrypted database file and the per-vault
+ * auth metadata into a single portable file. The database is NOT decrypted
+ * during backup — the raw encrypted bytes are preserved as-is.
+ *
+ * File extension: .spmv (SecurePass Manager Vault backup)
+ */
+export const VAULT_BACKUP_MAGIC = 'SPMV';
+export const VAULT_BACKUP_FORMAT_VERSION = 1;
+export const VAULT_BACKUP_FILE_EXTENSION = '.spmv';
+
+export interface VaultBackupFile {
+  magic: string;
+  formatVersion: number;
+  vaultName: string;
+  databaseBase64: string;
+  authMetadata: {
+    salt: string;
+    kdfAlgorithm: string;
+    kdfIterations: number;
+    kdfMemory: number | null;
+    kdfParallelism: number | null;
+    verificationHash: string;
+    createdAt: number;
+  };
+  backupCreatedAt: number;
+}
+
+export interface VaultRestoreResult {
+  vaultId: string;
+  vaultName: string;
+}
+
+export type VaultFileStatus = 'ok' | 'missing' | 'corrupted' | 'auth_missing';
+
+export interface VaultWithStatus extends VaultRegistryEntry {
+  fileStatus: VaultFileStatus;
+}
+
+export interface VaultRecoveryResult {
+  recovered: number;
+  vaults: VaultRegistryEntry[];
+}
+
+export interface VaultBackupEntry {
+  vaultId: string;
+  name: string;
+  databasePath: string;
+  backedUpAt: number;
 }
 
 export class VaultRegistryError extends Error {

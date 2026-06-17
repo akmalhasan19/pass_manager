@@ -16,13 +16,27 @@ import {
   type PlainTextExportItemRich,
 } from '../../shared/types';
 import { APP_NAME, APP_VERSION } from '../../shared/constants';
-import { isDatabaseOpen, getDatabase } from '../database/connection';
+import { isDatabaseOpen, getDatabase, getActiveVaultId } from '../database/connection';
+import { getVaultById } from '../file-system/vaultRegistry';
 import { FolderRepository } from '../database/repositories/FolderRepository';
 import { ItemRepository } from '../database/repositories/ItemRepository';
 import { TagRepository } from '../database/repositories/TagRepository';
 import { getMasterKey } from './authHandlers';
 import { encryptAES256GCM, decryptString, encryptString } from '../crypto/encryption';
 import { itemsToCsv, itemsToJsonPlain } from '../import-export/plainTextFormats';
+
+interface ActiveVaultContext {
+  vaultId: string;
+  vaultName: string;
+}
+
+function getActiveVaultContext(): ActiveVaultContext | null {
+  if (!isDatabaseOpen()) return null;
+  const vaultId = getActiveVaultId();
+  if (!vaultId) return null;
+  const vault = getVaultById(vaultId);
+  return { vaultId, vaultName: vault?.name ?? vaultId };
+}
 
 const folderRepo = new FolderRepository();
 const itemRepo = new ItemRepository();
@@ -61,6 +75,7 @@ export function buildExportMetadata(
   folderCount: number,
   tagCount: number,
   attachmentCount: number,
+  vaultContext?: ActiveVaultContext | null,
 ): ExportMetadata {
   return {
     appName: APP_NAME,
@@ -72,6 +87,8 @@ export function buildExportMetadata(
     folderCount,
     tagCount,
     attachmentCount,
+    sourceVaultId: vaultContext?.vaultId,
+    sourceVaultName: vaultContext?.vaultName,
   };
 }
 
@@ -125,7 +142,7 @@ function readAllAttachments(): ExportAttachment[] {
   return attachments;
 }
 
-export function buildEncryptedPayload(): ExportPayload {
+export function buildEncryptedPayload(vaultContext?: ActiveVaultContext | null): ExportPayload {
   const folders = folderRepo.getFlatList().map(
     (f): ExportFolder => ({
       id: f.id,
@@ -174,6 +191,7 @@ export function buildEncryptedPayload(): ExportPayload {
     folders.length,
     tags.length,
     attachments.length,
+    vaultContext,
   );
 
   return {
@@ -313,12 +331,15 @@ export function registerExportHandlers(): void {
           return { success: false, error: 'No master key available. Unlock first.' };
         }
 
+        const vaultCtx = getActiveVaultContext();
+
         const win = BrowserWindow.getFocusedWindow();
         if (!win) {
           return { success: false, error: 'No active window.' };
         }
 
-        const defaultFileName = `securepass-export-${new Date().toISOString().slice(0, 10)}${getExportExtension(format)}`;
+        const vaultSuffix = vaultCtx ? `-${vaultCtx.vaultName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : '';
+        const defaultFileName = `securepass-export${vaultSuffix}-${new Date().toISOString().slice(0, 10)}${getExportExtension(format)}`;
         const result = await dialog.showSaveDialog(win, {
           defaultPath: defaultFileName,
           filters: [getExportFileFilter(format)],
@@ -339,7 +360,7 @@ export function registerExportHandlers(): void {
         switch (format) {
           case 'encrypted-json': {
             sendProgress(10, 'reading-data');
-            const payload = buildEncryptedPayload();
+            const payload = buildEncryptedPayload(vaultCtx);
             sendProgress(40, 'serializing');
             const encryptedFile = serializeEncryptedExport(payload, key);
             sendProgress(70, 'writing');

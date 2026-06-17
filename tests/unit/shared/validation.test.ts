@@ -5,6 +5,13 @@ import {
   sanitizeAndValidateField,
   sanitizeUrl,
   normalizeForComparison,
+  normalizeBase32Secret,
+  fixBase32Padding,
+  sanitizeBase32Secret,
+  validateTotpSecret,
+  validateTotpConfig,
+  sanitizeTotpConfig,
+  isValidBase32,
 } from '../../../src/shared/validation';
 import { MAX_FIELD_LENGTHS } from '../../../src/shared/constants';
 
@@ -231,5 +238,272 @@ describe('normalizeForComparison', () => {
 
   it('handles Unicode emoji', () => {
     expect(normalizeForComparison('Folder 📁')).toBe('folder 📁');
+  });
+});
+
+describe('fixBase32Padding', () => {
+  it('does nothing for already-padded secret (multiple of 8)', () => {
+    expect(fixBase32Padding('JBSWY3DP')).toBe('JBSWY3DP');
+    expect(fixBase32Padding('JBSWY3DPEE======')).toBe('JBSWY3DPEE======');
+  });
+
+  it('adds correct padding for 21-char secret (needs ===)', () => {
+    expect(fixBase32Padding('JBSWY3DPEB2WY3DPEB2XA')).toBe('JBSWY3DPEB2WY3DPEB2XA===');
+  });
+
+  it('adds single padding for 7-char secret', () => {
+    expect(fixBase32Padding('JBSWY3D')).toBe('JBSWY3D=');
+  });
+
+  it('adds 6 padding chars for 2-char secret', () => {
+    expect(fixBase32Padding('JB')).toBe('JB======');
+  });
+
+  it('adds 4 padding chars for 4-char secret', () => {
+    expect(fixBase32Padding('JBSW')).toBe('JBSW====');
+  });
+
+  it('adds 3 padding chars for 5-char secret', () => {
+    expect(fixBase32Padding('JBSWY')).toBe('JBSWY===');
+  });
+
+  it('adds 1 padding char for 7-char secret', () => {
+    expect(fixBase32Padding('JBSWY3D')).toBe('JBSWY3D=');
+  });
+});
+
+describe('normalizeBase32Secret', () => {
+  it('strips spaces from secret', () => {
+    expect(normalizeBase32Secret('JBSW Y3DP')).toBe('JBSWY3DP');
+  });
+
+  it('strips hyphens from secret', () => {
+    expect(normalizeBase32Secret('JBSW-Y3DP-EB3A-5X2G')).toBe('JBSWY3DPEB3A5X2G');
+  });
+
+  it('strips underscores from secret', () => {
+    expect(normalizeBase32Secret('JBSW_Y3DP')).toBe('JBSWY3DP');
+  });
+
+  it('converts lowercase to uppercase', () => {
+    expect(normalizeBase32Secret('jbswy3dp')).toBe('JBSWY3DP');
+  });
+
+  it('strips mixed separators and uppercases', () => {
+    expect(normalizeBase32Secret('jbsw-y3dp_eb3a:5x2g')).toBe('JBSWY3DPEB3A5X2G');
+  });
+
+  it('adds missing padding', () => {
+    expect(normalizeBase32Secret('JBSWY3DPEB2WY3DPEB2XA')).toBe('JBSWY3DPEB2WY3DPEB2XA===');
+  });
+
+  it('replaces existing padding with correct padding', () => {
+    expect(normalizeBase32Secret('JBSWY3DP=')).toBe('JBSWY3DP');
+    expect(normalizeBase32Secret('JBSWY3DPEB2WY3DPEB2XA=====')).toBe('JBSWY3DPEB2WY3DPEB2XA===');
+  });
+
+  it('preserves non-base32 characters for later validation', () => {
+    expect(normalizeBase32Secret('JBSW!@#Y3DP')).toBe('JBSW!@#Y3DP=====');
+  });
+
+  it('strips tabs and newlines', () => {
+    expect(normalizeBase32Secret('JBSW\nY3DP\tEB3A')).toBe('JBSWY3DPEB3A====');
+  });
+
+  it('returns empty string for empty input', () => {
+    expect(normalizeBase32Secret('')).toBe('');
+    expect(normalizeBase32Secret(null as unknown as string)).toBe('');
+    expect(normalizeBase32Secret(undefined as unknown as string)).toBe('');
+  });
+
+  it('handles fully padded valid secret without modification', () => {
+    expect(normalizeBase32Secret('JBSWY3DP')).toBe('JBSWY3DP');
+  });
+
+});
+
+describe('sanitizeBase32Secret', () => {
+  it('returns sanitized secret and null error for valid input', () => {
+    const result = sanitizeBase32Secret('JBSWY3DPEB3A5X2G');
+    expect(result.sanitized).toBe('JBSWY3DPEB3A5X2G');
+    expect(result.error).toBeNull();
+  });
+
+  it('normalizes secret before returning', () => {
+    const result = sanitizeBase32Secret('jbsw y3dp eb3a 5x2g');
+    expect(result.sanitized).toBe('JBSWY3DPEB3A5X2G');
+    expect(result.error).toBeNull();
+  });
+
+  it('returns error for empty input', () => {
+    const result = sanitizeBase32Secret('');
+    expect(result.sanitized).toBe('');
+    expect(result.error).toBe('validation.required');
+  });
+
+  it('returns error for whitespace-only input', () => {
+    const result = sanitizeBase32Secret('   ');
+    expect(result.sanitized).toBe('');
+    expect(result.error).toBe('validation.required');
+  });
+
+  it('returns error for too-short secret', () => {
+    const result = sanitizeBase32Secret('JBSW');
+    expect(result.sanitized).toBe('JBSW====');
+    expect(result.error).toBe('validation.otpSecretTooShort');
+  });
+
+  it('returns error for input with no valid base32 chars', () => {
+    const result = sanitizeBase32Secret('!!!@@@###');
+    expect(result.sanitized).toBe('!!!@@@###=======');
+    expect(result.error).toBe('validation.invalidBase32');
+  });
+
+  it('returns error for invalid base32 characters', () => {
+    const result = sanitizeBase32Secret('JBSWY3DPEB2WY3DPEB2X!'); // '!' is not in base32 alphabet
+    expect(result.error).toBe('validation.invalidBase32');
+  });
+
+  it('accepts 16-char secret (minimum length)', () => {
+    const result = sanitizeBase32Secret('JBSWY3DPEB2WY3DP'); // 16 chars after padding removal
+    expect(result.error).toBeNull();
+    expect(result.sanitized).toBe('JBSWY3DPEB2WY3DP');
+  });
+
+  it('accepts null input gracefully', () => {
+    const result = sanitizeBase32Secret(null as unknown as string);
+    expect(result.sanitized).toBe('');
+    expect(result.error).toBe('validation.required');
+  });
+});
+
+describe('validateTotpSecret (updated to use normalizeBase32Secret)', () => {
+  it('accepts valid secret with spaces', () => {
+    expect(validateTotpSecret('JBSW Y3DP EB3A 5X2G')).toBeNull();
+  });
+
+  it('accepts valid secret with hyphens', () => {
+    expect(validateTotpSecret('JBSW-Y3DP-EB3A-5X2G')).toBeNull();
+  });
+
+  it('accepts lowercase secret', () => {
+    expect(validateTotpSecret('jbswy3dpeb3a5x2g')).toBeNull();
+  });
+
+  it('rejects empty string', () => {
+    expect(validateTotpSecret('')).toBe('validation.required');
+  });
+
+  it('rejects too-short secret', () => {
+    expect(validateTotpSecret('JBSW')).toBe('validation.otpSecretTooShort');
+  });
+
+  it('rejects secret with invalid characters', () => {
+    expect(validateTotpSecret('JBSWY3DPEB2WY3DPEB2X!')).toBe('validation.invalidBase32');
+  });
+});
+
+describe('validateTotpConfig', () => {
+  it('returns null for valid config with defaults', () => {
+    expect(validateTotpConfig({ secret: 'JBSWY3DPEB3A5X2G', period: 30, digits: 6, algorithm: 'SHA1' })).toBeNull();
+  });
+
+  it('returns null for valid config with custom values', () => {
+    expect(validateTotpConfig({ secret: 'JBSWY3DPEB3A5X2G', period: 60, digits: 8, algorithm: 'SHA256' })).toBeNull();
+    expect(validateTotpConfig({ secret: 'JBSWY3DPEB3A5X2G', period: 30, digits: 6, algorithm: 'SHA512' })).toBeNull();
+  });
+
+  it('rejects invalid period (zero)', () => {
+    const result = validateTotpConfig({ secret: 'JBSWY3DPEB3A5X2G', period: 0, digits: 6, algorithm: 'SHA1' });
+    expect(result).toBe('validation.invalidOtpPeriod');
+  });
+
+  it('rejects invalid period (negative)', () => {
+    const result = validateTotpConfig({ secret: 'JBSWY3DPEB3A5X2G', period: -1, digits: 6, algorithm: 'SHA1' });
+    expect(result).toBe('validation.invalidOtpPeriod');
+  });
+
+  it('rejects invalid period (non-integer)', () => {
+    const result = validateTotpConfig({ secret: 'JBSWY3DPEB3A5X2G', period: 30.5, digits: 6, algorithm: 'SHA1' });
+    expect(result).toBe('validation.invalidOtpPeriod');
+  });
+
+  it('rejects invalid digits', () => {
+    const result = validateTotpConfig({ secret: 'JBSWY3DPEB3A5X2G', period: 30, digits: 5, algorithm: 'SHA1' });
+    expect(result).toBe('validation.invalidOtpDigits');
+  });
+
+  it('rejects invalid algorithm', () => {
+    const result = validateTotpConfig({ secret: 'JBSWY3DPEB3A5X2G', period: 30, digits: 6, algorithm: 'SHA224' });
+    expect(result).toBe('validation.invalidOtpAlgorithm');
+  });
+});
+
+describe('sanitizeTotpConfig', () => {
+  it('sanitizes and validates complete valid config', () => {
+    const result = sanitizeTotpConfig({ secret: 'JBSWY3DPEB3A5X2G', period: 30, digits: 6, algorithm: 'SHA1' });
+    expect(result.error).toBeNull();
+    expect(result.sanitized.secret).toBe('JBSWY3DPEB3A5X2G');
+    expect(result.sanitized.period).toBe(30);
+    expect(result.sanitized.digits).toBe(6);
+    expect(result.sanitized.algorithm).toBe('SHA1');
+  });
+
+  it('fills in defaults for missing optional fields', () => {
+    const result = sanitizeTotpConfig({ secret: 'JBSWY3DPEB3A5X2G' });
+    expect(result.error).toBeNull();
+    expect(result.sanitized.period).toBe(30);
+    expect(result.sanitized.digits).toBe(6);
+    expect(result.sanitized.algorithm).toBe('SHA1');
+  });
+
+  it('preserves provided custom values', () => {
+    const result = sanitizeTotpConfig({ secret: 'JBSWY3DPEB3A5X2G', period: 60, digits: 8, algorithm: 'SHA256' });
+    expect(result.error).toBeNull();
+    expect(result.sanitized.period).toBe(60);
+    expect(result.sanitized.digits).toBe(8);
+    expect(result.sanitized.algorithm).toBe('SHA256');
+  });
+
+  it('normalizes secret when filling defaults', () => {
+    const result = sanitizeTotpConfig({ secret: 'jbsw y3dp eb3a 5x2g' });
+    expect(result.error).toBeNull();
+    expect(result.sanitized.secret).toBe('JBSWY3DPEB3A5X2G');
+  });
+
+  it('returns error for invalid secret', () => {
+    const result = sanitizeTotpConfig({ secret: '!@#$%' });
+    expect(result.error).toBe('validation.invalidBase32');
+  });
+
+  it('returns error for empty secret', () => {
+    const result = sanitizeTotpConfig({ secret: '' });
+    expect(result.error).toBe('validation.required');
+  });
+
+  it('returns error for invalid period', () => {
+    const result = sanitizeTotpConfig({ secret: 'JBSWY3DPEB3A5X2G', period: 0 });
+    expect(result.error).toBe('validation.invalidOtpPeriod');
+  });
+
+  it('returns error for invalid digits', () => {
+    const result = sanitizeTotpConfig({ secret: 'JBSWY3DPEB3A5X2G', digits: 7 });
+    expect(result.error).toBe('validation.invalidOtpDigits');
+  });
+
+  it('returns error for invalid algorithm', () => {
+    const result = sanitizeTotpConfig({ secret: 'JBSWY3DPEB3A5X2G', algorithm: 'MD5' });
+    expect(result.error).toBe('validation.invalidOtpAlgorithm');
+  });
+
+  it('normalizes algorithm to uppercase', () => {
+    const result = sanitizeTotpConfig({ secret: 'JBSWY3DPEB3A5X2G', algorithm: 'sha256' });
+    expect(result.error).toBeNull();
+    expect(result.sanitized.algorithm).toBe('SHA256');
+  });
+
+  it('returns error for too-short secret even with defaults filled', () => {
+    const result = sanitizeTotpConfig({ secret: 'JBSW' });
+    expect(result.error).toBe('validation.otpSecretTooShort');
   });
 });

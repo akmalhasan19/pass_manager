@@ -10,6 +10,8 @@ import {
   invalidateRegistryCache,
 } from '../../../src/main/file-system/vaultRegistry';
 import { isValidVaultId } from '../../../src/shared/vaultPathStrategy';
+import { MAX_FIELD_LENGTHS } from '../../../src/shared/constants';
+import { VaultRegistryError } from '../../../src/shared/types';
 
 // The registry file is stored at {userData}/vault-registry.json.
 // In tests, `app.getPath('userData')` is unavailable, so it falls back to cwd()/data.
@@ -172,6 +174,170 @@ describe('Vault Registry - ID and Path Strategy Integration', () => {
 
       expect(getVaultById(keep.id)).not.toBeNull();
       expect(getVaultById(keep.id)!.name).toBe('Keep This');
+    });
+  });
+
+  // ─── Vault Name Validation ─────────────────────────────────────────
+
+  describe('vault name validation', () => {
+    it('rejects empty name', () => {
+      expect(() => createVault({ name: '' })).toThrow(VaultRegistryError);
+      expect(() => createVault({ name: '' })).toThrow('Vault name is invalid');
+    });
+
+    it('rejects whitespace-only name', () => {
+      expect(() => createVault({ name: '   ' })).toThrow(VaultRegistryError);
+      expect(() => createVault({ name: '\t\n' })).toThrow(VaultRegistryError);
+    });
+
+    it('rejects name exceeding maximum length', () => {
+      const tooLong = 'A'.repeat(MAX_FIELD_LENGTHS.VAULT_NAME + 1);
+      expect(() => createVault({ name: tooLong })).toThrow(VaultRegistryError);
+      expect(() => createVault({ name: tooLong })).toThrow('Vault name is invalid');
+    });
+
+    it('accepts name at exactly maximum length', () => {
+      const maxLength = 'A'.repeat(MAX_FIELD_LENGTHS.VAULT_NAME);
+      const entry = createVault({ name: maxLength });
+      expect(entry.name).toBe(maxLength);
+    });
+
+    it('rejects names containing ASCII control characters', () => {
+      expect(() => createVault({ name: 'Bad\x00Name' })).toThrow(VaultRegistryError);
+      expect(() => createVault({ name: 'Bad\x1FName' })).toThrow(VaultRegistryError);
+    });
+
+    it('rejects confusing names like ".", "..", and "..."', () => {
+      expect(() => createVault({ name: '.' })).toThrow(VaultRegistryError);
+      expect(() => createVault({ name: '..' })).toThrow(VaultRegistryError);
+      expect(() => createVault({ name: '...' })).toThrow(VaultRegistryError);
+      expect(() => createVault({ name: '~' })).toThrow(VaultRegistryError);
+    });
+
+    it('trims leading and trailing whitespace from names', () => {
+      const entry = createVault({ name: '  Trimmed Vault  ' });
+      expect(entry.name).toBe('Trimmed Vault');
+    });
+
+    it('accepts Unicode names including emoji, CJK, and RTL scripts', () => {
+      const unicodeNames = [
+        'Vault 🗝️',
+        'パスワード',
+        'مخزن',
+        'Hello 👋 世界',
+        'Café',
+      ];
+
+      for (const name of unicodeNames) {
+        const entry = createVault({ name });
+        expect(entry.name).toBe(name.trim());
+      }
+    });
+  });
+
+  // ─── Duplicate Name Detection ──────────────────────────────────────
+
+  describe('duplicate name detection', () => {
+    it('rejects duplicate names case-insensitively', () => {
+      createVault({ name: 'Personal' });
+
+      expect(() => createVault({ name: 'personal' })).toThrow(VaultRegistryError);
+      expect(() => createVault({ name: 'PERSONAL' })).toThrow(VaultRegistryError);
+      expect(() => createVault({ name: '  personal  ' })).toThrow(VaultRegistryError);
+    });
+
+    it('rejects duplicate names after Unicode NFC normalization', () => {
+      // 'Cafe\u0301' (e + combining acute) should match 'Café' (precomposed)
+      createVault({ name: 'Café' });
+
+      expect(() => createVault({ name: 'Cafe\u0301' })).toThrow(VaultRegistryError);
+    });
+
+    it('rejects duplicate names during updateVault', () => {
+      const first = createVault({ name: 'Work' });
+      createVault({ name: 'Personal' });
+
+      expect(() => updateVault(first.id, { name: 'Personal' })).toThrow(VaultRegistryError);
+    });
+
+    it('allows renaming a vault to its current name', () => {
+      const entry = createVault({ name: 'Personal' });
+
+      const updated = updateVault(entry.id, { name: 'Personal' });
+
+      expect(updated.name).toBe('Personal');
+    });
+
+    it('allows different vaults to have distinct names', () => {
+      createVault({ name: 'Personal' });
+      createVault({ name: 'Work' });
+      createVault({ name: 'Family' });
+
+      const vaults = listVaults();
+      const names = vaults.map((v) => v.name);
+      expect(new Set(names).size).toBe(3);
+    });
+  });
+
+  // ─── listVaults Ordering and Lifecycle ─────────────────────────────
+
+  describe('listVaults ordering and lifecycle', () => {
+    it('returns vaults sorted by sortOrder', () => {
+      const third = createVault({ name: 'Third' });
+      const first = createVault({ name: 'First' });
+      const second = createVault({ name: 'Second' });
+
+      updateVault(second.id, { sortOrder: 1 });
+      updateVault(first.id, { sortOrder: 2 });
+      updateVault(third.id, { sortOrder: 3 });
+
+      const names = listVaults().map((v) => v.name);
+      expect(names).toEqual(['Second', 'First', 'Third']);
+    });
+
+    it('reflects create, update, and delete in listVaults', () => {
+      const alpha = createVault({ name: 'Alpha' });
+      const beta = createVault({ name: 'Beta' });
+
+      expect(listVaults()).toHaveLength(2);
+
+      updateVault(alpha.id, { name: 'Alpha Prime' });
+      expect(listVaults().some((v) => v.name === 'Alpha Prime')).toBe(true);
+
+      deleteVault(beta.id);
+      expect(listVaults()).toHaveLength(1);
+      expect(listVaults()[0].name).toBe('Alpha Prime');
+    });
+  });
+
+  // ─── Custom Database Path Validation ───────────────────────────────
+
+  describe('createVault rejects unsafe custom database paths', () => {
+    it('rejects custom path with directory traversal', () => {
+      expect(() =>
+        createVault({
+          name: 'Evil Vault',
+          customDatabasePath: '/vaults/../../../etc/passwd',
+        }),
+      ).toThrow('Custom database path contains invalid traversal sequences');
+    });
+
+    it('rejects relative custom paths', () => {
+      expect(() =>
+        createVault({
+          name: 'Relative Vault',
+          customDatabasePath: 'my-vault.db',
+        }),
+      ).toThrow('Custom database path must be an absolute path');
+    });
+
+    it('rejects URL-encoded traversal in custom paths', () => {
+      expect(() =>
+        createVault({
+          name: 'Encoded Traversal',
+          customDatabasePath: '/vaults/%2e%2e%2fsecret.db',
+        }),
+      ).toThrow('Custom database path contains invalid traversal sequences');
     });
   });
 });

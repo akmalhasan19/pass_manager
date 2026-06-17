@@ -1,4 +1,6 @@
-import { MAX_FIELD_LENGTHS } from './constants';
+import { MAX_FIELD_LENGTHS, OTP_DEFAULTS, OTP_VALID_DIGITS, OTP_VALID_ALGORITHMS } from './constants';
+import type { TotpConfig } from './types';
+import type { TotpAlgorithm } from './constants';
 import { sanitizeForField, type SanitizableField } from './sanitize';
 
 /**
@@ -42,7 +44,8 @@ export type ValidationField =
   | 'url'
   | 'notes'
   | 'tagName'
-  | 'vaultName';
+  | 'vaultName'
+  | 'otpSecret';
 
 export type { SanitizableField };
 
@@ -254,4 +257,208 @@ export function validateVaultName(name: string): string | null {
   }
 
   return null;
+}
+
+const BASE32_REGEX = /^[A-Z2-7]+=*$/;
+const BASE32_CHARS_REGEX = /^[A-Z2-7]+$/;
+
+/**
+ * Validates that a string is a valid RFC 4648 base32-encoded secret.
+ *
+ * Rules:
+ * - Must be non-empty.
+ * - Must contain only characters from the base32 alphabet (A-Z, 2-7).
+ * - Optional padding (`=`) is allowed at the end.
+ * - Leading/trailing whitespace is not allowed.
+ *
+ * @param secret - The base32 string to validate.
+ * @returns true if the secret is valid base32, false otherwise.
+ */
+export function isValidBase32(secret: string): boolean {
+  if (!secret || secret.length === 0) return false;
+  return BASE32_REGEX.test(secret);
+}
+
+/**
+ * Adds correct RFC 4648 padding to a base32 string if missing.
+ *
+ * Base32 encoded strings must have a length that is a multiple of 8.
+ * If the input is not padded, this function appends the necessary `=`
+ * characters to make it valid.
+ *
+ * @param secret - The base32 string (already uppercased, no spaces).
+ * @returns The base32 string with correct `=` padding.
+ */
+export function fixBase32Padding(secret: string): string {
+  const remainder = secret.length % 8;
+  if (remainder === 0) return secret;
+  return secret + '='.repeat(8 - remainder);
+}
+
+/**
+ * Normalizes a raw TOTP secret string for processing and storage.
+ *
+ * Steps performed:
+ * 1. Strips all whitespace (spaces, tabs, newlines).
+ * 2. Strips common visual separators (hyphens, underscores, colons, periods).
+ * 3. Converts to uppercase (base32 alphabet is case-insensitive per RFC 4648).
+ * 4. Removes any existing padding and re-applies correct padding.
+ *
+ * NOTE: Non-base32 characters are NOT filtered out — they are preserved so
+ * that validation functions can detect and reject them. If you need to
+ * sanitize AND validate, use `sanitizeBase32Secret()` instead.
+ *
+ * @param secret - The raw secret input (from user, QR code, paste, etc.).
+ * @returns The normalized base32 secret string. Returns empty string if input is empty.
+ */
+export function normalizeBase32Secret(secret: string): string {
+  if (!secret) return '';
+
+  let normalized = secret.replace(/\s+/g, '');
+  normalized = normalized.replace(/[-_:.\s]/g, '');
+  normalized = normalized.toUpperCase();
+  normalized = normalized.replace(/=+$/, '');
+
+  return fixBase32Padding(normalized);
+}
+
+/**
+ * Validates a TOTP secret string.
+ *
+ * Rules:
+ * - Must be non-empty.
+ * - Must be valid base32-encoded.
+ * - Must be at least 16 characters (minimum recommended key length).
+ * - Strips whitespace and uppercases before validation.
+ *
+ * @param secret - The raw OTP secret to validate.
+ * @returns A validation error key if invalid, null if valid.
+ */
+export function validateTotpSecret(secret: string): string | null {
+  if (!secret || secret.trim().length === 0) {
+    return 'validation.required';
+  }
+
+  const normalized = normalizeBase32Secret(secret);
+  const stripped = normalized.replace(/=+$/, '');
+
+  if (!BASE32_CHARS_REGEX.test(stripped)) {
+    return 'validation.invalidBase32';
+  }
+
+  if (stripped.length < 16) {
+    return 'validation.otpSecretTooShort';
+  }
+
+  return null;
+}
+
+/**
+ * Sanitize and parse a raw TOTP secret, returning the normalized form
+ * along with a user-friendly error message if the secret is invalid.
+ *
+ * This is the primary entry point for processing TOTP secrets from any
+ * input source (manual entry, QR code scan, import, etc.). It normalizes
+ * the secret and provides descriptive error messages. Non-base32 characters
+ * are rejected, not silently filtered.
+ *
+ * @param secret - The raw secret input.
+ * @returns An object with:
+ *   - `sanitized`: The normalized base32 secret (empty on failure).
+ *   - `error`: A user-facing error key, or null if valid.
+ */
+export function sanitizeBase32Secret(secret: string): { sanitized: string; error: string | null } {
+  if (!secret || secret.trim().length === 0) {
+    return { sanitized: '', error: 'validation.required' };
+  }
+
+  const normalized = normalizeBase32Secret(secret);
+  const stripped = normalized.replace(/=+$/, '');
+
+  if (!BASE32_CHARS_REGEX.test(stripped)) {
+    return { sanitized: normalized, error: 'validation.invalidBase32' };
+  }
+
+  if (stripped.length < 16) {
+    return { sanitized: normalized, error: 'validation.otpSecretTooShort' };
+  }
+
+  return { sanitized: normalized, error: null };
+}
+
+/**
+ * Describes a TOTP config where only `secret` is required;
+ * `period`, `digits`, and `algorithm` are optional and will be
+ * filled with defaults when missing.
+ */
+export interface PartialTotpConfig {
+  secret: string;
+  period?: number;
+  digits?: number;
+  algorithm?: string;
+}
+
+/**
+ * Validates a fully-formed TotpConfig's non-secret fields.
+ *
+ * Checks:
+ * - `period` is a positive integer (commonly 30 or 60).
+ * - `digits` is one of the supported values.
+ * - `algorithm` is one of the supported RFC 6238 HMAC algorithms.
+ *
+ * @param config - The TotpConfig to validate.
+ * @returns A validation error key if invalid, null if valid.
+ */
+export function validateTotpConfig(config: TotpConfig): string | null {
+  if (!Number.isInteger(config.period) || config.period < 1) {
+    return 'validation.invalidOtpPeriod';
+  }
+  if (!OTP_VALID_DIGITS.includes(config.digits as 6 | 8)) {
+    return 'validation.invalidOtpDigits';
+  }
+  if (!OTP_VALID_ALGORITHMS.includes(config.algorithm as TotpAlgorithm)) {
+    return 'validation.invalidOtpAlgorithm';
+  }
+  return null;
+}
+
+/**
+ * Sanitizes and validates a partial (or full) TOTP configuration.
+ *
+ * 1. Normalises the secret via `sanitizeBase32Secret`.
+ * 2. Fills in defaults for `period`, `digits`, and `algorithm` if not provided.
+ * 3. Validates all fields and returns a cleaned TotpConfig or an error key.
+ *
+ * This is the single entry‑point the IPC handlers should use for any
+ * OTP configuration coming from the renderer.
+ *
+ * @param config - Partial or full TOTP config (only `secret` is required).
+ * @returns An object with a sanitized TotpConfig and an optional error key.
+ */
+export function sanitizeTotpConfig(
+  config: PartialTotpConfig,
+): { sanitized: TotpConfig; error: string | null } {
+  const { sanitized: sanitizedSecret, error: secretError } = sanitizeBase32Secret(config.secret);
+
+  const period = config.period ?? OTP_DEFAULTS.PERIOD;
+  const digits = config.digits ?? OTP_DEFAULTS.DIGITS;
+  const algorithm = (config.algorithm ?? OTP_DEFAULTS.ALGORITHM).toUpperCase();
+
+  const sanitized: TotpConfig = {
+    secret: sanitizedSecret,
+    period,
+    digits,
+    algorithm,
+  };
+
+  if (secretError) {
+    return { sanitized, error: secretError };
+  }
+
+  const configError = validateTotpConfig(sanitized);
+  if (configError) {
+    return { sanitized, error: configError };
+  }
+
+  return { sanitized, error: null };
 }

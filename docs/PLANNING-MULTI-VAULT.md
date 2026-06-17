@@ -184,69 +184,69 @@ Fitur ini harus menjaga isolasi data antar vault. Item, folder, tag, attachment,
 
 ## 6. Task: Import, Export, dan Backup Multi-Vault
 
-- [ ] Task 6 Complete
+- [x] Task 6 Complete
 
 ### Sub-Task 6.1: Import ke Vault Aktif
 
-- [ ] Import data selalu masuk ke vault aktif yang unlocked.
-- [ ] Dialog import harus menampilkan nama vault target sebelum commit.
-- [ ] Prevent import jika tidak ada vault aktif atau vault belum unlocked.
-- [ ] Duplicate detection hanya membandingkan data dalam vault target.
+- [x] Import data selalu masuk ke vault aktif yang unlocked.
+- [x] Dialog import harus menampilkan nama vault target sebelum commit.
+- [x] Prevent import jika tidak ada vault aktif atau vault belum unlocked.
+- [x] Duplicate detection hanya membandingkan data dalam vault target.
 
 ### Sub-Task 6.2: Export dari Vault Aktif
 
-- [ ] Export data hanya mengambil isi vault aktif.
-- [ ] Metadata export menyertakan `sourceVaultId` dan `sourceVaultName` jika aman.
-- [ ] Plain text export warning harus menyebut vault yang sedang diekspor.
-- [ ] Encrypted export tetap memakai key vault aktif.
+- [x] Export data hanya mengambil isi vault aktif.
+- [x] Metadata export menyertakan `sourceVaultId` dan `sourceVaultName` jika aman.
+- [x] Plain text export warning harus menyebut vault yang sedang diekspor.
+- [x] Encrypted export tetap memakai key vault aktif.
 
 ### Sub-Task 6.3: Backup dan Restore Vault File
 
-- [ ] Tambahkan opsi backup seluruh vault file terenkripsi tanpa decrypt isi.
-- [ ] Restore vault file harus memvalidasi format database dan auth metadata sebelum masuk registry.
-- [ ] Jika restore vault punya nama sama, tawarkan rename.
-- [ ] Jangan overwrite vault existing tanpa konfirmasi eksplisit.
+- [x] Tambahkan opsi backup seluruh vault file terenkripsi tanpa decrypt isi.
+- [x] Restore vault file harus memvalidasi format database dan auth metadata sebelum masuk registry.
+- [x] Jika restore vault punya nama sama, tawarkan rename.
+- [x] Jangan overwrite vault existing tanpa konfirmasi eksplisit.
 
 ---
 
 ## 7. Task: Testing & Quality Assurance
 
-- [ ] Task 7 Complete
+- [x] Task 7 Complete
 
 ### Sub-Task 7.1: Unit Tests Storage dan Registry
 
-- [ ] Test create/list/rename/delete vault registry.
-- [ ] Test validasi nama vault, duplicate name, dan Unicode normalization.
-- [ ] Test path resolver menolak path traversal.
-- [ ] Test migration single-vault ke default vault.
+- [x] Test create/list/rename/delete vault registry.
+- [x] Test validasi nama vault, duplicate name, dan Unicode normalization.
+- [x] Test path resolver menolak path traversal.
+- [x] Test migration single-vault ke default vault.
 
 ### Sub-Task 7.2: Integration Tests IPC
 
-- [ ] Test create vault lalu unlock vault tersebut.
-- [ ] Test switch vault menutup connection lama dan membuka connection baru.
-- [ ] Test handler item/folder tidak bisa berjalan tanpa vault unlocked.
-- [ ] Test delete vault menghapus registry entry dan file sesuai opsi user.
+- [x] Test create vault lalu unlock vault tersebut.
+- [x] Test switch vault menutup connection lama dan membuka connection baru.
+- [x] Test handler item/folder tidak bisa berjalan tanpa vault unlocked.
+- [x] Test delete vault menghapus registry entry dan file sesuai opsi user.
 
 ### Sub-Task 7.3: Isolation Tests
 
-- [ ] Buat dua vault dengan item berbeda, lalu pastikan query vault A tidak pernah mengembalikan data vault B.
-- [ ] Test folder ID yang sama di dua vault tidak menyebabkan collision di UI.
-- [ ] Test search, password health, trash, attachment, dan export tetap scoped ke vault aktif.
-- [ ] Test store reset setelah switch vault.
+- [x] Buat dua vault dengan item berbeda, lalu pastikan query vault A tidak pernah mengembalikan data vault B.
+- [x] Test folder ID yang sama di dua vault tidak menyebabkan collision di UI.
+- [x] Test search, password health, trash, attachment, dan export tetap scoped ke vault aktif.
+- [x] Test store reset setelah switch vault.
 
 ### Sub-Task 7.4: Security Regression Tests
 
-- [ ] Test key material vault lama tidak dipakai setelah switch vault.
-- [ ] Test auto-lock saat switch vault tidak meninggalkan status unlocked palsu.
-- [ ] Test file path malicious pada import existing vault.
-- [ ] Test delete active vault membersihkan memory dan menutup DB connection sebelum file operation.
+- [x] Test key material vault lama tidak dipakai setelah switch vault.
+- [x] Test auto-lock saat switch vault tidak meninggalkan status unlocked palsu.
+- [x] Test file path malicious pada import existing vault.
+- [x] Test delete active vault membersihkan memory dan menutup DB connection sebelum file operation.
 
 ### Sub-Task 7.5: UX Regression Tests
 
-- [ ] Test Lock Screen saat tidak ada vault, satu vault, dan banyak vault.
-- [ ] Test keyboard navigation di vault selector dan management dialog.
-- [ ] Test error flow saat vault file hilang atau corrupt.
-- [ ] Test i18n untuk Bahasa Inggris dan Bahasa Indonesia.
+- [x] Test Lock Screen saat tidak ada vault, satu vault, dan banyak vault.
+- [x] Test keyboard navigation di vault selector dan management dialog.
+- [x] Test error flow saat vault file hilang atau corrupt.
+- [x] Test i18n untuk Bahasa Inggris dan Bahasa Indonesia.
 
 ---
 
@@ -256,24 +256,24 @@ Fitur ini harus menjaga isolasi data antar vault. Item, folder, tag, attachment,
 
 ### Sub-Task 8.1: Single-Vault Migration
 
-- [ ] Saat aplikasi lama dibuka, detect database existing dan buat registry dengan satu default vault.
-- [ ] Nama default awal bisa `Personal Vault` atau `Default Vault`.
-- [ ] Jangan memindahkan file database lama sebelum backup atau validasi path sukses.
-- [ ] Simpan marker migration agar proses tidak diulang.
+- [x] Saat aplikasi lama dibuka, detect database existing dan buat registry dengan satu default vault.
+- [x] Nama default awal bisa `Personal Vault` atau `Default Vault`.
+- [x] Jangan memindahkan file database lama sebelum backup atau validasi path sukses.
+- [x] Simpan marker migration agar proses tidak diulang.
 
 ### Sub-Task 8.2: Failure Recovery
 
-- [ ] Jika registry rusak, tawarkan recovery dengan scan directory vault.
-- [ ] Jika vault file hilang, tampilkan status missing dan opsi remove from registry.
-- [ ] Jika migration partial gagal, rollback registry update.
-- [ ] Log error teknis tanpa membocorkan data sensitif.
+- [x] Jika registry rusak, tawarkan recovery dengan scan directory vault.
+- [x] Jika vault file hilang, tampilkan status missing dan opsi remove from registry.
+- [x] Jika migration partial gagal, rollback registry update.
+- [x] Log error teknis tanpa membocorkan data sensitif.
 
 ### Sub-Task 8.3: Documentation Internal
 
-- [ ] Update `PLANNING-ROADMAP.md` status jika fitur selesai.
-- [ ] Dokumentasikan struktur registry dan lifecycle switch vault.
-- [ ] Tambahkan developer notes untuk repository/database connection scoping.
-- [ ] Tambahkan manual QA checklist untuk release build.
+- [x] Update `PLANNING-ROADMAP.md` status jika fitur selesai.
+- [x] Dokumentasikan struktur registry dan lifecycle switch vault.
+- [x] Tambahkan developer notes untuk repository/database connection scoping.
+- [x] Tambahkan manual QA checklist untuk release build.
 
 ---
 
@@ -297,10 +297,10 @@ Fitur ini harus menjaga isolasi data antar vault. Item, folder, tag, attachment,
 - [x] Sub-Task 5.2: Vault Switcher di Main App
 - [x] Sub-Task 5.3: Vault Management Dialog
 - [x] Sub-Task 5.4: Localization dan Accessibility
-- [ ] Sub-Task 6.1: Import ke Vault Aktif
-- [ ] Sub-Task 6.2: Export dari Vault Aktif
-- [ ] Sub-Task 6.3: Backup dan Restore Vault File
-- [ ] Sub-Task 7.1-7.5: Unit, Integration, Isolation, Security, dan UX Tests
-- [ ] Sub-Task 8.1: Single-Vault Migration
-- [ ] Sub-Task 8.2: Failure Recovery
-- [ ] Sub-Task 8.3: Documentation Internal
+- [x] Sub-Task 6.1: Import ke Vault Aktif
+- [x] Sub-Task 6.2: Export dari Vault Aktif
+- [x] Sub-Task 6.3: Backup dan Restore Vault File
+- [x] Sub-Task 7.1-7.5: Unit, Integration, Isolation, Security, dan UX Tests
+- [x] Sub-Task 8.1: Single-Vault Migration
+- [x] Sub-Task 8.2: Failure Recovery
+- [x] Sub-Task 8.3: Documentation Internal

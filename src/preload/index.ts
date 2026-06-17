@@ -75,6 +75,14 @@ const api = {
       ipcRenderer.invoke(IPC_CHANNELS.VAULT_IMPORT_FILE_DIALOG),
     importExisting: (params: { filePath: string; name: string }) =>
       ipcRenderer.invoke(IPC_CHANNELS.VAULT_IMPORT, params),
+    backupFileDialog: (vaultId: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.VAULT_BACKUP_FILE_DIALOG, { vaultId }),
+    backup: (params: { vaultId: string; filePath: string }) =>
+      ipcRenderer.invoke(IPC_CHANNELS.VAULT_BACKUP, params),
+    restoreFileDialog: () =>
+      ipcRenderer.invoke(IPC_CHANNELS.VAULT_RESTORE_FILE_DIALOG),
+    restore: (params: { filePath: string; name: string }) =>
+      ipcRenderer.invoke(IPC_CHANNELS.VAULT_RESTORE, params),
   },
 
   folders: {

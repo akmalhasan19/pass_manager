@@ -17,6 +17,7 @@ import type { CsvColumnMapping } from '../../../shared/types';
 interface ImportDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  activeVaultName?: string | null;
   initialFile?: {
     format: ImportFormat;
     filePath: string;
@@ -34,7 +35,7 @@ type DialogStep =
   | 'success'
   | 'error';
 
-export default function ImportDialog({ isOpen, onClose, initialFile }: ImportDialogProps): React.ReactElement {
+export default function ImportDialog({ isOpen, onClose, activeVaultName, initialFile }: ImportDialogProps): React.ReactElement {
   const { t } = useTranslation();
   const [step, setStep] = useState<DialogStep>('select-format');
   const [selectedFormat, setSelectedFormat] = useState<ImportFormat | null>(null);
@@ -48,6 +49,14 @@ export default function ImportDialog({ isOpen, onClose, initialFile }: ImportDia
   const [importResult, setImportResult] = useState<{ itemCount?: number }>({});
   const { showSuccess, showError } = useToast();
   const initialFileProcessedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!activeVaultName) {
+      setErrorMessage(t('import.error.noActiveVault'));
+      setStep('error');
+    }
+  }, [isOpen, activeVaultName, t]);
 
   const resetDialog = useCallback(() => {
     setStep('select-format');
@@ -396,9 +405,16 @@ export default function ImportDialog({ isOpen, onClose, initialFile }: ImportDia
     >
       <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-surface-900 dark:text-surface-50">
-            {t('import.dialog.title')}
-          </h2>
+          <div>
+            <h2 className="text-lg font-semibold text-surface-900 dark:text-surface-50">
+              {t('import.dialog.title')}
+            </h2>
+            {activeVaultName && (
+              <p className="mt-0.5 text-xs text-surface-400 dark:text-surface-500">
+                {t('import.dialog.targetVault', { vaultName: activeVaultName })}
+              </p>
+            )}
+          </div>
           <button
             type="button"
             onClick={handleClose}

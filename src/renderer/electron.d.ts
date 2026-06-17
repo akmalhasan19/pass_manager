@@ -2,6 +2,7 @@ import {
   Folder,
   Item,
   ItemDecrypted,
+  TotpConfig,
   Tag,
   Attachment,
   TrashEntry,
@@ -56,6 +57,7 @@ export interface ElectronItemsAPI {
       notes?: string | null;
       emoji?: string | null;
       coverImage?: string | null;
+      otpConfig?: TotpConfig | null;
     },
   ): Promise<IpcResult<ItemDecrypted>>;
   update(
@@ -70,6 +72,7 @@ export interface ElectronItemsAPI {
       coverImage?: string | null;
       isFavorite?: boolean;
       sortOrder?: number;
+      otpConfig?: TotpConfig | null;
     },
   ): Promise<IpcResult<ItemDecrypted | null>>;
   delete(id: string): Promise<IpcResult<void>>;
@@ -183,6 +186,10 @@ export interface ElectronVaultsAPI {
   getActive(): Promise<IpcResult<{ vaultId: string | null; vault: VaultRegistryEntry | null }>>;
   openFileDialog(): Promise<IpcResult<{ filePath: string; fileName: string }>>;
   importExisting(params: { filePath: string; name: string }): Promise<IpcResult<VaultRegistryEntry>>;
+  backupFileDialog(vaultId: string): Promise<IpcResult<{ filePath: string }>>;
+  backup(params: { vaultId: string; filePath: string }): Promise<IpcResult<void>>;
+  restoreFileDialog(): Promise<IpcResult<{ filePath: string; vaultName: string }>>;
+  restore(params: { filePath: string; name: string }): Promise<IpcResult<{ vaultId: string; vaultName: string }>>;
 }
 
 export interface ElectronAPI {

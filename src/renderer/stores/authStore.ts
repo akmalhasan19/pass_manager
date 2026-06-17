@@ -26,6 +26,8 @@ interface AuthState {
   isDeletingVault: boolean;
   isRenamingVault: boolean;
   isSettingDefaultVault: boolean;
+  isBackingUpVault: boolean;
+  isRestoringVault: boolean;
   checkAuth: () => Promise<void>;
   initApp: (password: string) => Promise<void>;
   unlock: (password: string) => Promise<void>;
@@ -37,6 +39,8 @@ interface AuthState {
   deleteVault: (vaultId: string, deleteDatabaseFile?: boolean, deleteAttachments?: boolean) => Promise<boolean>;
   renameVault: (vaultId: string, name: string) => Promise<boolean>;
   setDefaultVault: (vaultId: string) => Promise<boolean>;
+  backupVault: (vaultId: string) => Promise<boolean>;
+  restoreVault: (filePath: string, name: string) => Promise<boolean>;
   clearError: () => void;
   clearVaultError: () => void;
   setSelectedVaultId: (vaultId: string | null) => void;
@@ -100,6 +104,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isDeletingVault: false,
   isRenamingVault: false,
   isSettingDefaultVault: false,
+  isBackingUpVault: false,
+  isRestoringVault: false,
   ...deriveFlags('idle'),
 
   /**
@@ -702,6 +708,110 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (err) {
       const message = err instanceof Error ? err.message : t('vault.error.setDefaultFailed');
       set({ isSettingDefaultVault: false, vaultError: message });
+      return false;
+    }
+  },
+
+  /**
+   * Creates an encrypted backup of a vault file.
+   * Opens a save dialog, then copies the encrypted database and auth metadata
+   * to the chosen location without decrypting the vault contents.
+   */
+  backupVault: async (vaultId: string) => {
+    set({ isBackingUpVault: true, vaultError: null });
+    try {
+      if (!window.electron) {
+        throw new Error(t('auth.error.ipcUnavailable'));
+      }
+
+      // Open save dialog
+      const dialogResult = await window.electron.vaults.backupFileDialog(vaultId);
+      if (!dialogResult.success || !dialogResult.data) {
+        set({ isBackingUpVault: false });
+        return false;
+      }
+
+      // Create the backup
+      const result = await window.electron.vaults.backup({
+        vaultId,
+        filePath: dialogResult.data.filePath,
+      });
+
+      if (!result.success) {
+        set({
+          isBackingUpVault: false,
+          vaultError: result.error || t('vault.error.backupFailed'),
+        });
+        return false;
+      }
+
+      set({ isBackingUpVault: false, vaultError: null });
+
+      const { vaults } = get();
+      const vaultName = resolveVaultName(vaults, vaultId) ?? vaultId;
+      useToastStore.getState().addToast(t('vault.success.backedUp', { vaultName }), 'success', 5000);
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('vault.error.backupFailed');
+      set({ isBackingUpVault: false, vaultError: message });
+      return false;
+    }
+  },
+
+  /**
+   * Restores a vault from a backup file.
+   * Opens a file dialog to select the backup, validates it,
+   * then registers the vault in the registry.
+   *
+   * If a vault with the same name exists, the caller should check
+   * and prompt for a new name before calling this.
+   */
+  restoreVault: async (filePath: string, name: string) => {
+    set({ isRestoringVault: true, vaultError: null });
+    try {
+      if (!window.electron) {
+        throw new Error(t('auth.error.ipcUnavailable'));
+      }
+
+      const result = await window.electron.vaults.restore({ filePath, name });
+
+      if (!result.success) {
+        set({
+          isRestoringVault: false,
+          vaultError: result.error || t('vault.error.restoreFailed'),
+        });
+        return false;
+      }
+
+      // Reload vault list to include the restored vault
+      let updatedVaults: VaultRegistryEntry[] = [];
+      try {
+        const listResult = await window.electron.vaults.list();
+        if (listResult.success) {
+          updatedVaults = listResult.data;
+        }
+      } catch {
+        // Non-critical
+      }
+
+      // Select the restored vault so the user can unlock it
+      const restoredVaultId = result.data?.vaultId ?? null;
+      set({
+        status: 'locked',
+        activeVaultId: null,
+        activeVaultName: null,
+        selectedVaultId: restoredVaultId,
+        vaults: updatedVaults,
+        isRestoringVault: false,
+        vaultError: null,
+        ...deriveFlags('locked'),
+      });
+
+      useToastStore.getState().addToast(t('vault.success.restored', { vaultName: name }), 'success', 5000);
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('vault.error.restoreFailed');
+      set({ isRestoringVault: false, vaultError: message });
       return false;
     }
   },

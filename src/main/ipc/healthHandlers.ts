@@ -27,7 +27,8 @@ export function registerHealthHandlers(): void {
       for (const item of items) {
         if (item.passwordEncrypted) {
           try {
-            const decrypted = decryptString(item.passwordEncrypted, key);
+            const passwordBuf = Buffer.from(item.passwordEncrypted);
+            const decrypted = decryptString(passwordBuf, key);
             passwords.set(item.id, decrypted);
           } catch {
             // Skip items that can't be decrypted

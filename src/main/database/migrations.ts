@@ -4,7 +4,7 @@ import { app } from 'electron';
 import type { Database as SqlJsDatabase } from 'sql.js';
 import { runMany, getDatabase, openDatabaseForVault, saveDatabase, closeDatabase } from './connection';
 
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 export function getAuthPath(): string {
   const userDataPath = app?.getPath?.('userData') ?? join(process.cwd(), 'data');
@@ -89,12 +89,15 @@ export function runMigrations(db?: SqlJsDatabase): void {
       runSchema(db);
     }
 
-    // Future migrations go here:
-    // if (currentVersion < 2) { ... }
-    // if (currentVersion < 3) { ... }
-
     const targetDb = db ?? getDatabase();
     if (!targetDb) throw new Error('Database not open');
+
+    if (currentVersion < 2) {
+      targetDb.run("ALTER TABLE items ADD COLUMN otp_secret TEXT");
+      targetDb.run("ALTER TABLE items ADD COLUMN otp_period INTEGER DEFAULT 30");
+      targetDb.run("ALTER TABLE items ADD COLUMN otp_digits INTEGER DEFAULT 6");
+      targetDb.run("ALTER TABLE items ADD COLUMN otp_algorithm TEXT DEFAULT 'SHA1'");
+    }
 
     targetDb.run('UPDATE settings SET value = ? WHERE key = ?', [
       String(CURRENT_VERSION),

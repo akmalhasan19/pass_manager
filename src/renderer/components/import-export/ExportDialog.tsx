@@ -11,9 +11,10 @@ type DialogStep = 'select-format' | 'warning' | 'exporting' | 'success' | 'error
 interface ExportDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  activeVaultName?: string | null;
 }
 
-export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): React.ReactElement {
+export default function ExportDialog({ isOpen, onClose, activeVaultName }: ExportDialogProps): React.ReactElement {
   const { t } = useTranslation();
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('encrypted-json');
   const [step, setStep] = useState<DialogStep>('select-format');
@@ -148,9 +149,16 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
     >
       <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-surface-900 dark:text-surface-50">
-            {t('export.dialog.title')}
-          </h2>
+          <div>
+            <h2 className="text-lg font-semibold text-surface-900 dark:text-surface-50">
+              {t('export.dialog.title')}
+            </h2>
+            {activeVaultName && (
+              <p className="mt-0.5 text-xs text-surface-400 dark:text-surface-500">
+                {t('export.dialog.sourceVault', { vaultName: activeVaultName })}
+              </p>
+            )}
+          </div>
           <button
             type="button"
             onClick={handleClose}
@@ -239,7 +247,11 @@ export default function ExportDialog({ isOpen, onClose }: ExportDialogProps): Re
                     {t('export.warning.title')}
                   </h3>
                   <p className="mt-1 text-xs text-warning-600 dark:text-warning-400">
-                    {renderRichText(t('export.warning.body'))}
+                    {renderRichText(
+                      activeVaultName
+                        ? t('export.warning.bodyWithVault', { vaultName: activeVaultName })
+                        : t('export.warning.body'),
+                    )}
                   </p>
                   <ul className="mt-2 list-inside list-disc text-xs text-warning-600 dark:text-warning-400">
                     <li>{t('export.warning.list.share')}</li>

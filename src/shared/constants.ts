@@ -29,3 +29,22 @@ export const MAX_FIELD_LENGTHS = {
 } as const;
 
 export const VAULT_REGISTRY_VERSION = 1;
+
+/** RFC 6238 OTP default values */
+export const OTP_DEFAULTS = {
+  PERIOD: 30,
+  DIGITS: 6,
+  ALGORITHM: 'SHA1',
+} as const;
+
+/** Valid TOTP period values in seconds */
+export const OTP_VALID_PERIODS = [30, 60] as const;
+
+/** Valid TOTP digit lengths */
+export const OTP_VALID_DIGITS = [6, 8] as const;
+
+/** Valid HMAC algorithms per RFC 6238 */
+export const OTP_VALID_ALGORITHMS = ['SHA1', 'SHA256', 'SHA512'] as const;
+
+/** Union type of valid TOTP algorithms */
+export type TotpAlgorithm = (typeof OTP_VALID_ALGORITHMS)[number];

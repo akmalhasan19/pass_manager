@@ -65,7 +65,7 @@
 
 ## Rank 4: Multi-Vault Support
 
-**Status**: Belum dimplementasikan  
+**Status**: Selesai dimplementasikan  
 **Tag**: `Feature`, `Organization`, `Low Effort / High Impact`
 
 **Deskripsi**: Kemampuan membuat dan mengganti-ganti antar beberapa vault terpisah (misalnya: Personal vs Kerja).

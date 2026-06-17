@@ -13,6 +13,7 @@ import SecurityIndicator from '../components/security/SecurityIndicator';
 import VaultSelector from '../components/lock-screen/VaultSelector';
 import CreateVaultDialog from '../components/lock-screen/CreateVaultDialog';
 import ImportVaultDialog from '../components/lock-screen/ImportVaultDialog';
+import RestoreVaultDialog from '../components/lock-screen/RestoreVaultDialog';
 import type { ImportFormat } from '../../shared/types';
 
 export default function LockScreenPage(): React.ReactElement {
@@ -22,12 +23,14 @@ export default function LockScreenPage(): React.ReactElement {
     vaults,
     selectedVaultId,
     isCreatingVault,
+    isRestoringVault,
     initApp,
     unlock,
     clearError,
     setSelectedVaultId,
     createVault,
     importVault,
+    restoreVault,
     loadVaults,
     vaultError,
     clearVaultError,
@@ -54,6 +57,7 @@ export default function LockScreenPage(): React.ReactElement {
   // Vault management dialogs
   const [showCreateVaultDialog, setShowCreateVaultDialog] = useState(false);
   const [showImportVaultDialog, setShowImportVaultDialog] = useState(false);
+  const [showRestoreVaultDialog, setShowRestoreVaultDialog] = useState(false);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -180,6 +184,21 @@ export default function LockScreenPage(): React.ReactElement {
       return importVault(filePath, name);
     },
     [importVault],
+  );
+
+  const handleRestoreVault = useCallback(
+    async (filePath: string, name: string): Promise<boolean> => {
+      return restoreVault(filePath, name);
+    },
+    [restoreVault],
+  );
+
+  const handleCheckVaultNameExists = useCallback(
+    (name: string): boolean => {
+      const trimmed = name.trim().toLowerCase();
+      return vaults.some((v) => v.name.toLowerCase() === trimmed);
+    },
+    [vaults],
   );
 
   const isLoading = status === 'checking';
@@ -572,7 +591,7 @@ export default function LockScreenPage(): React.ReactElement {
 
           {/* Vault Management Buttons (shown on lock screen when vaults exist) */}
           {!isSetup && vaults.length > 0 && (
-            <div className="flex w-full items-center justify-center gap-3 pt-1">
+            <div className="flex w-full items-center justify-center gap-3 pt-1 flex-wrap">
               <button
                 type="button"
                 onClick={() => setShowCreateVaultDialog(true)}
@@ -618,6 +637,29 @@ export default function LockScreenPage(): React.ReactElement {
                 </svg>
                 {t('lockScreen.importExistingVault')}
               </button>
+              <span className="text-surface-300 dark:text-surface-600">•</span>
+              <button
+                type="button"
+                onClick={() => setShowRestoreVaultDialog(true)}
+                disabled={isLoading || isCreatingVault || isRestoringVault}
+                className="flex items-center gap-1.5 text-xs text-surface-500 transition-colors hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-300"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                {t('lockScreen.restoreVault')}
+              </button>
             </div>
           )}
         </div>
@@ -641,6 +683,14 @@ export default function LockScreenPage(): React.ReactElement {
         onClose={() => setShowImportVaultDialog(false)}
         onImportVault={handleImportVault}
         isImporting={isCreatingVault}
+      />
+
+      <RestoreVaultDialog
+        isOpen={showRestoreVaultDialog}
+        onClose={() => setShowRestoreVaultDialog(false)}
+        onRestore={handleRestoreVault}
+        onCheckNameExists={handleCheckVaultNameExists}
+        isRestoring={isRestoringVault}
       />
     </div>
   );

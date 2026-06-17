@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { VaultRegistryFile } from '../../../src/shared/types';
 import {
@@ -34,6 +34,10 @@ function resetTestData(): void {
   invalidateRegistryCache();
   rmSync(testDataDir, { recursive: true, force: true });
   mkdirSync(testDataDir, { recursive: true });
+}
+
+function getMigrationMarkerPath(): string {
+  return join(testDataDir, 'single-vault-migration.marker.json');
 }
 
 describe('Storage Manager vault APIs', () => {
@@ -117,9 +121,63 @@ describe('Storage Manager vault APIs', () => {
     expect(listVaultMetadata()).toHaveLength(1);
   });
 
+  it('backs up the legacy database before migration', () => {
+    writeFileSync(legacyDatabasePath, 'legacy-database-bytes');
+
+    ensureDefaultVaultRegistry();
+
+    const files = readdirSync(testDataDir);
+    const backupFile = files.find((f) => f.startsWith('securepass.db.backup.'));
+    expect(backupFile).toBeDefined();
+    const backupPath = join(testDataDir, backupFile!);
+    expect(readFileSync(backupPath, 'utf-8')).toBe('legacy-database-bytes');
+  });
+
+  it('writes a migration marker after successful migration', () => {
+    writeFileSync(legacyDatabasePath, 'legacy-database-bytes');
+
+    const migrated = ensureDefaultVaultRegistry();
+    const markerPath = getMigrationMarkerPath();
+
+    expect(existsSync(markerPath)).toBe(true);
+    const marker = JSON.parse(readFileSync(markerPath, 'utf-8'));
+    expect(marker.version).toBe(1);
+    expect(marker.legacyDatabasePath).toBe(legacyDatabasePath);
+    expect(marker.vaultId).toBe(migrated!.id);
+    expect(typeof marker.migratedAt).toBe('number');
+  });
+
+  it('does not migrate again if a migration marker already exists', () => {
+    writeFileSync(legacyDatabasePath, 'legacy-database-bytes');
+
+    const first = ensureDefaultVaultRegistry();
+    expect(first).not.toBeNull();
+
+    // Simulate user deleting all vaults but leaving legacy DB in place
+    invalidateRegistryCache();
+    deleteVaultMetadata(first!.id, { deleteDatabaseFile: false });
+
+    const second = ensureDefaultVaultRegistry();
+    expect(second).toBeNull();
+  });
+
   it('does not create a default vault when no legacy database exists', () => {
     const migrated = ensureDefaultVaultRegistry();
 
+    expect(migrated).toBeNull();
+    expect(listVaultMetadata()).toEqual([]);
+  });
+
+  it('does not create a default vault when legacy DB is missing and marker exists', () => {
+    writeFileSync(legacyDatabasePath, 'legacy-database-bytes');
+    ensureDefaultVaultRegistry();
+
+    // Remove legacy DB but keep marker
+    rmSync(legacyDatabasePath, { force: true });
+    invalidateRegistryCache();
+    deleteVaultMetadata(listVaultMetadata()[0].id, { deleteDatabaseFile: false });
+
+    const migrated = ensureDefaultVaultRegistry();
     expect(migrated).toBeNull();
     expect(listVaultMetadata()).toEqual([]);
   });
