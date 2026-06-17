@@ -41,6 +41,29 @@ PBKDF2-SHA512 (600,000 iterations)
 
 ---
 
+### Secure Memory Management
+
+Once encrypted data is loaded into memory, any cryptographic keys or plaintext must remain in memory only as long as necessary. The codebase uses a central `secureMemory.ts` utility that enforces deterministic memory wiping:
+
+- **`secureClear(buffer)`**: Triple-pass overwrite (zeros → random → zeros) to prevent simple forensic recovery. Uses a data-dependency read to prevent JIT elision.
+- **`secureClearString(str)`**: Copies the string into a temporary `Buffer`, wipes the temporary buffer, and returns an empty string so the caller can drop the reference.
+- **`secureWipeObject(obj)`**: Iterates an object’s enumerable properties and wipes any `Buffer`, `ArrayBuffer`, or `string` values.
+
+All sensitive code paths are annotated with the standard inline comment:
+
+```typescript
+// SECURITY: Wipe sensitive material before leaving scope
+secureClear(sensitiveBuffer);
+```
+
+Key integration points:
+- **Lock screen**: wipes `masterKey` and `currentSalt`, closes the database, and clears all IPC listeners.
+- **Password change**: securely overwrites the old key (`oldKey.fill(0)`) after re-encryption.
+- **Crypto operations**: `encryption.ts` and `keyDerivation.ts` wipe all temporary buffers after use.
+- **Renderer stores**: `authStore.ts` and `itemStore.ts` overwrite cached decrypted values before lock.
+
+This ensures that even if an attacker obtains a memory dump, the key material has been explicitly zeroed rather than relying on the garbage collector.
+
 ## Threat Model
 
 ### Assets
@@ -143,7 +166,9 @@ If you discover a security vulnerability in SecurePass Manager, please report it
 
 - [x] No sensitive data logged to console or files
 - [x] Keys cleared from memory on lock (`masterKey = null`, `salt = null`)
-- [x] Old key zeroed on password change (`oldKey.fill(0)`)
+- [x] All sensitive buffers wiped via `secureClear` (triple-pass: zeros → random → zeros)
+- [x] Standard `// SECURITY: Wipe sensitive material before leaving scope` comments used on every code path
+- [x] Old key zeroed on password change (`oldKey.fill(0)
 - [x] All SQL queries parameterized (no string concatenation)
 - [x] XSS: no `dangerouslySetInnerHTML`, ProseMirror JSON storage
 - [x] Preload: only `contextBridge` + `ipcRenderer.invoke`

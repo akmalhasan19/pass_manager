@@ -115,7 +115,7 @@ Security audit dan memory wipe adalah fondasi integritas zero-knowledge. Jika ku
 ---
 
 ## 6. Task: UX Polish & Documentation
-- [ ] Task 6 Complete
+- [x] Task 6 Complete
 
 ### Sub-Task 6.1: Security Indicator
 - [x] Tambahkan indikator visual di lock screen atau status bar yang menunjukkan bahwa aplikasi telah di-lock dan memory telah di-*cleared*.
@@ -125,8 +125,8 @@ Security audit dan memory wipe adalah fondasi integritas zero-knowledge. Jika ku
 - [x] Semua pesan keamanan (warning, error, notification status) harus berasal dari keys file bahasa agar dapat diterjemahkan.
 
 ### Sub-Task 6.3: Documentation & Code Comments
-- [ ] Dokumentasikan fungsi `secureClear` dan code path sensitif lainnya dengan komentar yang jelas: `// SECURITY: Wipe sensitive material before leaving scope`.
-- [ ] Update `SECURITY.md` jika ada untuk mencantumkan langkah-langkah memory wipe ini sebagai bagian dari hardening aplikasi.
+- [x] Dokumentasikan fungsi `secureClear` dan code path sensitif lainnya dengan komentar yang jelas: `// SECURITY: Wipe sensitive material before leaving scope`.
+- [x] Update `SECURITY.md` jika ada untuk mencantumkan langkah-langkah memory wipe ini sebagai bagian dari hardening aplikasi.
 
 ---
 
@@ -147,4 +147,4 @@ Security audit dan memory wipe adalah fondasi integritas zero-knowledge. Jika ku
 - [x] Sub-Task 5.1-5.3: Unit, Memory Leak, Regression Tests
 - [x] Sub-Task 6.1: Security Indicator (visual feedback on lock)
 - [x] Sub-Task 6.2: Localization (I18n Ready)
-- [ ] Sub-Task 6.3: Documentation & Code Comments
+- [x] Sub-Task 6.3: Documentation & Code Comments

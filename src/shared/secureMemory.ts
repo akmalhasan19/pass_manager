@@ -18,6 +18,7 @@
  * @param buffer  The Buffer or ArrayBuffer to wipe. Null/undefined are no-ops.
  */
 export function secureClear(buffer: Buffer | ArrayBuffer | null | undefined): void {
+  // SECURITY: Wipe sensitive material before leaving scope
   if (!buffer) return;
 
   const view =
@@ -68,6 +69,7 @@ export function secureClear(buffer: Buffer | ArrayBuffer | null | undefined): vo
  * @returns    An empty string.
  */
 export function secureClearString(str: string | null | undefined): '' {
+  // SECURITY: Wipe sensitive material before leaving scope
   if (!str) return '';
 
   // Force V8 to externalize the string so we can touch its bytes.
@@ -86,6 +88,7 @@ export function secureClearString(str: string | null | undefined): '' {
  * @param obj  The object to wipe. Null/undefined are no-ops.
  */
 export function secureWipeObject(obj: Record<string, unknown> | null | undefined): void {
+  // SECURITY: Wipe sensitive material before leaving scope
   if (!obj || typeof obj !== 'object') return;
 
   for (const key of Object.keys(obj)) {
