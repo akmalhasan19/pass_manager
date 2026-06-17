@@ -90,11 +90,11 @@ Fitur ini harus mengikuti RFC 6238 (TOTP) dan RFC 4226 (HOTP), mengenkripsi secr
 
 ### Sub-Task 3.1: OTP Section di Item Detail dan Form
 
-- [ ] Tambahkan section "Authenticator (OTP)" di form add/edit item.
-- [ ] Input field untuk `secret` (masked, toggle visibility).
-- [ ] Dropdown/algoritma selector untuk `period`, `digits`, `algorithm`.
-- [ ] Tombol "Generate QR Code" yang menampilkan QR code dari secret (hanya jika secret valid).
-- [ ] Tombol "Remove OTP" untuk menghapus config dari item.
+- [x] Tambahkan section "Authenticator (OTP)" di form add/edit item.
+- [x] Input field untuk `secret` (masked, toggle visibility).
+- [x] Dropdown/algoritma selector untuk `period`, `digits`, `algorithm`.
+- [x] Tombol "Generate QR Code" yang menampilkan QR code dari secret (hanya jika secret valid).
+- [x] Tombol "Remove OTP" untuk menghapus config dari item.
 
 ### Sub-Task 3.2: OTP Widget Display
 
@@ -255,7 +255,7 @@ Fitur ini harus mengikuti RFC 6238 (TOTP) dan RFC 4226 (HOTP), mengenkripsi secr
 - [x] Sub-Task 2.1: Integrasi Library TOTP
 - [x] Sub-Task 2.2: Base32 Secret Parser dan Sanitasi
 - [x] Sub-Task 2.3: Handling OTP Fields Variabel
-- [ ] Sub-Task 3.1: OTP Section di Item Detail dan Form
+- [x] Sub-Task 3.1: OTP Section di Item Detail dan Form
 - [ ] Sub-Task 3.2: OTP Widget Display
 - [ ] Sub-Task 3.3: UI Item List dan Overview
 - [ ] Sub-Task 3.4: Accessibility dan Keyboard Navigation

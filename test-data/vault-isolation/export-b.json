@@ -1,0 +1,14 @@
+[
+  {
+    "title": "Beta Export",
+    "username": "user",
+    "password": "MyStr0ng!UniqueB@123",
+    "url": "https://example.com",
+    "notes": null,
+    "tags": [],
+    "folder": "Beta Folder",
+    "isFavorite": false,
+    "createdAt": 1781738173162,
+    "updatedAt": 1781738173162
+  }
+]

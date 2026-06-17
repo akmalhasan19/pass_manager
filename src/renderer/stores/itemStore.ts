@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { produce } from 'immer';
-import type { Item, ItemDecrypted } from '../../shared/types';
+import type { Item, ItemDecrypted, TotpConfig } from '../../shared/types';
 
 export interface ItemState {
   items: Record<string, Item | ItemDecrypted>;
@@ -22,6 +22,7 @@ export interface ItemState {
       notes?: string | null;
       emoji?: string | null;
       coverImage?: string | null;
+      otpConfig?: TotpConfig | null;
     },
   ) => Promise<ItemDecrypted | null>;
   updateItem: (
@@ -36,6 +37,7 @@ export interface ItemState {
       coverImage?: string | null;
       isFavorite?: boolean;
       sortOrder?: number;
+      otpConfig?: TotpConfig | null;
     },
   ) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;

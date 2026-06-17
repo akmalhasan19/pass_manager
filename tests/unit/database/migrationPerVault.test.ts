@@ -82,9 +82,9 @@ describe('Per-vault migration', () => {
     // Database file should now exist with the schema applied
     expect(existsSync(vault.databasePath)).toBe(true);
 
-    // Schema version should be set to CURRENT_VERSION (1)
+    // Schema version should be set to CURRENT_VERSION (2)
     const version = readSchemaVersion(vault.id);
-    expect(version).toBe(1);
+    expect(version).toBe(2);
   });
 
   it('creates all expected tables in the vault database', () => {
@@ -145,11 +145,11 @@ describe('Per-vault migration', () => {
       expect(row.value).toBe('custom_value');
       stmt.free();
 
-      // Schema version should still be 1
+      // Schema version should still be 2
       const versionStmt = db.prepare("SELECT value FROM settings WHERE key = 'schema_version'");
       expect(versionStmt.step()).toBe(true);
       const versionRow = versionStmt.getAsObject() as { value: string };
-      expect(parseInt(versionRow.value, 10)).toBe(1);
+      expect(parseInt(versionRow.value, 10)).toBe(2);
       versionStmt.free();
     } finally {
       closeDatabase();
@@ -164,9 +164,9 @@ describe('Per-vault migration', () => {
     migrateVaultDatabase(personal.id);
     migrateVaultDatabase(work.id);
 
-    // Both should have schema version 1
-    expect(readSchemaVersion(personal.id)).toBe(1);
-    expect(readSchemaVersion(work.id)).toBe(1);
+    // Both should have schema version 2
+    expect(readSchemaVersion(personal.id)).toBe(2);
+    expect(readSchemaVersion(work.id)).toBe(2);
 
     // Insert vault-specific data into Personal
     openDatabaseForVault(personal.id);

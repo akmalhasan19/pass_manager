@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import type { ItemDecrypted, Tag, Attachment } from '../../../shared/types';
+import type { ItemDecrypted, Tag, Attachment, TotpConfig } from '../../../shared/types';
 import { MAX_FIELD_LENGTHS } from '../../../shared/constants';
 import { validateField as validateFieldUtil, sanitizeField } from '../../../shared/validation';
 import PasswordGenerator from '../widgets/PasswordGenerator';
@@ -8,6 +8,7 @@ import EmojiPicker from '../ui/EmojiPicker';
 import CoverImage from '../ui/CoverImage';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { InlineFormField } from '../ui/FormField';
+import OtpSection from '../otp/OtpSection';
 import { useToast } from '../../hooks/useToast';
 import { useTranslation } from '../../i18n/useTranslation';
 
@@ -111,6 +112,7 @@ export default function ItemDetailView({
   const isSavingRef = useRef(false);
   const pendingSaveRef = useRef<{ field: string; value: unknown } | null>(null);
   const tagDropdownRef = useRef<HTMLDivElement>(null);
+  const otpSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -277,6 +279,23 @@ export default function ItemDetailView({
     [markDirty, scheduleAutoSave, validateField],
   );
 
+  const handleOtpChange = useCallback(
+    (newConfig: TotpConfig | null) => {
+      if (!item) return;
+      if (otpSaveTimerRef.current) clearTimeout(otpSaveTimerRef.current);
+
+      if (newConfig === null) {
+        onUpdate(item.id, { otpConfig: null });
+        return;
+      }
+
+      otpSaveTimerRef.current = setTimeout(() => {
+        onUpdate(item.id, { otpConfig: newConfig });
+      }, 800);
+    },
+    [item, onUpdate],
+  );
+
   const handleBlur = useCallback(
     async (field: string, value: unknown) => {
       if (!item) return;
@@ -427,6 +446,7 @@ export default function ItemDetailView({
   useEffect(() => {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (otpSaveTimerRef.current) clearTimeout(otpSaveTimerRef.current);
       // SECURITY: Wipe sensitive data from pendingSaveRef before releasing reference.
       // The ref may hold a plaintext password if a save was queued.
       if (pendingSaveRef.current) {
@@ -860,6 +880,14 @@ export default function ItemDetailView({
             </p>
           </div>
         </div>
+
+        {/* OTP Section */}
+        <OtpSection
+          itemTitle={item.title}
+          otpConfig={item.otp}
+          isEditMode={editMode}
+          onChange={handleOtpChange}
+        />
 
         {/* Tags */}
         <div className="mb-8">

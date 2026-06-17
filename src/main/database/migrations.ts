@@ -85,14 +85,12 @@ export function runMigrations(db?: SqlJsDatabase): void {
   const currentVersion = getCurrentSchemaVersion(db);
 
   if (currentVersion < CURRENT_VERSION) {
-    if (currentVersion === 0) {
-      runSchema(db);
-    }
-
     const targetDb = db ?? getDatabase();
     if (!targetDb) throw new Error('Database not open');
 
-    if (currentVersion < 2) {
+    if (currentVersion === 0) {
+      runSchema(db);
+    } else if (currentVersion < 2) {
       targetDb.run("ALTER TABLE items ADD COLUMN otp_secret TEXT");
       targetDb.run("ALTER TABLE items ADD COLUMN otp_period INTEGER DEFAULT 30");
       targetDb.run("ALTER TABLE items ADD COLUMN otp_digits INTEGER DEFAULT 6");

@@ -1,4 +1,33 @@
 {
   "version": 1,
-  "vaults": []
+  "vaults": [
+    {
+      "id": "fb1edb3c-4916-4382-a13b-d24675e3ec69",
+      "name": "Vault Alpha",
+      "databasePath": "C:\\Users\\user\\pass_manager\\test-data\\vault-isolation\\vaults\\vault-fb1edb3c-4916-4382-a13b-d24675e3ec69.db",
+      "createdAt": 1781738170261,
+      "lastOpenedAt": 1781738173854,
+      "lastOpenedVersion": "0.1.0",
+      "description": null,
+      "color": null,
+      "icon": null,
+      "isDefault": false,
+      "sortOrder": 1,
+      "isCustomLocation": false
+    },
+    {
+      "id": "4089f332-9a07-492b-ac97-f90e12b85af1",
+      "name": "Vault Beta",
+      "databasePath": "C:\\Users\\user\\pass_manager\\test-data\\vault-isolation\\vaults\\vault-4089f332-9a07-492b-ac97-f90e12b85af1.db",
+      "createdAt": 1781738171759,
+      "lastOpenedAt": 1781738174525,
+      "lastOpenedVersion": "0.1.0",
+      "description": null,
+      "color": null,
+      "icon": null,
+      "isDefault": false,
+      "sortOrder": 2,
+      "isCustomLocation": false
+    }
+  ]
 }
