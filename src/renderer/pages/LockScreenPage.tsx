@@ -10,10 +10,28 @@ import {
 import ImportDialog from '../components/import-export/ImportDialog';
 import DropZone from '../components/import-export/DropZone';
 import SecurityIndicator from '../components/security/SecurityIndicator';
+import VaultSelector from '../components/lock-screen/VaultSelector';
+import CreateVaultDialog from '../components/lock-screen/CreateVaultDialog';
+import ImportVaultDialog from '../components/lock-screen/ImportVaultDialog';
 import type { ImportFormat } from '../../shared/types';
 
 export default function LockScreenPage(): React.ReactElement {
-  const { status, error, initApp, unlock, clearError } = useAuthStore();
+  const {
+    status,
+    error,
+    vaults,
+    selectedVaultId,
+    isCreatingVault,
+    initApp,
+    unlock,
+    clearError,
+    setSelectedVaultId,
+    createVault,
+    importVault,
+    loadVaults,
+    vaultError,
+    clearVaultError,
+  } = useAuthStore();
   const { t } = useTranslation();
 
   const isSetup = status === 'setup';
@@ -32,6 +50,10 @@ export default function LockScreenPage(): React.ReactElement {
   const inputRef = useRef<HTMLInputElement>(null);
   const passwordErrorId = useId();
   const confirmPasswordErrorId = useId();
+
+  // Vault management dialogs
+  const [showCreateVaultDialog, setShowCreateVaultDialog] = useState(false);
+  const [showImportVaultDialog, setShowImportVaultDialog] = useState(false);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -56,6 +78,13 @@ export default function LockScreenPage(): React.ReactElement {
     }
   }, [error]);
 
+  // Sync vaultError to local display
+  useEffect(() => {
+    if (vaultError) {
+      setLocalError(vaultError);
+    }
+  }, [vaultError]);
+
   const resetForm = useCallback(() => {
     setPassword('');
     setConfirmPassword('');
@@ -63,7 +92,8 @@ export default function LockScreenPage(): React.ReactElement {
     setShowConfirm(false);
     setLocalError('');
     clearError();
-  }, [clearError]);
+    clearVaultError();
+  }, [clearError, clearVaultError]);
 
   const handlePasswordChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,9 +101,10 @@ export default function LockScreenPage(): React.ReactElement {
       if (localError) {
         setLocalError('');
         clearError();
+        clearVaultError();
       }
     },
-    [localError, clearError],
+    [localError, clearError, clearVaultError],
   );
 
   const handleConfirmChange = useCallback(
@@ -82,9 +113,10 @@ export default function LockScreenPage(): React.ReactElement {
       if (localError) {
         setLocalError('');
         clearError();
+        clearVaultError();
       }
     },
-    [localError, clearError],
+    [localError, clearError, clearVaultError],
   );
 
   const handleSubmit = useCallback(
@@ -128,6 +160,28 @@ export default function LockScreenPage(): React.ReactElement {
     [resetForm],
   );
 
+  const handleSelectVault = useCallback(
+    (vaultId: string) => {
+      setSelectedVaultId(vaultId);
+      resetForm();
+    },
+    [setSelectedVaultId, resetForm],
+  );
+
+  const handleCreateVault = useCallback(
+    async (name: string, masterPassword: string): Promise<boolean> => {
+      return createVault(name, masterPassword);
+    },
+    [createVault],
+  );
+
+  const handleImportVault = useCallback(
+    async (filePath: string, name: string): Promise<boolean> => {
+      return importVault(filePath, name);
+    },
+    [importVault],
+  );
+
   const isLoading = status === 'checking';
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [droppedFile, setDroppedFile] = useState<{
@@ -149,6 +203,9 @@ export default function LockScreenPage(): React.ReactElement {
     setDroppedFile(null);
   }, []);
 
+  // Determine if we should show the vault selector (multiple vaults in locked state)
+  const showVaultSelector = !isSetup && vaults.length > 1;
+
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-surface-50 dark:bg-surface-900">
       <div className="w-full max-w-sm animate-fade-in px-6" onKeyDown={handleKeyDown}>
@@ -169,6 +226,26 @@ export default function LockScreenPage(): React.ReactElement {
 
         {/* Security Indicator (shown when vault is locked) */}
         {!isSetup && <SecurityIndicator isVisible={!isSetup} />}
+
+        {/* Vault Selector (shown when multiple vaults exist and not in setup mode) */}
+        {showVaultSelector && (
+          <VaultSelector
+            vaults={vaults}
+            selectedVaultId={selectedVaultId}
+            onSelectVault={handleSelectVault}
+            disabled={isLoading}
+          />
+        )}
+
+        {/* Single vault name display (shown when only one vault exists) */}
+        {!isSetup && vaults.length === 1 && (
+          <VaultSelector
+            vaults={vaults}
+            selectedVaultId={selectedVaultId}
+            onSelectVault={handleSelectVault}
+            disabled={isLoading}
+          />
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -322,7 +399,7 @@ export default function LockScreenPage(): React.ReactElement {
                   {t('lockScreen.passwordStrength')}
                 </span>
                 <span className={`text-xs font-medium ${getStrengthTextColor(strength.score)}`}>
-                  {strength.label}
+                  {t(`strength.${strength.score === 0 ? 'veryWeak' : strength.score === 1 ? 'weak' : strength.score === 2 ? 'fair' : strength.score === 3 ? 'strong' : 'veryStrong'}`)}
                 </span>
               </div>
               <div className="flex gap-1">
@@ -373,10 +450,10 @@ export default function LockScreenPage(): React.ReactElement {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isLoading || !password}
+            disabled={isLoading || isCreatingVault || !password}
             className="notion-button-primary w-full rounded-lg py-2.5"
           >
-            {isLoading ? (
+            {isLoading || isCreatingVault ? (
               <span className="flex items-center gap-2">
                 <svg
                   className="h-4 w-4 animate-spin"
@@ -455,7 +532,7 @@ export default function LockScreenPage(): React.ReactElement {
             <div className="flex w-full flex-col items-center gap-2">
               <DropZone
                 onFileDropped={handleFileDropped}
-                disabled={isLoading}
+                disabled={isLoading || isCreatingVault}
               />
               <div className="relative w-full text-center">
                 <div className="absolute inset-0 flex items-center">
@@ -467,10 +544,40 @@ export default function LockScreenPage(): React.ReactElement {
                   </span>
                 </div>
               </div>
+              <div className="flex w-full items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowImportDialog(true)}
+                  className="flex items-center gap-1.5 text-xs text-accent-500 transition-colors hover:text-accent-600 dark:text-accent-400 dark:hover:text-accent-300"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-3.5 w-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 16v-4a1 1 0 011-1h4m6 0h4a1 1 0 011 1v4m-5-5l-3-3m0 0l3-3m-3 3h12"
+                    />
+                  </svg>
+                  {t('lockScreen.importData')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Vault Management Buttons (shown on lock screen when vaults exist) */}
+          {!isSetup && vaults.length > 0 && (
+            <div className="flex w-full items-center justify-center gap-3 pt-1">
               <button
                 type="button"
-                onClick={() => setShowImportDialog(true)}
-                className="flex items-center gap-1.5 text-xs text-accent-500 transition-colors hover:text-accent-600 dark:text-accent-400 dark:hover:text-accent-300"
+                onClick={() => setShowCreateVaultDialog(true)}
+                disabled={isLoading || isCreatingVault}
+                className="flex items-center gap-1.5 text-xs text-surface-500 transition-colors hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-300"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -483,10 +590,33 @@ export default function LockScreenPage(): React.ReactElement {
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    d="M4 16v-4a1 1 0 011-1h4m6 0h4a1 1 0 011 1v4m-5-5l-3-3m0 0l3-3m-3 3h12"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                   />
                 </svg>
-                {t('lockScreen.importData')}
+                {t('lockScreen.createVault')}
+              </button>
+              <span className="text-surface-300 dark:text-surface-600">•</span>
+              <button
+                type="button"
+                onClick={() => setShowImportVaultDialog(true)}
+                disabled={isLoading || isCreatingVault}
+                className="flex items-center gap-1.5 text-xs text-surface-500 transition-colors hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-300"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                  />
+                </svg>
+                {t('lockScreen.importExistingVault')}
               </button>
             </div>
           )}
@@ -497,6 +627,20 @@ export default function LockScreenPage(): React.ReactElement {
         isOpen={showImportDialog}
         onClose={handleImportDialogClose}
         initialFile={droppedFile}
+      />
+
+      <CreateVaultDialog
+        isOpen={showCreateVaultDialog}
+        onClose={() => setShowCreateVaultDialog(false)}
+        onCreateVault={handleCreateVault}
+        isCreating={isCreatingVault}
+      />
+
+      <ImportVaultDialog
+        isOpen={showImportVaultDialog}
+        onClose={() => setShowImportVaultDialog(false)}
+        onImportVault={handleImportVault}
+        isImporting={isCreatingVault}
       />
     </div>
   );

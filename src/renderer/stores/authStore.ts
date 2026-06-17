@@ -24,13 +24,19 @@ interface AuthState {
   isCreatingVault: boolean;
   isSwitchingVault: boolean;
   isDeletingVault: boolean;
+  isRenamingVault: boolean;
+  isSettingDefaultVault: boolean;
   checkAuth: () => Promise<void>;
   initApp: (password: string) => Promise<void>;
   unlock: (password: string) => Promise<void>;
   lock: () => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   selectVault: (vaultId: string, masterPassword: string) => Promise<void>;
+  createVault: (name: string, masterPassword: string) => Promise<boolean>;
+  importVault: (filePath: string, name: string) => Promise<boolean>;
   deleteVault: (vaultId: string, deleteDatabaseFile?: boolean, deleteAttachments?: boolean) => Promise<boolean>;
+  renameVault: (vaultId: string, name: string) => Promise<boolean>;
+  setDefaultVault: (vaultId: string) => Promise<boolean>;
   clearError: () => void;
   clearVaultError: () => void;
   setSelectedVaultId: (vaultId: string | null) => void;
@@ -92,6 +98,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isCreatingVault: false,
   isSwitchingVault: false,
   isDeletingVault: false,
+  isRenamingVault: false,
+  isSettingDefaultVault: false,
   ...deriveFlags('idle'),
 
   /**
@@ -432,6 +440,121 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   /**
+   * Creates a new vault from the lock screen.
+   * Uses the VAULT_CREATE IPC which creates the vault, initializes the DB,
+   * sets up auth, and unlocks the vault in one call.
+   *
+   * On success, transitions directly to 'unlocked' state.
+   */
+  createVault: async (name: string, masterPassword: string) => {
+    set({ isCreatingVault: true, vaultError: null });
+    try {
+      if (!window.electron) {
+        throw new Error(t('auth.error.ipcUnavailable'));
+      }
+
+      const result = await window.electron.vaults.create({
+        name,
+        masterPassword,
+      });
+
+      if (!result.success) {
+        set({
+          isCreatingVault: false,
+          vaultError: result.error || t('vault.error.createFailed'),
+        });
+        return false;
+      }
+
+      // Reload vault list to include the newly created vault
+      let updatedVaults: VaultRegistryEntry[] = [];
+      try {
+        const listResult = await window.electron.vaults.list();
+        if (listResult.success) {
+          updatedVaults = listResult.data;
+        }
+      } catch {
+        // Non-critical
+      }
+
+      const createdVaultId = result.data?.id ?? null;
+      set({
+        status: 'unlocked',
+        activeVaultId: createdVaultId,
+        activeVaultName: resolveVaultName(updatedVaults, createdVaultId),
+        selectedVaultId: createdVaultId,
+        vaults: updatedVaults,
+        isCreatingVault: false,
+        vaultError: null,
+        ...deriveFlags('unlocked'),
+      });
+
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('vault.error.createFailed');
+      set({ isCreatingVault: false, vaultError: message });
+      return false;
+    }
+  },
+
+  /**
+   * Imports an existing vault database file from the lock screen.
+   * Copies the database file into the managed vaults directory and
+   * registers it in the vault registry.
+   *
+   * The vault is NOT unlocked after import — the user must provide
+   * the correct master password to unlock it separately.
+   */
+  importVault: async (filePath: string, name: string) => {
+    set({ isCreatingVault: true, vaultError: null });
+    try {
+      if (!window.electron) {
+        throw new Error(t('auth.error.ipcUnavailable'));
+      }
+
+      const result = await window.electron.vaults.importExisting({ filePath, name });
+
+      if (!result.success) {
+        set({
+          isCreatingVault: false,
+          vaultError: result.error || t('vault.error.importFailed'),
+        });
+        return false;
+      }
+
+      // Reload vault list to include the imported vault
+      let updatedVaults: VaultRegistryEntry[] = [];
+      try {
+        const listResult = await window.electron.vaults.list();
+        if (listResult.success) {
+          updatedVaults = listResult.data;
+        }
+      } catch {
+        // Non-critical
+      }
+
+      // Select the newly imported vault so the user can unlock it
+      const importedVaultId = result.data?.id ?? null;
+      set({
+        status: 'locked',
+        activeVaultId: null,
+        activeVaultName: null,
+        selectedVaultId: importedVaultId,
+        vaults: updatedVaults,
+        isCreatingVault: false,
+        vaultError: null,
+        ...deriveFlags('locked'),
+      });
+
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('vault.error.importFailed');
+      set({ isCreatingVault: false, vaultError: message });
+      return false;
+    }
+  },
+
+  /**
    * Deletes a vault from the registry and optionally removes its database
    * file and attachments. If the vault being deleted is currently active,
    * the main process will lock it first.
@@ -483,6 +606,102 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : t('vault.error.deleteFailed', { vaultName: targetVaultName, error: '' });
       set({ isDeletingVault: false, vaultError: errorMsg });
+      return false;
+    }
+  },
+
+  /**
+   * Renames a vault in the registry.
+   * If the renamed vault is the active vault, updates the display name.
+   */
+  renameVault: async (vaultId: string, name: string) => {
+    set({ isRenamingVault: true, vaultError: null });
+    try {
+      if (!window.electron) {
+        throw new Error(t('auth.error.ipcUnavailable'));
+      }
+
+      const result = await window.electron.vaults.rename(vaultId, name);
+
+      if (!result.success) {
+        set({
+          isRenamingVault: false,
+          vaultError: result.error || t('vault.error.renameFailed'),
+        });
+        return false;
+      }
+
+      // Reload vault list
+      let updatedVaults: VaultRegistryEntry[] = [];
+      try {
+        const listResult = await window.electron.vaults.list();
+        if (listResult.success) {
+          updatedVaults = listResult.data;
+        }
+      } catch {
+        // Non-critical
+      }
+
+      const { activeVaultId } = get();
+      set({
+        vaults: updatedVaults,
+        isRenamingVault: false,
+        vaultError: null,
+        // Update activeVaultName if the renamed vault is the active one
+        activeVaultName: activeVaultId === vaultId ? name : get().activeVaultName,
+      });
+
+      useToastStore.getState().addToast(t('vault.success.renamed', { vaultName: name }), 'success', 5000);
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('vault.error.renameFailed');
+      set({ isRenamingVault: false, vaultError: message });
+      return false;
+    }
+  },
+
+  /**
+   * Sets a vault as the default vault in the registry.
+   */
+  setDefaultVault: async (vaultId: string) => {
+    set({ isSettingDefaultVault: true, vaultError: null });
+    try {
+      if (!window.electron) {
+        throw new Error(t('auth.error.ipcUnavailable'));
+      }
+
+      const result = await window.electron.vaults.setDefault(vaultId);
+
+      if (!result.success) {
+        set({
+          isSettingDefaultVault: false,
+          vaultError: result.error || t('vault.error.setDefaultFailed'),
+        });
+        return false;
+      }
+
+      // Reload vault list
+      let updatedVaults: VaultRegistryEntry[] = [];
+      try {
+        const listResult = await window.electron.vaults.list();
+        if (listResult.success) {
+          updatedVaults = listResult.data;
+        }
+      } catch {
+        // Non-critical
+      }
+
+      set({
+        vaults: updatedVaults,
+        isSettingDefaultVault: false,
+        vaultError: null,
+      });
+
+      useToastStore.getState().addToast(t('vault.success.setDefault'), 'success', 5000);
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('vault.error.setDefaultFailed');
+      set({ isSettingDefaultVault: false, vaultError: message });
       return false;
     }
   },

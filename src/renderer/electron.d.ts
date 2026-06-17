@@ -178,7 +178,11 @@ export interface ElectronVaultsAPI {
   select(vaultId: string, masterPassword: string): Promise<IpcResult<{ vaultId: string }>>;
   rename(vaultId: string, name: string): Promise<IpcResult<VaultRegistryEntry>>;
   delete(vaultId: string, deleteDatabaseFile?: boolean, deleteAttachments?: boolean): Promise<IpcResult<VaultRegistryEntry>>;
+  setDefault(vaultId: string): Promise<IpcResult<VaultRegistryEntry>>;
+  revealLocation(vaultId: string): Promise<IpcResult<void>>;
   getActive(): Promise<IpcResult<{ vaultId: string | null; vault: VaultRegistryEntry | null }>>;
+  openFileDialog(): Promise<IpcResult<{ filePath: string; fileName: string }>>;
+  importExisting(params: { filePath: string; name: string }): Promise<IpcResult<VaultRegistryEntry>>;
 }
 
 export interface ElectronAPI {

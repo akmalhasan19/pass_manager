@@ -11,7 +11,11 @@ export const IPC_CHANNELS = {
   VAULT_SELECT: 'vault:select',
   VAULT_RENAME: 'vault:rename',
   VAULT_DELETE: 'vault:delete',
+  VAULT_SET_DEFAULT: 'vault:setDefault',
+  VAULT_REVEAL_LOCATION: 'vault:revealLocation',
   VAULT_GET_ACTIVE: 'vault:getActive',
+  VAULT_IMPORT_FILE_DIALOG: 'vault:importFileDialog',
+  VAULT_IMPORT: 'vault:import',
 
   FOLDER_GET_TREE: 'folder:getTree',
   FOLDER_CREATE: 'folder:create',

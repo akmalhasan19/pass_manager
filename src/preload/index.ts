@@ -66,7 +66,15 @@ const api = {
         deleteDatabaseFile,
         deleteAttachments,
       }),
+    setDefault: (vaultId: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.VAULT_SET_DEFAULT, { vaultId }),
+    revealLocation: (vaultId: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.VAULT_REVEAL_LOCATION, { vaultId }),
     getActive: () => ipcRenderer.invoke(IPC_CHANNELS.VAULT_GET_ACTIVE),
+    openFileDialog: () =>
+      ipcRenderer.invoke(IPC_CHANNELS.VAULT_IMPORT_FILE_DIALOG),
+    importExisting: (params: { filePath: string; name: string }) =>
+      ipcRenderer.invoke(IPC_CHANNELS.VAULT_IMPORT, params),
   },
 
   folders: {

@@ -8,6 +8,7 @@ import { InlineFormField } from '../ui/FormField';
 import { useTranslation } from '../../i18n/useTranslation';
 import type { Folder } from '../../../shared/types';
 import TreeNode from '../ui/TreeNode';
+import VaultSwitcher from './VaultSwitcher';
 
 function generateAlternativeName(baseName: string, existingNames: Set<string>): string {
   let counter = 2;
@@ -242,30 +243,9 @@ export default function Sidebar(): React.ReactElement {
 
   return (
     <aside className="flex h-full w-[220px] shrink-0 flex-col bg-[#f5f5f7] dark:bg-surface-850">
-      {/* User Profile */}
-      <div className="flex shrink-0 items-center gap-3 px-4 pb-3 pt-4">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-400 to-blue-600">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 text-white"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-            />
-          </svg>
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-surface-800 dark:text-surface-100">
-            Alex Riverside
-          </p>
-          <p className="text-xs text-surface-500 dark:text-surface-400">Pro Plan</p>
-        </div>
+      {/* Vault Switcher */}
+      <div className="shrink-0 pt-3">
+        <VaultSwitcher />
       </div>
 
       {/* Quick Find */}

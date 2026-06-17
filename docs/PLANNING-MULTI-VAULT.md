@@ -154,31 +154,31 @@ Fitur ini harus menjaga isolasi data antar vault. Item, folder, tag, attachment,
 
 ### Sub-Task 5.1: Vault Selector di Lock Screen
 
-- [ ] Tampilkan dropdown atau segmented selector untuk memilih vault sebelum unlock.
-- [ ] Jika belum ada vault, tampilkan setup flow untuk membuat vault pertama.
-- [ ] Tambahkan tombol "Create Vault" dan "Import Existing Vault" dari Lock Screen.
-- [ ] Tampilkan metadata aman seperti nama vault dan terakhir dibuka, tanpa preview isi.
+- [x] Tampilkan dropdown atau segmented selector untuk memilih vault sebelum unlock.
+- [x] Jika belum ada vault, tampilkan setup flow untuk membuat vault pertama.
+- [x] Tambahkan tombol "Create Vault" dan "Import Existing Vault" dari Lock Screen.
+- [x] Tampilkan metadata aman seperti nama vault dan terakhir dibuka, tanpa preview isi.
 
 ### Sub-Task 5.2: Vault Switcher di Main App
 
-- [ ] Tambahkan vault switcher di sidebar atau title area Main App.
-- [ ] Saat user memilih vault lain, tampilkan confirm dialog bahwa vault saat ini akan dikunci.
-- [ ] Setelah confirm, lock vault aktif dan arahkan ke Lock Screen vault target.
-- [ ] Tampilkan active vault secara jelas agar user tidak salah memasukkan data ke vault yang berbeda.
+- [x] Tambahkan vault switcher di sidebar atau title area Main App.
+- [x] Saat user memilih vault lain, tampilkan confirm dialog bahwa vault saat ini akan dikunci.
+- [x] Setelah confirm, lock vault aktif dan arahkan ke Lock Screen vault target.
+- [x] Tampilkan active vault secara jelas agar user tidak salah memasukkan data ke vault yang berbeda.
 
 ### Sub-Task 5.3: Vault Management Dialog
 
-- [ ] UI untuk rename vault, set default vault, reveal file location, dan delete vault.
-- [ ] Delete vault harus membutuhkan konfirmasi eksplisit dengan nama vault.
-- [ ] Jika vault sedang aktif, delete harus memaksa lock dan wipe memory sebelum file dihapus.
-- [ ] Tampilkan warning bahwa delete vault tidak bisa dibatalkan kecuali user punya backup/export.
+- [x] UI untuk rename vault, set default vault, reveal file location, dan delete vault.
+- [x] Delete vault harus membutuhkan konfirmasi eksplisit dengan nama vault.
+- [x] Jika vault sedang aktif, delete harus memaksa lock dan wipe memory sebelum file dihapus.
+- [x] Tampilkan warning bahwa delete vault tidak bisa dibatalkan kecuali user punya backup/export.
 
 ### Sub-Task 5.4: Localization dan Accessibility
 
-- [ ] Semua string UI vault memakai i18n keys di `en.json` dan `id.json`.
-- [ ] Vault selector harus bisa digunakan dengan keyboard.
-- [ ] Error dan status switch vault diumumkan dengan `aria-live`.
-- [ ] Confirm dialog harus trap focus dan mengembalikan focus ke trigger setelah ditutup.
+- [x] Semua string UI vault memakai i18n keys di `en.json` dan `id.json`.
+- [x] Vault selector harus bisa digunakan dengan keyboard.
+- [x] Error dan status switch vault diumumkan dengan `aria-live`.
+- [x] Confirm dialog harus trap focus dan mengembalikan focus ke trigger setelah ditutup.
 
 ---
 
@@ -293,10 +293,10 @@ Fitur ini harus menjaga isolasi data antar vault. Item, folder, tag, attachment,
 - [x] Sub-Task 4.1: Update Auth Store
 - [x] Sub-Task 4.2: Reset Store Saat Switch
 - [x] Sub-Task 4.3: Error dan Loading State
-- [ ] Sub-Task 5.1: Vault Selector di Lock Screen
-- [ ] Sub-Task 5.2: Vault Switcher di Main App
-- [ ] Sub-Task 5.3: Vault Management Dialog
-- [ ] Sub-Task 5.4: Localization dan Accessibility
+- [x] Sub-Task 5.1: Vault Selector di Lock Screen
+- [x] Sub-Task 5.2: Vault Switcher di Main App
+- [x] Sub-Task 5.3: Vault Management Dialog
+- [x] Sub-Task 5.4: Localization dan Accessibility
 - [ ] Sub-Task 6.1: Import ke Vault Aktif
 - [ ] Sub-Task 6.2: Export dari Vault Aktif
 - [ ] Sub-Task 6.3: Backup dan Restore Vault File

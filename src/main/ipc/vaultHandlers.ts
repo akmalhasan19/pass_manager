@@ -1,8 +1,10 @@
-import { ipcMain } from 'electron';
+import { ipcMain, dialog, BrowserWindow, shell } from 'electron';
+import { copyFileSync, existsSync } from 'node:fs';
+import { basename, extname } from 'node:path';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
 import type { VaultRegistryEntry } from '../../shared/types';
 import { VaultRegistryError } from '../../shared/types';
-import { getVaultById } from '../file-system/vaultRegistry';
+import { getVaultById, updateVault } from '../file-system/vaultRegistry';
 import {
   createVaultMetadata,
   listVaultMetadata,
@@ -301,6 +303,68 @@ export function registerVaultHandlers(): void {
   );
 
   /**
+   * Sets a vault as the default vault in the registry.
+   */
+  ipcMain.handle(
+    IPC_CHANNELS.VAULT_SET_DEFAULT,
+    (_event, { vaultId }: { vaultId: string }) => {
+      try {
+        const targetVaultId = requireVaultId(vaultId);
+
+        const vault = getVaultById(targetVaultId);
+        if (!vault) {
+          return { success: false, error: `Vault not found: ${targetVaultId}` };
+        }
+
+        const updated = updateVault(targetVaultId, { isDefault: true });
+        logger.info('Vault set as default', { vaultId: targetVaultId });
+
+        return { success: true, data: serializeVaultEntry(updated) };
+      } catch (error) {
+        const msg =
+          error instanceof VaultRegistryError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : 'Unknown error setting default vault';
+        return { success: false, error: msg };
+      }
+    },
+  );
+
+  /**
+   * Reveals the vault database file location in the system file manager.
+   */
+  ipcMain.handle(
+    IPC_CHANNELS.VAULT_REVEAL_LOCATION,
+    (_event, { vaultId }: { vaultId: string }) => {
+      try {
+        const targetVaultId = requireVaultId(vaultId);
+
+        const vault = getVaultById(targetVaultId);
+        if (!vault) {
+          return { success: false, error: `Vault not found: ${targetVaultId}` };
+        }
+
+        // Show the file in the system file manager
+        shell.showItemInFolder(vault.databasePath);
+
+        logger.info('Vault location revealed', { vaultId: targetVaultId });
+
+        return { success: true };
+      } catch (error) {
+        const msg =
+          error instanceof VaultRegistryError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : 'Unknown error revealing vault location';
+        return { success: false, error: msg };
+      }
+    },
+  );
+
+  /**
    * Returns information about the currently active (unlocked) vault.
    * Returns null vaultId if no vault is currently unlocked.
    */
@@ -327,4 +391,128 @@ export function registerVaultHandlers(): void {
       };
     }
   });
+
+  /**
+   * Opens a file dialog for the user to select an existing vault database file (.db).
+   * Returns the selected file path or null if cancelled.
+   */
+  ipcMain.handle(
+    IPC_CHANNELS.VAULT_IMPORT_FILE_DIALOG,
+    async (): Promise<{ success: boolean; data?: { filePath: string; fileName: string }; error?: string }> => {
+      try {
+        const win = BrowserWindow.getFocusedWindow();
+        if (!win) {
+          return { success: false, error: 'No active window.' };
+        }
+
+        const result = await dialog.showOpenDialog(win, {
+          properties: ['openFile'],
+          filters: [
+            { name: 'Vault Database', extensions: ['db', 'sqlite', 'sqlite3'] },
+            { name: 'All Files', extensions: ['*'] },
+          ],
+        });
+
+        if (result.canceled || result.filePaths.length === 0) {
+          return { success: false, error: 'Dialog cancelled.' };
+        }
+
+        const filePath = result.filePaths[0];
+        const fileName = basename(filePath);
+
+        return {
+          success: true,
+          data: { filePath, fileName },
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error opening file dialog',
+        };
+      }
+    },
+  );
+
+  /**
+   * Imports an existing vault database file by copying it into the managed
+   * vaults directory and registering it in the vault registry.
+   *
+   * SECURITY: The file is copied (not moved) to the managed directory.
+   * The original file is not modified. The copied file must be a valid
+   * SQLite database that was previously created by SecurePass Manager.
+   *
+   * The vault is NOT unlocked after import — the user must provide the
+   * correct master password to unlock it.
+   */
+  ipcMain.handle(
+    IPC_CHANNELS.VAULT_IMPORT,
+    async (
+      _event,
+      { filePath, name }: { filePath: string; name: string },
+    ): Promise<{ success: boolean; data?: VaultRegistryEntry; error?: string }> => {
+      try {
+        if (!filePath || typeof filePath !== 'string') {
+          return { success: false, error: 'File path is required.' };
+        }
+
+        if (!name || typeof name !== 'string') {
+          return { success: false, error: 'Vault name is required.' };
+        }
+
+        // SECURITY: Validate that the file exists and has a valid extension
+        if (!existsSync(filePath)) {
+          return { success: false, error: 'Selected file does not exist.' };
+        }
+
+        const lowerExt = extname(filePath).toLowerCase();
+        if (!['.db', '.sqlite', '.sqlite3'].includes(lowerExt)) {
+          return { success: false, error: 'Invalid file type. Expected a database file (.db, .sqlite, .sqlite3).' };
+        }
+
+        // SECURITY: Validate the vault name
+        const sanitizedName = name.trim();
+        if (sanitizedName.length === 0 || sanitizedName.length > 100) {
+          return { success: false, error: 'Vault name must be between 1 and 100 characters.' };
+        }
+
+        // SECURITY: Resolve the target path within the managed vaults directory
+        // to prevent path traversal attacks.
+        const vault = createVaultMetadata({
+          name: sanitizedName,
+          customDatabasePath: undefined,
+        });
+
+        // Copy the database file to the resolved vault path
+        try {
+          copyFileSync(filePath, vault.databasePath);
+        } catch (copyError) {
+          // Clean up the registry entry if copy fails
+          try {
+            deleteVaultMetadata(vault.id, {
+              deleteDatabaseFile: true,
+              deleteAttachments: false,
+            });
+          } catch {
+            // Best-effort cleanup
+          }
+          return {
+            success: false,
+            error: `Failed to copy database file: ${copyError instanceof Error ? copyError.message : String(copyError)}`,
+          };
+        }
+
+        logger.info('Vault imported', { vaultId: vault.id, name: sanitizedName });
+
+        return { success: true, data: serializeVaultEntry(vault) };
+      } catch (error) {
+        const msg =
+          error instanceof VaultRegistryError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : 'Unknown error importing vault';
+        return { success: false, error: msg };
+      }
+    },
+  );
 }
