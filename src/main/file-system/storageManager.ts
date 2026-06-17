@@ -11,20 +11,196 @@ import {
   mkdirSync,
   statSync,
 } from 'node:fs';
-import { join, basename } from 'node:path';
+import { join, basename, resolve, isAbsolute } from 'node:path';
 import { app } from 'electron';
 import { containsPathTraversal, isPathWithinDirectory } from '../../shared/fileSecurity';
 import { secureClear } from '../../shared/secureMemory';
+import type { VaultRegistryEntry } from '../../shared/types';
+import { VaultRegistryError } from '../../shared/types';
+import {
+  createVault,
+  deleteVault,
+  getDefaultVault,
+  getVaultById,
+  listVaults,
+  resolveVaultDatabasePath as resolveManagedVaultDatabasePath,
+  updateVault,
+} from './vaultRegistry';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_BYTES = 12;
 const TAG_BYTES = 16;
 const KEY_BYTES = 32;
 const STREAM_CHUNK_SIZE = 65536;
+const LEGACY_DATABASE_FILENAME = 'securepass.db';
+const DEFAULT_MIGRATED_VAULT_NAME = 'Default Vault';
+
+function getUserDataPath(): string {
+  const userDataPath = app?.getPath?.('userData') ?? join(process.cwd(), 'data');
+  if (!existsSync(userDataPath)) {
+    mkdirSync(userDataPath, { recursive: true });
+  }
+  return userDataPath;
+}
+
+export function getVaultStoragePath(): string {
+  const dir = join(getUserDataPath(), 'vaults');
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  return dir;
+}
+
+function getLegacyDatabasePath(): string {
+  return join(getUserDataPath(), LEGACY_DATABASE_FILENAME);
+}
+
+function assertSafeAbsolutePath(pathToValidate: string, code: string): string {
+  if (typeof pathToValidate !== 'string' || pathToValidate.trim().length === 0) {
+    throw new VaultRegistryError('Vault database path must be a non-empty string', code);
+  }
+
+  const trimmed = pathToValidate.trim();
+  if (containsPathTraversal(trimmed)) {
+    throw new VaultRegistryError('Vault database path contains traversal sequences', code, {
+      databasePath: trimmed,
+    });
+  }
+
+  const absolutePath = resolve(trimmed);
+  if (!isAbsolute(absolutePath)) {
+    throw new VaultRegistryError('Vault database path must resolve to an absolute path', code, {
+      databasePath: trimmed,
+    });
+  }
+
+  return absolutePath;
+}
+
+export function validateVaultDatabasePath(entry: VaultRegistryEntry): void {
+  const databasePath = assertSafeAbsolutePath(entry.databasePath, 'INVALID_VAULT_DATABASE_PATH');
+  const managedVaultDir = getVaultStoragePath();
+
+  if (entry.isCustomLocation) {
+    return;
+  }
+
+  if (!isPathWithinDirectory(managedVaultDir, databasePath)) {
+    throw new VaultRegistryError(
+      'Vault database path is outside the managed vault directory',
+      'VAULT_PATH_OUTSIDE_ALLOWED_DIRECTORY',
+      { vaultId: entry.id, databasePath, managedVaultDir },
+    );
+  }
+}
+
+export function resolveVaultDatabasePath(vaultId: string): string {
+  const entry = getVaultById(vaultId);
+  if (!entry) {
+    throw new VaultRegistryError('Vault not found: ' + vaultId, 'VAULT_NOT_FOUND', { vaultId });
+  }
+
+  validateVaultDatabasePath(entry);
+  return entry.databasePath;
+}
+
+export function createVaultMetadata(input: Parameters<typeof createVault>[0]): VaultRegistryEntry {
+  const entry = createVault(input);
+  validateVaultDatabasePath(entry);
+  return entry;
+}
+
+export function readVaultMetadata(vaultId: string): VaultRegistryEntry {
+  const entry = getVaultById(vaultId);
+  if (!entry) {
+    throw new VaultRegistryError('Vault not found: ' + vaultId, 'VAULT_NOT_FOUND', { vaultId });
+  }
+
+  validateVaultDatabasePath(entry);
+  return entry;
+}
+
+export function listVaultMetadata(): VaultRegistryEntry[] {
+  const vaults = listVaults();
+  for (const vault of vaults) {
+    validateVaultDatabasePath(vault);
+  }
+  return vaults;
+}
+
+export function renameVaultMetadata(vaultId: string, name: string): VaultRegistryEntry {
+  const entry = updateVault(vaultId, { name });
+  validateVaultDatabasePath(entry);
+  return entry;
+}
+
+export function updateVaultMetadata(
+  vaultId: string,
+  updates: Parameters<typeof updateVault>[1],
+): VaultRegistryEntry {
+  const entry = updateVault(vaultId, updates);
+  validateVaultDatabasePath(entry);
+  return entry;
+}
+
+export function deleteVaultMetadata(
+  vaultId: string,
+  options: { deleteDatabaseFile?: boolean } = {},
+): VaultRegistryEntry {
+  const entry = readVaultMetadata(vaultId);
+  const removed = deleteVault(vaultId);
+
+  if (options.deleteDatabaseFile && existsSync(entry.databasePath)) {
+    unlinkSync(entry.databasePath);
+  }
+
+  return removed;
+}
+
+export function validateVault(vaultId: string): VaultRegistryEntry {
+  return readVaultMetadata(vaultId);
+}
+
+export function ensureDefaultVaultRegistry(): VaultRegistryEntry | null {
+  const existingVaults = listVaults();
+  if (existingVaults.length > 0) {
+    const defaultVault = getDefaultVault() ?? existingVaults[0];
+    validateVaultDatabasePath(defaultVault);
+    return defaultVault;
+  }
+
+  const legacyDatabasePath = getLegacyDatabasePath();
+  if (!existsSync(legacyDatabasePath)) {
+    return null;
+  }
+
+  const entry = createVault({
+    name: DEFAULT_MIGRATED_VAULT_NAME,
+    isDefault: true,
+    customDatabasePath: legacyDatabasePath,
+  });
+
+  validateVaultDatabasePath(entry);
+  return entry;
+}
+
+export function resolveNewVaultDatabasePath(vaultId: string, customPath?: string): string {
+  const databasePath = resolveManagedVaultDatabasePath(vaultId, customPath);
+  const isCustom = customPath !== undefined && customPath.trim().length > 0;
+
+  if (!isCustom && !isPathWithinDirectory(getVaultStoragePath(), databasePath)) {
+    throw new VaultRegistryError(
+      'Resolved vault database path is outside the managed vault directory',
+      'VAULT_PATH_OUTSIDE_ALLOWED_DIRECTORY',
+      { vaultId, databasePath },
+    );
+  }
+
+  return databasePath;
+}
 
 export function getStoragePath(): string {
-  const userDataPath = app?.getPath?.('userData') ?? join(process.cwd(), 'data');
-  const dir = join(userDataPath, 'attachments');
+  const dir = join(getUserDataPath(), 'attachments');
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
@@ -32,8 +208,7 @@ export function getStoragePath(): string {
 }
 
 function getTempPath(): string {
-  const userDataPath = app?.getPath?.('userData') ?? join(process.cwd(), 'data');
-  const dir = join(userDataPath, 'temp');
+  const dir = join(getUserDataPath(), 'temp');
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }

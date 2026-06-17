@@ -126,6 +126,17 @@ export class DatabaseNotOpenError extends DatabaseError {
   }
 }
 
+export class DatabaseNoActiveVaultError extends DatabaseError {
+  constructor(context: Record<string, unknown> = {}) {
+    super(
+      'No active vault is open. Open a vault before running database operations.',
+      'DB_NO_ACTIVE_VAULT',
+      context,
+    );
+    this.name = 'DatabaseNoActiveVaultError';
+  }
+}
+
 export class DatabaseCorruptedError extends DatabaseError {
   constructor(path: string, cause?: unknown) {
     super(`Database file is corrupted or invalid: ${path}`, 'DB_CORRUPTED', {
@@ -277,7 +288,12 @@ export interface PlainTextExportItemRich {
 export const CSV_COLUMNS = ['title', 'username', 'password', 'url', 'notes', 'tags'] as const;
 export type CsvColumn = (typeof CSV_COLUMNS)[number];
 
-export type ImportFormat = 'keepass-xml' | 'bitwarden-json' | '1password-csv' | 'generic-csv' | 'encrypted-json';
+export type ImportFormat =
+  | 'keepass-xml'
+  | 'bitwarden-json'
+  | '1password-csv'
+  | 'generic-csv'
+  | 'encrypted-json';
 
 export const IMPORT_FORMATS: ImportFormat[] = [
   'keepass-xml',
@@ -416,4 +432,44 @@ export interface ImportPayload {
   items: ImportItem[];
   tags: ImportTag[];
   attachments: ImportAttachment[];
+}
+
+/**
+ * Vault registry entry stored in the app config directory.
+ *
+ * SECURITY: This type must NEVER contain master passwords, encryption keys,
+ * derived keys, salts, or any other sensitive cryptographic material.
+ * Only non-sensitive metadata belongs here.
+ */
+export interface VaultRegistryEntry {
+  id: string;
+  name: string;
+  databasePath: string;
+  createdAt: number;
+  lastOpenedAt: number | null;
+  lastOpenedVersion: string | null;
+  description: string | null;
+  color: string | null;
+  icon: string | null;
+  isDefault: boolean;
+  sortOrder: number;
+  /** Whether the database file is stored outside the managed app directory. */
+  isCustomLocation: boolean;
+}
+
+export interface VaultRegistryFile {
+  version: number;
+  vaults: VaultRegistryEntry[];
+}
+
+export class VaultRegistryError extends Error {
+  public code: string;
+  public context: Record<string, unknown>;
+
+  constructor(message: string, code: string, context: Record<string, unknown> = {}) {
+    super(message);
+    this.name = 'VaultRegistryError';
+    this.code = code;
+    this.context = context;
+  }
 }

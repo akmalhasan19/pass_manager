@@ -24,4 +24,8 @@ export const MAX_FIELD_LENGTHS = {
   NOTES: 100000,
   TAG_NAME: 50,
   MAX_TAGS_PER_ITEM: 10,
+  VAULT_NAME: 100,
+  VAULT_DESCRIPTION: 500,
 } as const;
+
+export const VAULT_REGISTRY_VERSION = 1;

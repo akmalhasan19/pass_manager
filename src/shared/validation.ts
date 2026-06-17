@@ -45,7 +45,8 @@ export type ValidationField =
   | 'password'
   | 'url'
   | 'notes'
-  | 'tagName';
+  | 'tagName'
+  | 'vaultName';
 
 export type { SanitizableField };
 
@@ -66,7 +67,8 @@ export function validateCharacters(field: ValidationField, value: string): strin
   switch (field) {
     case 'folderName':
     case 'itemTitle':
-    case 'tagName': {
+    case 'tagName':
+    case 'vaultName': {
       if (hasControlCharacters(value)) {
         return 'validation.invalidCharacters';
       }
@@ -134,6 +136,7 @@ export function validateField(field: ValidationField, value: string): string | n
     url: MAX_FIELD_LENGTHS.URL,
     notes: MAX_FIELD_LENGTHS.NOTES,
     tagName: MAX_FIELD_LENGTHS.TAG_NAME,
+    vaultName: MAX_FIELD_LENGTHS.VAULT_NAME,
   };
 
   const max = limits[field];
@@ -217,4 +220,42 @@ export function stripAllControlChars(value: string): string {
  */
 export function normalizeForComparison(value: string): string {
   return value.trim().toLowerCase().normalize('NFC');
+}
+
+// Names that are confusing or reserved after trimming.
+const CONFUSING_VAULT_NAMES = new Set(['.', '..', '...', '~']);
+
+/**
+ * Comprehensive vault name validation.
+ *
+ * Rules:
+ * - Must be non-empty after trimming whitespace.
+ * - Maximum 100 characters after trimming.
+ * - Must not contain ASCII control characters.
+ * - Must not be a confusing name like `.` or `..`.
+ *
+ * @returns A validation error key if invalid, null if valid.
+ */
+export function validateVaultName(name: string): string | null {
+  if (name === null || name === undefined) return 'validation.required';
+
+  const trimmed = name.trim();
+
+  if (trimmed.length === 0) {
+    return 'validation.required';
+  }
+
+  if (trimmed.length > MAX_FIELD_LENGTHS.VAULT_NAME) {
+    return 'validation.maxLength';
+  }
+
+  if (hasControlCharacters(trimmed)) {
+    return 'validation.invalidCharacters';
+  }
+
+  if (CONFUSING_VAULT_NAMES.has(trimmed)) {
+    return 'validation.invalidVaultName';
+  }
+
+  return null;
 }

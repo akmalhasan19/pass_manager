@@ -132,7 +132,8 @@ export type SanitizableField =
   | 'username'
   | 'password'
   | 'url'
-  | 'tagName';
+  | 'tagName'
+  | 'vaultName';
 
 /**
  * Apply field-specific sanitization to a value before it is validated or
@@ -159,6 +160,7 @@ export function sanitizeForField(field: SanitizableField, value: string): string
     case 'itemTitle':
     case 'tagName':
     case 'username':
+    case 'vaultName':
       return sanitizePlainText(value);
     case 'password':
       return String(value);

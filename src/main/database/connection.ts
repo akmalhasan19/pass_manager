@@ -5,10 +5,12 @@ import { app } from 'electron';
 import {
   DatabaseError,
   DatabaseNotOpenError,
+  DatabaseNoActiveVaultError,
   DatabaseCorruptedError,
   DatabaseIOError,
   DatabaseNotInitializedError,
 } from '../../shared/types';
+import { resolveVaultDatabasePath } from '../file-system/storageManager';
 
 const SQL_INIT_ERRORS = {
   WASM_NOT_FOUND: 'SQL.js WASM binary not found',
@@ -24,7 +26,9 @@ const DB_FILE_ERRORS = {
 
 let db: SqlJsDatabase | null = null;
 let dbPath: string | null = null;
+let activeVaultId: string | null = null;
 let SQL: Awaited<ReturnType<typeof initSqlJs>> | null = null;
+const LEGACY_SINGLE_VAULT_ID = 'legacy-single-vault';
 
 /**
  * Initializes the sql.js WASM module. Must be called before any database operations.
@@ -90,19 +94,23 @@ export function createDatabase(): SqlJsDatabase {
  * @throws {DatabaseIOError} If the file cannot be read (permission, not found)
  * @throws {DatabaseCorruptedError} If the file exists but cannot be parsed as SQLite
  */
-export function openDatabase(filePath?: string): SqlJsDatabase {
-  const path = filePath ?? getDbPath();
-
+function openDatabaseAtPath(path: string, vaultId: string): SqlJsDatabase {
   if (!SQL) {
     throw new DatabaseNotInitializedError();
   }
 
   if (db) {
+    if (activeVaultId === vaultId && dbPath === path) {
+      return db;
+    }
+
     try {
       closeDatabase();
     } catch {
       // Ignore close errors when reopening
       db = null;
+      dbPath = null;
+      activeVaultId = null;
     }
   }
 
@@ -136,7 +144,27 @@ export function openDatabase(filePath?: string): SqlJsDatabase {
   }
 
   dbPath = path;
+  activeVaultId = vaultId;
   return db;
+}
+
+export function openDatabase(filePath?: string): SqlJsDatabase {
+  return openDatabaseAtPath(filePath ?? getDbPath(), LEGACY_SINGLE_VAULT_ID);
+}
+
+export function openDatabaseForVault(vaultId: string): SqlJsDatabase {
+  const path = resolveVaultDatabasePath(vaultId);
+  return openDatabaseAtPath(path, vaultId);
+}
+
+function assertActiveDatabaseOpen(): asserts db is SqlJsDatabase {
+  if (!activeVaultId) {
+    throw new DatabaseNoActiveVaultError({ dbPath });
+  }
+
+  if (!db || !dbPath) {
+    throw new DatabaseNotOpenError({ activeVaultId });
+  }
 }
 
 /**
@@ -148,14 +176,9 @@ export function openDatabase(filePath?: string): SqlJsDatabase {
  * @throws {DatabaseIOError} If the file cannot be written (permission, disk full, locked)
  */
 export function saveDatabase(): void {
-  if (!db) {
-    throw new DatabaseNotOpenError();
-  }
+  assertActiveDatabaseOpen();
 
   const path = dbPath;
-  if (!path) {
-    throw new DatabaseNotOpenError({ detail: 'dbPath is not set' });
-  }
 
   let data: Buffer;
   try {
@@ -203,23 +226,30 @@ export function closeDatabase(): void {
   } catch (cause) {
     db.close();
     db = null;
+    dbPath = null;
+    activeVaultId = null;
     throw cause;
   }
   try {
     db.close();
   } catch (cause) {
     db = null;
+    dbPath = null;
+    activeVaultId = null;
     throw new DatabaseError('Failed to close database', 'DB_CLOSE_ERROR', {
       cause: cause instanceof Error ? cause.message : String(cause),
     });
   }
   db = null;
+  dbPath = null;
+  activeVaultId = null;
 }
 
 /**
- * Returns the current database instance, or null if not open.
+ * Returns the current active vault database instance.
  */
-export function getDatabase(): SqlJsDatabase | null {
+export function getDatabase(): SqlJsDatabase {
+  assertActiveDatabaseOpen();
   return db;
 }
 
@@ -227,11 +257,19 @@ export function getDatabase(): SqlJsDatabase | null {
  * Returns true if a database is currently open and has an associated file path.
  */
 export function isDatabaseOpen(): boolean {
-  return db !== null && dbPath !== null;
+  return db !== null && dbPath !== null && activeVaultId !== null;
+}
+
+export function getActiveVaultId(): string | null {
+  return activeVaultId;
+}
+
+export function getActiveDatabasePath(): string | null {
+  return dbPath;
 }
 
 export function runQuery(sql: string, params: unknown[] = []): void {
-  if (!db) throw new DatabaseNotOpenError();
+  assertActiveDatabaseOpen();
   try {
     db.run(sql, params);
   } catch (cause) {
@@ -244,7 +282,7 @@ export function runQuery(sql: string, params: unknown[] = []): void {
 }
 
 export function runMany(queries: string[]): void {
-  if (!db) throw new DatabaseNotOpenError();
+  assertActiveDatabaseOpen();
   for (let i = 0; i < queries.length; i++) {
     try {
       db.run(queries[i]);
@@ -259,7 +297,7 @@ export function runMany(queries: string[]): void {
 }
 
 export function prepare(sql: string) {
-  if (!db) throw new DatabaseNotOpenError();
+  assertActiveDatabaseOpen();
   try {
     return db.prepare(sql);
   } catch (cause) {
@@ -286,8 +324,9 @@ export function tryRepairDatabase(path: string): boolean {
         db.close();
       } catch {}
       db = null;
+      dbPath = null;
+      activeVaultId = null;
     }
-    dbPath = null;
     openDatabase(path);
     runMany([
       `PRAGMA schema_version;`,
@@ -301,8 +340,9 @@ export function tryRepairDatabase(path: string): boolean {
         db.close();
       } catch {}
       db = null;
+      dbPath = null;
+      activeVaultId = null;
     }
-    dbPath = null;
     try {
       unlinkSync(path);
     } catch {}
@@ -326,4 +366,5 @@ export async function destroyDatabase(path?: string): Promise<void> {
     }
   }
   dbPath = null;
+  activeVaultId = null;
 }

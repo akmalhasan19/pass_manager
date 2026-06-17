@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "vaults": [
+    {
+      "id": "d670a5a3-2630-46cb-9d38-f879b7986663",
+      "name": "Keep This",
+      "databasePath": "C:\\Users\\user\\pass_manager\\data\\vaults\\vault-d670a5a3-2630-46cb-9d38-f879b7986663.db",
+      "createdAt": 1781672045494,
+      "lastOpenedAt": null,
+      "lastOpenedVersion": null,
+      "description": null,
+      "color": null,
+      "icon": null,
+      "isDefault": true,
+      "sortOrder": 1,
+      "isCustomLocation": false
+    }
+  ]
+}
