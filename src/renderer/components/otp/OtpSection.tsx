@@ -9,6 +9,9 @@ import {
 } from '../../../shared/constants';
 import { sanitizeBase32Secret, validateTotpSecret } from '../../../shared/validation';
 import Modal from '../ui/Modal';
+import OtpWidget from './OtpWidget';
+import QrScannerModal from './QrScannerModal';
+import { useTranslation } from '../../i18n/useTranslation';
 
 interface OtpSectionProps {
   itemTitle: string;
@@ -49,7 +52,11 @@ export default function OtpSection({
   const [secretError, setSecretError] = useState<string | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrSvgString, setQrSvgString] = useState<string | null>(null);
   const [isQrRevealed, setIsQrRevealed] = useState(false);
+  const [isOtpRevealed, setIsOtpRevealed] = useState(false);
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     setConfig((prev) => {
@@ -65,6 +72,7 @@ export default function OtpSection({
       return prev;
     });
     setSecretError(null);
+    setIsOtpRevealed(false);
   }, [otpConfig]);
 
   const notifyChange = useCallback(
@@ -111,8 +119,12 @@ export default function OtpSection({
     }
     try {
       const uri = buildOtpauthUri(itemTitle, { ...config, secret: sanitized });
-      const dataUrl = await qrcode.toDataURL(uri, { width: 256, margin: 2 });
+      const [dataUrl, svg] = await Promise.all([
+        qrcode.toDataURL(uri, { width: 256, margin: 2 }),
+        qrcode.toString(uri, { type: 'svg', margin: 2, width: 256 }),
+      ]);
       setQrDataUrl(dataUrl);
+      setQrSvgString(svg);
       setIsQrRevealed(false);
       setIsQrModalOpen(true);
     } catch {
@@ -126,20 +138,116 @@ export default function OtpSection({
     notifyChange(null);
   };
 
+  const handleScanResult = useCallback(
+    (scannedConfig: TotpConfig, metadata?: { issuer?: string; label?: string }) => {
+      const nextConfig = {
+        ...scannedConfig,
+        secret: scannedConfig.secret,
+      };
+      setConfig(nextConfig);
+      setSecretError(null);
+      notifyChange(nextConfig);
+
+      // Optional: update item title from scanned issuer if item title is empty
+      if (metadata?.issuer && !itemTitle.trim()) {
+        // We don't control the title here directly, but the config is set.
+        // The parent component can decide to use issuer as title if needed.
+      }
+    },
+    [notifyChange, itemTitle],
+  );
+
+  const handleDownloadPng = useCallback(() => {
+    if (!qrDataUrl) return;
+    const link = document.createElement('a');
+    link.href = qrDataUrl;
+    link.download = `${itemTitle || 'otp'}-qr.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [qrDataUrl, itemTitle]);
+
+  const handleDownloadSvg = useCallback(() => {
+    if (!qrSvgString) return;
+    const blob = new Blob([qrSvgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${itemTitle || 'otp'}-qr.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [qrSvgString, itemTitle]);
+
   const isValidSecret = !validateTotpSecret(config.secret) && config.secret.trim().length > 0;
 
   if (!isEditMode) {
     return (
       <div className="mb-12">
-        <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-surface-400">
-          Authenticator (OTP)
-        </h4>
         {otpConfig ? (
-          <div className="rounded-2xl border border-surface-200/30 bg-surface-50 p-4 dark:bg-surface-800/50">
-            <p className="text-sm text-surface-600 dark:text-surface-400">OTP is configured for this item.</p>
-          </div>
+          isOtpRevealed ? (
+            <div className="relative">
+              <OtpWidget config={otpConfig} />
+              <button
+                type="button"
+                onClick={() => setIsOtpRevealed(false)}
+                className="absolute right-0 top-0 rounded-lg border border-surface-200 px-3 py-1.5 text-xs font-medium text-surface-500 transition-colors hover:bg-surface-100 dark:border-surface-700 dark:text-surface-400 dark:hover:bg-surface-700"
+                aria-label={t('item.hideOtp')}
+              >
+                {t('item.hideOtp')}
+              </button>
+            </div>
+          ) : (
+            <div>
+              <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-surface-400">
+                Authenticator (OTP)
+              </h4>
+              <button
+                type="button"
+                onClick={() => setIsOtpRevealed(true)}
+                className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-surface-300 bg-surface-50 p-6 transition-colors hover:border-primary/40 hover:bg-surface-100 dark:border-surface-600 dark:bg-surface-800/50 dark:hover:border-primary/40 dark:hover:bg-surface-700/50"
+                aria-label={t('item.revealOtp')}
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 text-primary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium text-surface-800 dark:text-surface-200">
+                    {t('item.revealOtp')}
+                  </p>
+                  <p className="text-xs text-surface-400">
+                    {t('item.revealOtpDescription')}
+                  </p>
+                </div>
+              </button>
+            </div>
+          )
         ) : (
-          <p className="text-sm italic text-surface-400">No OTP configured</p>
+          <>
+            <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-surface-400">
+              Authenticator (OTP)
+            </h4>
+            <p className="text-sm italic text-surface-400">No OTP configured</p>
+          </>
         )}
       </div>
     );
@@ -264,16 +372,32 @@ export default function OtpSection({
           </div>
         </div>
 
-        {/* Generate QR Code button */}
-        <button
-          type="button"
-          onClick={handleGenerateQr}
-          disabled={!isValidSecret}
-          className="w-full rounded-lg border border-surface-200 bg-white py-2 text-sm font-medium text-surface-700 transition-colors hover:bg-surface-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-surface-600 dark:bg-surface-850 dark:text-surface-300 dark:hover:bg-surface-700"
-        >
-          Generate QR Code
-        </button>
+        {/* Action buttons */}
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => setIsScanModalOpen(true)}
+            className="flex-1 rounded-lg border border-surface-200 bg-white py-2 text-sm font-medium text-surface-700 transition-colors hover:bg-surface-100 dark:border-surface-600 dark:bg-surface-850 dark:text-surface-300 dark:hover:bg-surface-700"
+          >
+            {t('item.scanQrCode')}
+          </button>
+          <button
+            type="button"
+            onClick={handleGenerateQr}
+            disabled={!isValidSecret}
+            className="flex-1 rounded-lg border border-surface-200 bg-white py-2 text-sm font-medium text-surface-700 transition-colors hover:bg-surface-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-surface-600 dark:bg-surface-850 dark:text-surface-300 dark:hover:bg-surface-700"
+          >
+            {t('item.generateQrCode')}
+          </button>
+        </div>
       </div>
+
+      {/* QR Scanner Modal */}
+      <QrScannerModal
+        isOpen={isScanModalOpen}
+        onClose={() => setIsScanModalOpen(false)}
+        onScan={handleScanResult}
+      />
 
       {/* QR Code Modal */}
       <Modal isOpen={isQrModalOpen} onClose={() => setIsQrModalOpen(false)} className="max-w-sm" ariaLabel="OTP QR Code">
@@ -303,8 +427,33 @@ export default function OtpSection({
           <p className="mt-4 text-center text-xs text-surface-500">
             This QR code is sensitive. Do not share it with anyone.
           </p>
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4 flex items-center justify-center gap-2">
+            {isQrRevealed && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleDownloadPng}
+                  className="flex items-center gap-1.5 rounded-lg border border-surface-200 px-3 py-2 text-xs font-medium text-surface-700 transition-colors hover:bg-surface-100 dark:border-surface-600 dark:text-surface-300 dark:hover:bg-surface-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  PNG
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadSvg}
+                  className="flex items-center gap-1.5 rounded-lg border border-surface-200 px-3 py-2 text-xs font-medium text-surface-700 transition-colors hover:bg-surface-100 dark:border-surface-600 dark:text-surface-300 dark:hover:bg-surface-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  SVG
+                </button>
+              </>
+            )}
             <button
+              type="button"
               onClick={() => setIsQrModalOpen(false)}
               className="rounded-lg border border-surface-200 px-4 py-2 text-sm font-medium text-surface-700 transition-colors hover:bg-surface-100 dark:border-surface-600 dark:text-surface-300"
             >

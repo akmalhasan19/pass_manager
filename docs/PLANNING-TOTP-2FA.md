@@ -98,24 +98,24 @@ Fitur ini harus mengikuti RFC 6238 (TOTP) dan RFC 4226 (HOTP), mengenkripsi secr
 
 ### Sub-Task 3.2: OTP Widget Display
 
-- [ ] Buat komponen `OtpWidget` yang menampilkan kode aktif dengan font monospace besar.
-- [ ] Timer countdown berbentuk progress bar atau ring (circular countdown) di sebelah kode.
-- [ ] Kode bisa di-copy ke clipboard dengan single click atau tombol Copy.
-- [ ] Auto-refresh kode saat periode berakhir tanpa reload manual.
-- [ ] Tampilkan pesan error graceful jika secret korrupt atau tidak bisa digenerate.
+- [x] Buat komponen `OtpWidget` yang menampilkan kode aktif dengan font monospace besar.
+- [x] Timer countdown berbentuk progress bar atau ring (circular countdown) di sebelah kode.
+- [x] Kode bisa di-copy ke clipboard dengan single click atau tombol Copy.
+- [x] Auto-refresh kode saat periode berakhir tanpa reload manual.
+- [x] Tampilkan pesan error graceful jika secret korrupt atau tidak bisa digenerate.
 
 ### Sub-Task 3.3: UI Item List dan Overview
 
-- [ ] Tampilkan indikator ikon OTP (badge / shield icon) di item list jika item memiliki OTP config.
-- [ ] Klik pada badge OTP langsung menyalin kode ke clipboard (opsional, dengan tooltip).
-- [ ] Di view detail, OTP widget harus visible setelah user mengklik "Reveal OTP" untuk mencegah accidental exposure.
+- [x] Tampilkan indikator ikon OTP (badge / shield icon) di item list jika item memiliki OTP config.
+- [x] Klik pada badge OTP langsung menyalin kode ke clipboard (opsional, dengan tooltip).
+- [x] Di view detail, OTP widget harus visible setelah user mengklik "Reveal OTP" untuk mencegah accidental exposure.
 
 ### Sub-Task 3.4: Accessibility dan Keyboard Navigation
 
-- [ ] Kode OTP diumumkan dengan `aria-live="polite"` jika berubah.
-- [ ] Timer countdown mengumumkan waktu tersisa saat kurang dari 5 detik.
-- [ ] Tombol Copy OTP memiliki `aria-label` jelas.
-- [ ] Pastikan semua kontrol OTP bisa diakses dengan keyboard (Tab, Enter, Space).
+- [x] Kode OTP diumumkan dengan `aria-live="polite"` jika berubah.
+- [x] Timer countdown mengumumkan waktu tersisa saat kurang dari 5 detik.
+- [x] Tombol Copy OTP memiliki `aria-label` jelas.
+- [x] Pastikan semua kontrol OTP bisa diakses dengan keyboard (Tab, Enter, Space).
 
 ---
 
@@ -125,24 +125,24 @@ Fitur ini harus mengikuti RFC 6238 (TOTP) dan RFC 4226 (HOTP), mengenkripsi secr
 
 ### Sub-Task 4.1: Generate QR Code dari Secret
 
-- [ ] Gunakan library seperti `qrcode` (Node.js / renderer) untuk generate gambar QR dari URL otpauth.
-- [ ] Format URL: `otpauth://totp/{label}?secret={secret}&issuer={issuer}&algorithm={algo}&digits={digits}&period={period}`.
-- [ ] Tampilkan QR code di dialog/modal dengan opsi download sebagai PNG atau SVG.
-- [ ] Blur / mask QR code secara default; reveal hanya setelah user menyetujui (privacy mode).
+- [x] Gunakan library seperti `qrcode` (Node.js / renderer) untuk generate gambar QR dari URL otpauth.
+- [x] Format URL: `otpauth://totp/{label}?secret={secret}&issuer={issuer}&algorithm={algo}&digits={digits}&period={period}`.
+- [x] Tampilkan QR code di dialog/modal dengan opsi download sebagai PNG atau SVG.
+- [x] Blur / mask QR code secara default; reveal hanya setelah user menyetujui (privacy mode).
 
 ### Sub-Task 4.2: Scan QR Code (Import)
 
-- [ ] Jika aplikasi Electron mengakses webcam atau user paste gambar QR, decode menggunakan `jsQR` atau `zxing`.
-- [ ] Parse URL `otpauth://` atau `otpauth-migration://` jika ada.
-- [ ] Ekstrak parameter `secret`, `issuer`, `algorithm`, `digits`, `period` dari URL tersebut.
-- [ ] Isi form OTP secara otomatis setelah decode berhasil.
-- [ ] Handle error jadi jika library tidak mengenali gambar atau URL bukan format TOTP.
+- [x] Jika aplikasi Electron mengakses webcam atau user paste gambar QR, decode menggunakan `jsQR` atau `zxing`.
+- [x] Parse URL `otpauth://` atau `otpauth-migration://` jika ada.
+- [x] Ekstrak parameter `secret`, `issuer`, `algorithm`, `digits`, `period` dari URL tersebut.
+- [x] Isi form OTP secara otomatis setelah decode berhasil.
+- [x] Handle error jadi jika library tidak mengenali gambar atau URL bukan format TOTP.
 
 ### Sub-Task 4.3: Manual Entry Fallback
 
-- [ ] Jika scan gagal atau QR tidak tersedia, user bisa input secret dan parameter secara manual.
-- [ ] User harus memasukkan `secret` minimal (wajib), sisanya optional dengan default.
-- [ ] Validasi secret manual harus sama ketatnya dengan secret yang didapat dari scan.
+- [x] Jika scan gagal atau QR tidak tersedia, user bisa input secret dan parameter secara manual.
+- [x] User harus memasukkan `secret` minimal (wajib), sisanya optional dengan default.
+- [x] Validasi secret manual harus sama ketatnya dengan secret yang didapat dari scan.
 
 ---
 
@@ -256,12 +256,12 @@ Fitur ini harus mengikuti RFC 6238 (TOTP) dan RFC 4226 (HOTP), mengenkripsi secr
 - [x] Sub-Task 2.2: Base32 Secret Parser dan Sanitasi
 - [x] Sub-Task 2.3: Handling OTP Fields Variabel
 - [x] Sub-Task 3.1: OTP Section di Item Detail dan Form
-- [ ] Sub-Task 3.2: OTP Widget Display
-- [ ] Sub-Task 3.3: UI Item List dan Overview
-- [ ] Sub-Task 3.4: Accessibility dan Keyboard Navigation
-- [ ] Sub-Task 4.1: Generate QR Code dari Secret
+- [x] Sub-Task 3.2: OTP Widget Display
+- [x] Sub-Task 3.3: UI Item List dan Overview
+- [x] Sub-Task 3.4: Accessibility dan Keyboard Navigation
+- [x] Sub-Task 4.1: Generate QR Code dari Secret
 - [ ] Sub-Task 4.2: Scan QR Code (Import)
-- [ ] Sub-Task 4.3: Manual Entry Fallback
+- [x] Sub-Task 4.3: Manual Entry Fallback
 - [ ] Sub-Task 5.1: Enkripsi Secret di Database
 - [ ] Sub-Task 5.2: Memory Safety
 - [ ] Sub-Task 5.3: Screen Privacy

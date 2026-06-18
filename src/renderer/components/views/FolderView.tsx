@@ -1,5 +1,9 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import type { Item, ItemDecrypted } from '../../../shared/types';
+import { TOTP } from 'otpauth';
+import type { Item, ItemDecrypted, TotpConfig } from '../../../shared/types';
+import { normalizeBase32Secret } from '../../../shared/validation';
+import { useToast } from '../../hooks/useToast';
+import { useTranslation } from '../../i18n/useTranslation';
 
 type SortOption = 'name' | 'createdAt' | 'updatedAt' | 'sortOrder';
 
@@ -57,6 +61,10 @@ export default function FolderView({
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const [copiedOtpItemId, setCopiedOtpItemId] = useState<string | null>(null);
+  const copiedOtpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { showSuccess } = useToast();
+  const { t } = useTranslation();
 
   const sortedItemIds = useMemo(() => {
     const ids = [...itemIds];
@@ -99,6 +107,30 @@ export default function FolderView({
     setContextMenu(null);
   }, []);
 
+  const handleCopyOtp = useCallback(
+    async (e: React.MouseEvent, itemId: string, otpConfig: TotpConfig) => {
+      e.stopPropagation();
+      try {
+        const normalized = normalizeBase32Secret(otpConfig.secret);
+        const totp = new TOTP({
+          secret: normalized,
+          digits: otpConfig.digits,
+          period: otpConfig.period,
+          algorithm: otpConfig.algorithm as 'SHA1' | 'SHA256' | 'SHA512',
+        });
+        const code = totp.generate();
+        await navigator.clipboard.writeText(code);
+        if (copiedOtpTimerRef.current) clearTimeout(copiedOtpTimerRef.current);
+        setCopiedOtpItemId(itemId);
+        showSuccess(t('item.otpBadge.copied'));
+        copiedOtpTimerRef.current = setTimeout(() => setCopiedOtpItemId(null), 2000);
+      } catch {
+        // Silently ignore clipboard failures
+      }
+    },
+    [showSuccess, t],
+  );
+
   useEffect(() => {
     if (!contextMenu) return;
     const handleClick = (e: MouseEvent) => {
@@ -116,6 +148,14 @@ export default function FolderView({
       document.removeEventListener('keydown', handleEscape);
     };
   }, [contextMenu, closeContextMenu]);
+
+  useEffect(() => {
+    return () => {
+      if (copiedOtpTimerRef.current) {
+        clearTimeout(copiedOtpTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex h-full flex-col">
@@ -202,11 +242,53 @@ export default function FolderView({
                       <h3 className="truncate text-sm font-semibold text-surface-800 dark:text-surface-200">
                         {item.title || 'Untitled'}
                       </h3>
-                      {item.updatedAt && (
-                        <span className="ml-2 whitespace-nowrap text-[10px] text-surface-400">
-                          {formatDateShort(item.updatedAt)}
-                        </span>
-                      )}
+                      <div className="ml-2 flex items-center gap-1.5">
+                        {item.otp && (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            className="group/otp relative flex shrink-0 items-center"
+                            onClick={(e) => handleCopyOtp(e, item.id, item.otp!)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleCopyOtp(e as unknown as React.MouseEvent, item.id, item.otp!);
+                              }
+                            }}
+                            aria-label={t('item.otpBadge.tooltip')}
+                            title={t('item.otpBadge.tooltip')}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className={`h-4 w-4 transition-colors ${
+                                copiedOtpItemId === item.id
+                                  ? 'text-success-500'
+                                  : 'text-primary/60 hover:text-primary'
+                              }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                              />
+                            </svg>
+                            <span className="absolute -bottom-6 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded bg-surface-800 px-1.5 py-0.5 text-[10px] text-white opacity-0 shadow-lg transition-opacity group-hover/otp:opacity-100 dark:bg-surface-200 dark:text-surface-800">
+                              {copiedOtpItemId === item.id
+                                ? t('item.otpBadge.copied')
+                                : t('item.otpBadge.tooltip')}
+                            </span>
+                          </span>
+                        )}
+                        {item.updatedAt && (
+                          <span className="whitespace-nowrap text-[10px] text-surface-400">
+                            {formatDateShort(item.updatedAt)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <p className="truncate text-sm text-surface-500 dark:text-surface-400">
                       {item.username || ''}
