@@ -1,0 +1,405 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://securepass.manager/schemas/native-messaging-v1.schema.json",
+  "title": "SecurePass Manager Native Messaging Protocol v1",
+  "description": "JSON Schema for all messages exchanged between the SecurePass browser extension and the Electron host application via Native Messaging.",
+  "definitions": {
+    "ProtocolMessage": {
+      "type": "object",
+      "required": ["requestId", "timestamp", "protocolVersion"],
+      "additionalProperties": false,
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique UUID for request-response correlation and tracing."
+        },
+        "timestamp": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Unix timestamp in milliseconds when the message was created."
+        },
+        "protocolVersion": {
+          "type": "integer",
+          "const": 1,
+          "description": "Protocol version. Currently 1."
+        }
+      }
+    },
+    "HostRequestType": {
+      "type": "string",
+      "enum": [
+        "GET_CREDENTIALS",
+        "GET_MATCHING_ITEMS",
+        "COPY_TO_CLIPBOARD",
+        "LOCK_VAULT"
+      ],
+      "description": "Message types sent from the browser extension TO the Electron host."
+    },
+    "ExtensionResponseType": {
+      "type": "string",
+      "enum": [
+        "CREDENTIALS_RESPONSE",
+        "MATCHING_ITEMS_RESPONSE",
+        "NO_MATCH_FOUND",
+        "VAULT_LOCKED",
+        "CLIPBOARD_CONFIRMATION",
+        "ERROR"
+      ],
+      "description": "Message types sent from the Electron host TO the browser extension."
+    },
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "INVALID_MESSAGE",
+        "UNKNOWN_MESSAGE_TYPE",
+        "UNSUPPORTED_PROTOCOL_VERSION",
+        "TIMESTAMP_EXPIRED",
+        "DUPLICATE_REQUEST_ID",
+        "VAULT_LOCKED",
+        "ITEM_NOT_FOUND",
+        "NO_PASSWORD",
+        "NO_OTP_CONFIGURED",
+        "INVALID_URL",
+        "CLIPBOARD_FAILED",
+        "INTERNAL_ERROR",
+        "RATE_LIMITED",
+        "UNAUTHORIZED"
+      ],
+      "description": "Standardized error codes for protocol-level errors."
+    },
+    "EncryptedCredentialItem": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "username",
+        "passwordEncrypted",
+        "url",
+        "isFavorite",
+        "emoji",
+        "otpCode",
+        "otpRemainingSeconds"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique vault item ID."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display title of the credential."
+        },
+        "username": {
+          "type": "string",
+          "description": "Username or email."
+        },
+        "passwordEncrypted": {
+          "type": "string",
+          "minLength": 1,
+          "description": "AES-256-GCM encrypted password, base64-encoded."
+        },
+        "url": {
+          "type": "string",
+          "description": "URL associated with this credential."
+        },
+        "isFavorite": {
+          "type": "boolean",
+          "description": "Whether this item is marked as favorite."
+        },
+        "emoji": {
+          "type": ["string", "null"],
+          "description": "Optional emoji icon."
+        },
+        "otpCode": {
+          "type": ["string", "null"],
+          "description": "Current TOTP code if requested and available."
+        },
+        "otpRemainingSeconds": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Seconds until current OTP code expires."
+        }
+      }
+    },
+    "GetCredentialsRequest": {
+      "allOf": [
+        { "$ref": "#/definitions/ProtocolMessage" },
+        {
+          "type": "object",
+          "required": ["type", "itemId"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "GET_CREDENTIALS"
+            },
+            "itemId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Vault item ID to retrieve."
+            },
+            "includeOtp": {
+              "type": "boolean",
+              "description": "Whether to include the current TOTP code."
+            }
+          }
+        }
+      ]
+    },
+    "GetMatchingItemsRequest": {
+      "allOf": [
+        { "$ref": "#/definitions/ProtocolMessage" },
+        {
+          "type": "object",
+          "required": ["type", "url"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "GET_MATCHING_ITEMS"
+            },
+            "url": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Full URL of the current page."
+            },
+            "domain": {
+              "type": "string",
+              "description": "Optional domain override."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Maximum number of items to return."
+            }
+          }
+        }
+      ]
+    },
+    "CopyToClipboardRequest": {
+      "allOf": [
+        { "$ref": "#/definitions/ProtocolMessage" },
+        {
+          "type": "object",
+          "required": ["type", "itemId", "field"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "COPY_TO_CLIPBOARD"
+            },
+            "itemId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Vault item ID whose field should be copied."
+            },
+            "field": {
+              "type": "string",
+              "enum": ["username", "password", "otp"],
+              "description": "Which field to copy to clipboard."
+            },
+            "clearAfterSeconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300,
+              "description": "Auto-clear timeout in seconds. Default 45."
+            }
+          }
+        }
+      ]
+    },
+    "LockVaultRequest": {
+      "allOf": [
+        { "$ref": "#/definitions/ProtocolMessage" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "LOCK_VAULT"
+            }
+          }
+        }
+      ]
+    },
+    "CredentialsResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/ProtocolMessage" },
+        {
+          "type": "object",
+          "required": ["type", "item"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "CREDENTIALS_RESPONSE"
+            },
+            "item": {
+              "$ref": "#/definitions/EncryptedCredentialItem"
+            }
+          }
+        }
+      ]
+    },
+    "MatchingItemsResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/ProtocolMessage" },
+        {
+          "type": "object",
+          "required": ["type", "items", "matchedDomain", "totalCount"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "MATCHING_ITEMS_RESPONSE"
+            },
+            "items": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/EncryptedCredentialItem" },
+              "maxItems": 50,
+              "description": "Matching credential items sorted by relevance."
+            },
+            "matchedDomain": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Domain that was matched against."
+            },
+            "totalCount": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Total matching items (may exceed returned count)."
+            }
+          }
+        }
+      ]
+    },
+    "NoMatchFoundResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/ProtocolMessage" },
+        {
+          "type": "object",
+          "required": ["type", "searchedDomain", "searchedUrl"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "NO_MATCH_FOUND"
+            },
+            "searchedDomain": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Domain that was searched."
+            },
+            "searchedUrl": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Original URL that was searched."
+            }
+          }
+        }
+      ]
+    },
+    "VaultLockedResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/ProtocolMessage" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "VAULT_LOCKED"
+            },
+            "message": {
+              "type": "string",
+              "description": "Human-readable message for display."
+            }
+          }
+        }
+      ]
+    },
+    "ClipboardConfirmationResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/ProtocolMessage" },
+        {
+          "type": "object",
+          "required": ["type", "field", "clearAfterSeconds"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "CLIPBOARD_CONFIRMATION"
+            },
+            "field": {
+              "type": "string",
+              "enum": ["username", "password", "otp"],
+              "description": "Which field was copied."
+            },
+            "clearAfterSeconds": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Auto-clear timeout applied."
+            }
+          }
+        }
+      ]
+    },
+    "ErrorResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/ProtocolMessage" },
+        {
+          "type": "object",
+          "required": ["type", "code", "message"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "ERROR"
+            },
+            "code": {
+              "$ref": "#/definitions/ErrorCode"
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Human-readable error message."
+            },
+            "details": {
+              "type": "object",
+              "description": "Optional additional context for debugging."
+            }
+          }
+        }
+      ]
+    },
+    "HostRequest": {
+      "oneOf": [
+        { "$ref": "#/definitions/GetCredentialsRequest" },
+        { "$ref": "#/definitions/GetMatchingItemsRequest" },
+        { "$ref": "#/definitions/CopyToClipboardRequest" },
+        { "$ref": "#/definitions/LockVaultRequest" }
+      ],
+      "description": "Any message sent from the browser extension to the Electron host."
+    },
+    "ExtensionResponse": {
+      "oneOf": [
+        { "$ref": "#/definitions/CredentialsResponse" },
+        { "$ref": "#/definitions/MatchingItemsResponse" },
+        { "$ref": "#/definitions/NoMatchFoundResponse" },
+        { "$ref": "#/definitions/VaultLockedResponse" },
+        { "$ref": "#/definitions/ClipboardConfirmationResponse" },
+        { "$ref": "#/definitions/ErrorResponse" }
+      ],
+      "description": "Any message sent from the Electron host to the browser extension."
+    },
+    "ProtocolAnyMessage": {
+      "oneOf": [
+        { "$ref": "#/definitions/HostRequest" },
+        { "$ref": "#/definitions/ExtensionResponse" }
+      ],
+      "description": "Any message in the protocol (request or response)."
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/definitions/HostRequest" },
+    { "$ref": "#/definitions/ExtensionResponse" }
+  ]
+}

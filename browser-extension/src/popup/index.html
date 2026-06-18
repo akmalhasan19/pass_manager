@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecurePass Manager</title>
+  <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f9fafb;
+      --bg-hover: #f3f4f6;
+      --bg-active: #e5e7eb;
+      --text-primary: #111827;
+      --text-secondary: #6b7280;
+      --text-muted: #9ca3af;
+      --border-color: #e5e7eb;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-light: #eef2ff;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      --radius: 6px;
+      --radius-lg: 8px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1f2937;
+        --bg-secondary: #111827;
+        --bg-hover: #374151;
+        --bg-active: #4b5563;
+        --text-primary: #f9fafb;
+        --text-secondary: #d1d5db;
+        --text-muted: #9ca3af;
+        --border-color: #374151;
+        --accent: #818cf8;
+        --accent-hover: #6366f1;
+        --accent-light: #1e1b4b;
+        --success: #34d399;
+        --warning: #fbbf24;
+        --danger: #f87171;
+        --danger-hover: #ef4444;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 380px;
+      max-height: 600px;
+      min-height: 200px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      background: var(--accent);
+      color: white;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header .logo {
+      width: 28px;
+      height: 28px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .header h1 {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .vault-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: default;
+    }
+
+    .vault-badge.unlocked {
+      background: rgba(16, 185, 129, 0.2);
+      color: #d1fae5;
+    }
+
+    .vault-badge.locked {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fecaca;
+    }
+
+    .vault-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .vault-badge.unlocked .vault-badge-dot {
+      background: #34d399;
+    }
+
+    .vault-badge.locked .vault-badge-dot {
+      background: #f87171;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.connected { background: var(--success); }
+    .status-dot.disconnected { background: var(--danger); }
+    .status-dot.connecting { background: var(--warning); }
+
+    .match-count {
+      background: var(--accent-light);
+      color: var(--accent);
+      padding: 1px 7px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    /* Search */
+    .search-wrapper {
+      padding: 10px 16px 6px;
+      flex-shrink: 0;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 8px 12px 8px 32px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .search-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+    }
+
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 26px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 14px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* Content */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    .content::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .content::-webkit-scrollbar-thumb {
+      background: var(--bg-active);
+      border-radius: 3px;
+    }
+
+    /* Empty / Lock states */
+    .state-message {
+      text-align: center;
+      padding: 32px 20px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .state-message .state-icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .state-message .state-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .state-message .state-desc {
+      color: var(--text-secondary);
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+
+    /* Credential Item */
+    .credential-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: background-color 0.1s;
+    }
+
+    .credential-item:hover {
+      background: var(--bg-hover);
+    }
+
+    .credential-item.expanded {
+      background: var(--bg-secondary);
+    }
+
+    .credential-favicon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius);
+      background: var(--bg-active);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .credential-favicon img {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+    }
+
+    .credential-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .credential-title {
+      font-weight: 500;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .credential-username {
+      font-size: 12px;
+      color: var(--text-secondary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-top: 1px;
+    }
+
+    .credential-chevron {
+      color: var(--text-muted);
+      flex-shrink: 0;
+      transition: transform 0.15s;
+      font-size: 12px;
+    }
+
+    .credential-item.expanded .credential-chevron {
+      transform: rotate(180deg);
+    }
+
+    /* Expanded actions */
+    .credential-actions {
+      display: none;
+      padding: 8px 16px 12px 58px;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .credential-item.expanded + .credential-actions-row .credential-actions,
+    .credential-actions.visible {
+      display: flex;
+    }
+
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .action-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .action-btn.primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .action-btn.primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .action-btn .action-icon {
+      font-size: 12px;
+    }
+
+    /* OTP badge */
+    .otp-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 6px;
+      background: var(--accent-light);
+      color: var(--accent);
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--text-primary);
+      color: var(--bg-primary);
+      padding: 8px 16px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: transform 0.25s ease;
+      z-index: 1000;
+      white-space: nowrap;
+    }
+
+    .toast.visible {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Footer */
+    .footer {
+      padding: 10px 16px;
+      display: flex;
+      gap: 8px;
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      flex-shrink: 0;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.15s;
+      flex: 1;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-active);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border-color);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: var(--danger-hover);
+    }
+
+    /* Separator */
+    .separator {
+      height: 1px;
+      background: var(--border-color);
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">SP</div>
+      <h1>SecurePass</h1>
+    </div>
+    <div class="vault-badge locked" id="vaultBadge">
+      <div class="vault-badge-dot"></div>
+      <span id="vaultBadgeText">Locked</span>
+    </div>
+  </div>
+
+  <div class="status-bar" id="statusBar">
+    <div class="status-left">
+      <div class="status-dot connecting" id="statusDot"></div>
+      <span id="statusText">Connecting...</span>
+    </div>
+    <span class="match-count" id="matchCount" style="display:none;">0</span>
+  </div>
+
+  <div class="search-wrapper" id="searchWrapper" style="display:none;">
+    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/>
+      <path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input type="text" class="search-input" id="searchInput" placeholder="Search credentials..." autocomplete="off" />
+  </div>
+
+  <div class="separator" id="searchSeparator" style="display:none;"></div>
+
+  <div class="content" id="content">
+    <div class="state-message" id="loadingState">
+      <span class="state-icon">⏳</span>
+      <div class="state-title">Connecting...</div>
+      <div class="state-desc">Establishing secure connection to desktop app.</div>
+    </div>
+  </div>
+
+  <div class="footer" id="footer">
+    <button class="btn btn-secondary" id="refreshBtn">Refresh</button>
+    <button class="btn btn-primary" id="openAppBtn">Open App</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="./index.ts"></script>
+</body>
+</html>

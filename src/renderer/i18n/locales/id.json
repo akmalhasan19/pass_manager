@@ -446,5 +446,10 @@
   "qrScan.manual.issuerPlaceholder": "contoh GitHub",
   "qrScan.manual.label": "Label",
   "qrScan.manual.labelPlaceholder": "contoh user@example.com",
-  "qrScan.manual.apply": "Terapkan OTP"
+  "qrScan.manual.apply": "Terapkan OTP",
+  "otp.onboarding.title": "Fitur Baru: Autentikasi Dua Faktor (2FA)",
+  "otp.onboarding.description": "Anda sekarang dapat menyimpan dan menghasilkan kode TOTP langsung di dalam SecurePass Manager — tanpa perlu aplikasi autentikasi tambahan. Tambahkan OTP ke item apa pun dari tampilan detail item.",
+  "otp.onboarding.learnMore": "Pelajari lebih lanjut",
+  "otp.onboarding.dismiss": "Mengerti",
+  "otp.onboarding.optional": "Fitur ini bersifat opsional dan tidak mempengaruhi performa jika tidak digunakan."
 }

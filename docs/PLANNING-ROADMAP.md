@@ -82,17 +82,26 @@
 
 ## Rank 5: TOTP / 2FA Support
 
-**Status**: Belum dimplementasikan  
+**Status**: Selesai dimplementasikan  
 **Tag**: `Security Feature`, `Feature Parity`, `Modern Standard`
 
 **Deskripsi**: Menyimpan dan memunculkan kode Time-based One-Time Password (TOTP) di dalam aplikasi, mirip Google Authenticator atau KeePassXC.
 
-**Apa yang perlu dikerjakan**:
-- Menyimpan `secret` (base32 encoded) di dalam item baru.
-- Field baru untuk `otpSecret`, `otpPeriod`, `otpDigits `di tabel items.
-- UI widget untuk menampilkan timer countdown dan kode OTP.
-- Implementasi perhitungan TOTP (RFC 6238) menggunakan library `otpauth` atau `speakeasy`.
+**Fitur yang sudah diimplementasikan**:
+- Menyimpan `secret` (base32 encoded) terenkripsi di dalam item.
+- Field `otp_secret`, `otp_period`, `otp_digits`, `otp_algorithm` di tabel items (nullable, default NULL).
+- UI widget untuk menampilkan timer countdown dan kode OTP (`OtpWidget`).
+- Implementasi perhitungan TOTP (RFC 6238) menggunakan library `otpauth`.
 - Dukungan QR code scanning/generation (untuk mengimport dari layanan lain).
+- Enkripsi secret OTP menggunakan master key vault yang sama seperti password.
+- Timer global aggregator untuk performa optimal (`otpTimerService`).
+- Onboarding banner untuk pengguna yang baru pertama kali menggunakan fitur ini.
+
+**Catatan Performa & Opsional**:
+- Fitur ini **bersifat opsional** dan **tidak mempengaruhi performa aplikasi** jika tidak digunakan.
+- Kolom OTP di database bersifat nullable dengan default NULL — tidak ada overhead untuk item yang tidak memiliki OTP.
+- Timer OTP hanya aktif jika ada minimal satu `OtpWidget` yang mounted — zero overhead saat tidak ada widget OTP yang ditampilkan.
+- Tidak ada resource yang terbuang (tidak ada interval, timer, atau network request) saat fitur OTP tidak digunakan.
 
 **Kenapa penting**: Menjadi password manager yang modern tanpa TOTP support sangat kurang menarik.
 

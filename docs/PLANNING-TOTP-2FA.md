@@ -192,7 +192,7 @@ Fitur ini harus mengikuti RFC 6238 (TOTP) dan RFC 4226 (HOTP), mengenkripsi secr
 
 ## 7. Task: Testing & Quality Assurance
 
-- [ ] Task 7 Complete
+- [x] Task 7 Complete
 
 ### Sub-Task 7.1: Unit Tests TOTP Service
 
@@ -225,25 +225,25 @@ Fitur ini harus mengikuti RFC 6238 (TOTP) dan RFC 4226 (HOTP), mengenkripsi secr
 
 ## 8. Task: Rollout dan Backward Compatibility
 
-- [ ] Task 8 Complete
+- [x] Task 8 Complete
 
 ### Sub-Task 8.1: Database Migration
 
-- [ ] Tambahkan migrasi untuk kolom `otp_secret`, `otp_period`, `otp_digits`, `otp_algorithm`.
-- [ ] Default semua existing items sebagai NULL (tidak punya OTP).
-- [ ] Pastikan database lama tanpa kolom OTP tetap bisa dibuka setelah update aplikasi.
+- [x] Tambahkan migrasi untuk kolom `otp_secret`, `otp_period`, `otp_digits`, `otp_algorithm`.
+- [x] Default semua existing items sebagai NULL (tidak punya OTP).
+- [x] Pastikan database lama tanpa kolom OTP tetap bisa dibuka setelah update aplikasi.
 
 ### Sub-Task 8.2: UX Fallback
 
-- [ ] Aplikasi harus tetap berfungsi normal jika user memilih tidak menggunakan fitur OTP.
-- [ ] Tampilkan onboarding OTP di update pertama sebagai informasi fitur baru.
-- [ ] Dokumentasikan bahwa fitur ini optional dan tidak mempengaruhi performa app jika tidak digunakan.
+- [x] Aplikasi harus tetap berfungsi normal jika user memilih tidak menggunakan fitur OTP.
+- [x] Tampilkan onboarding OTP di update pertama sebagai informasi fitur baru.
+- [x] Dokumentasikan bahwa fitur ini optional dan tidak mempengaruhi performa app jika tidak digunakan.
 
 ### Sub-Task 8.3: Documentation Internal
 
-- [ ] Update `PLANNING-ROADMAP.md` status jika fitur selesai.
-- [ ] Tambahkan developer notes tentang format `otpauth://` URL dan parsing strategy.
-- [ ] Update manual QA checklist untuk uji OTP generation, copy, dan QR scan.
+- [x] Update `PLANNING-ROADMAP.md` status jika fitur selesai.
+- [x] Tambahkan developer notes tentang format `otpauth://` URL dan parsing strategy.
+- [x] Update manual QA checklist untuk uji OTP generation, copy, dan QR scan.
 
 ---
 
@@ -267,10 +267,10 @@ Fitur ini harus mengikuti RFC 6238 (TOTP) dan RFC 4226 (HOTP), mengenkripsi secr
 - [x] Sub-Task 5.3: Screen Privacy
 - [x] Sub-Task 6.1: Offline-First Behavior
 - [x] Sub-Task 6.2: Performance Timer
-- [ ] Sub-Task 7.1: Unit Tests TOTP Service
+- [x] Sub-Task 7.1: Unit Tests TOTP Service
 - [x] Sub-Task 7.2: Component Tests OTP Widget
-- [ ] Sub-Task 7.3: Integration Tests End-to-End
+- [x] Sub-Task 7.3: Integration Tests End-to-End
 - [x] Sub-Task 7.4: Security Regression Tests
-- [ ] Sub-Task 8.1: Database Migration
-- [ ] Sub-Task 8.2: UX Fallback
-- [ ] Sub-Task 8.3: Documentation Internal
+- [x] Sub-Task 8.1: Database Migration
+- [x] Sub-Task 8.2: UX Fallback
+- [x] Sub-Task 8.3: Documentation Internal

@@ -13,6 +13,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   trashAutoPurgeDays: 30,
   passwordHealthOldDays: 90,
   otpPrivacyMode: false,
+  otpOnboardingShown: false,
 };
 
 type SettingKey = keyof AppSettings;

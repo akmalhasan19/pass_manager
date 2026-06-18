@@ -223,15 +223,94 @@
 
 ---
 
-## 11. Performance & Edge Cases
+## 11. TOTP / 2FA Support
+
+### 11.1 OTP Configuration & Manual Entry
 
 | # | Skenario | Langkah | Ekspektasi | Status |
 |---|----------|---------|------------|--------|
-| 11.1 | Membuat 50 vault | Script/ manual buat 50 vault | Semua muncul di list, tidak crash | ☐ |
-| 11.2 | Switch cepat antar vault | Switch A → B → A dalam waktu singkat | Tidak race condition, vault terakhir yang valid terbuka | ☐ |
-| 11.3 | Delete vault sambil operasi berjalan | Mulai export besar → delete vault | Operasi dibatalkan, vault terkunci dan terhapus | ☐ |
-| 11.4 | Buka dengan vault yang corrupted | Corrupt file .db dengan text editor | Error "Database corrupted", tawarkan repair | ☐ |
-| 11.5 | Repair corrupted DB | Klik repair pada vault corrupted | DB dibuat baru (data hilang tapi vault bisa digunakan) | ☐ |
+| 11.1.1 | Tambah OTP ke item baru | Buat item baru → isi secret OTP valid → save | Item tersimpan dengan OTP config, badge OTP muncul di list | ☐ |
+| 11.1.2 | Tambah OTP ke item existing | Edit item → isi secret OTP valid → save | OTP config tersimpan, badge muncul | ☐ |
+| 11.1.3 | Secret dienkripsi di database | Buka file .db dengan SQLite browser | Kolom otp_secret terenkripsi (blob, bukan plain text) | ☐ |
+| 11.1.4 | Secret base32 invalid | Isi secret dengan karakter non-base32 (e.g. "1234!@#$") | Error validasi, tidak bisa simpan | ☐ |
+| 11.1.5 | Secret terlalu pendek | Isi secret < 16 karakter base32 | Error "Secret terlalu pendek" | ☐ |
+| 11.1.6 | Input secret dengan spasi/separator | Paste secret "JBSW Y3DP EHPK 3PXP" | Spasi otomatis dihapus, validasi lolos | ☐ |
+| 11.1.7 | Hapus OTP dari item | Klik "Remove OTP" → save | Field OTP direset ke NULL, badge hilang | ☐ |
+| 11.1.8 | Period custom 60s | Set period = 60 detik | Timer countdown berjalan 60 detik | ☐ |
+| 11.1.9 | Digits 8 digit | Set digits = 8 | Kode yang dihasilkan 8 digit | ☐ |
+| 11.1.10 | Algorithm SHA256 | Set algorithm = SHA256 | Kode dihasilkan dengan algoritma SHA256 (berbeda dari SHA1) | ☐ |
+
+### 11.2 OTP Code Generation & Display
+
+| # | Skenario | Langkah | Ekspektasi | Status |
+|---|----------|---------|------------|--------|
+| 11.2.1 | Kode OTP tampil dengan benar | Buka item dengan OTP config | Kode 6 digit (default) muncul dengan font monospace | ☐ |
+| 11.2.2 | Timer countdown berjalan | Lihat progress bar/ring | Timer menurun setiap detik, refresh di 0 | ☐ |
+| 11.2.3 | Auto-refresh kode | Tunggu hingga periode habis | Kode baru muncul otomatis tanpa reload | ☐ |
+| 11.2.4 | Copy kode ke clipboard | Klik kode atau tombol Copy | Clipboard berisi kode OTP, tooltip "Copied!" muncul | ☐ |
+| 11.2.5 | Kode error graceful | Corrupt secret di database langsung | Widget tampilkan "Unable to generate code" bukan crash | ☐ |
+| 11.2.6 | Private mode / blur OTP | Aktifkan global privacy toggle | Kode OTP terblur/masked | ☐ |
+| 11.2.7 | Reveal OTP di detail view | Klik "Reveal OTP" | OTP widget muncul setelah konfirmasi | ☐ |
+
+### 11.3 QR Code Scan
+
+| # | Skenario | Langkah | Ekspektasi | Status |
+|---|----------|---------|------------|--------|
+| 11.3.1 | Scan QR code dari file gambar | Buka QR Scanner → upload gambar QR | Secret dan parameter terisi otomatis | ☐ |
+| 11.3.2 | Paste gambar QR dari clipboard | Copy QR → paste di QR Scanner | QR terdeteksi, form terisi | ☐ |
+| 11.3.3 | Paste URI otpauth:// langsung | Copy URI teks → paste | URI terdeteksi, config langsung diapply | ☐ |
+| 11.3.4 | QR bukan format otpauth | Scan QR code biasa (bukan OTP) | Error "QR code does not contain a valid OTP URI" | ☐ |
+| 11.3.5 | Drag & drop gambar QR | Drag file gambar ke drop zone | QR terdeteksi, form terisi | ☐ |
+| 11.3.6 | QR dengan parameter lengkap | Scan QR dengan algorithm, digits, period custom | Semua parameter terisi sesuai QR | ☐ |
+
+### 11.4 Manual Entry Modal
+
+| # | Skenario | Langkah | Ekspektasi | Status |
+|---|----------|---------|------------|--------|
+| 11.4.1 | Tab Manual Entry | Buka QR Scanner → klik "Manual Entry" | Form manual muncul dengan secret (required) dan field optional | ☐ |
+| 11.4.2 | Toggle visibility secret | Klik icon eye pada field secret | Secret terlihat/tersembunyi | ☐ |
+| 11.4.3 | Validasi real-time | Ketik karakter ilegal di secret | Error muncul langsung saat mengetik | ☐ |
+| 11.4.4 | Submit manual | Isi secret valid → klik Apply | Config diterapkan, modal tertutup | ☐ |
+| 11.4.5 | Submit tanpa secret | Klik Apply tanpa isi secret | Tombol disabled atau error muncul | ☐ |
+
+### 11.5 Offline & Clock Drift
+
+| # | Skenario | Langkah | Ekspektasi | Status |
+|---|----------|---------|------------|--------|
+| 11.5.1 | Generate OTP offline | Matikan koneksi internet → buka item OTP | Kode tetap muncul (100% offline) | ☐ |
+| 11.5.2 | Clock drift warning | Ubah waktu sistem maju 30 detik | Warning clock drift muncul (soft warning) | ☐ |
+| 11.5.3 | Clock drift reset | Lock vault → unlock → ubah waktu lagi | Drift tracker direset, warning baru akan muncul jika drift terdeteksi | ☐ |
+
+### 11.6 Accessibility OTP
+
+| # | Skenario | Langkah | Ekspektasi | Status |
+|---|----------|---------|------------|--------|
+| 11.6.1 | Aria-live announcement | Kode OTP berubah | Screen reader mengumumkan kode baru | ☐ |
+| 11.6.2 | Timer announcement | Timer < 5 detik | Screen reader mengumumkan sisa waktu | ☐ |
+| 11.6.3 | Keyboard navigasi Copy | Tab ke tombol Copy → Enter/Space | Kode tercopy ke clipboard | ☐ |
+| 11.6.4 | Focus trap QR Scanner modal | Buka QR Scanner → Tab berulang | Focus tetap di dalam modal | ☐ |
+
+### 11.7 Security & Export
+
+| # | Skenario | Langkah | Ekspektasi | Status |
+|---|----------|---------|------------|--------|
+| 11.7.1 | Secret tidak muncul di DevTools | Buka React DevTools → inspect state | Secret tidak muncul di state (tidak di-cache) | ☐ |
+| 11.7.2 | Secret tidak di localStorage | Cek localStorage browser | Tidak ada data OTP tersimpan | ☐ |
+| 11.7.3 | QR code default blurred | Generate QR code | QR tampil blur/mask, perlu klik "Reveal" | ☐ |
+| 11.7.4 | OTP config terekport/terimport | Backup vault → restore | OTP config tetap utuh, secret terenkripsi | ☐ |
+| 11.7.5 | OTP tidak bocor antar vault | Vault A dan B punya OTP item | Masing-masing menampilkan kode yang benar sesuai vaultnya | ☐ |
+
+---
+
+## 12. Performance & Edge Cases
+
+| # | Skenario | Langkah | Ekspektasi | Status |
+|---|----------|---------|------------|--------|
+| 12.1 | Membuat 50 vault | Script/ manual buat 50 vault | Semua muncul di list, tidak crash | ☐ |
+| 12.2 | Switch cepat antar vault | Switch A → B → A dalam waktu singkat | Tidak race condition, vault terakhir yang valid terbuka | ☐ |
+| 12.3 | Delete vault sambil operasi berjalan | Mulai export besar → delete vault | Operasi dibatalkan, vault terkunci dan terhapus | ☐ |
+| 12.4 | Buka dengan vault yang corrupted | Corrupt file .db dengan text editor | Error "Database corrupted", tawarkan repair | ☐ |
+| 12.5 | Repair corrupted DB | Klik repair pada vault corrupted | DB dibuat baru (data hilang tapi vault bisa digunakan) | ☐ |
 
 ---
 
@@ -249,8 +328,9 @@
 | Failure Recovery | 6 | ___ | ___ | ___ |
 | Localization & Accessibility | 6 | ___ | ___ | ___ |
 | Backward Compatibility | 5 | ___ | ___ | ___ |
+| TOTP / 2FA Support | 35 | ___ | ___ | ___ |
 | Performance & Edge Cases | 5 | ___ | ___ | ___ |
-| **TOTAL** | **79** | **___** | **___** | **___** |
+| **TOTAL** | **114** | **___** | **___** | **___** |
 
 ### Sign-off
 

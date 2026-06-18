@@ -83,6 +83,22 @@ function runQueryOnDb(sql: string, params: unknown[] = [], db?: SqlJsDatabase): 
   return null;
 }
 
+/**
+ * Safely adds a column to a table, ignoring errors if the column already exists.
+ * SQLite does not support IF NOT EXISTS for ADD COLUMN, so we catch the
+ * "duplicate column name" error and continue.
+ */
+function addColumnIfMissing(targetDb: SqlJsDatabase, sql: string): void {
+  try {
+    targetDb.run(sql);
+  } catch (cause) {
+    const msg = cause instanceof Error ? cause.message : String(cause);
+    if (!msg.includes('duplicate column')) {
+      throw cause;
+    }
+  }
+}
+
 export function runMigrations(db?: SqlJsDatabase, encryptionKey?: Buffer): void {
   const currentVersion = getCurrentSchemaVersion(db);
 
@@ -92,11 +108,13 @@ export function runMigrations(db?: SqlJsDatabase, encryptionKey?: Buffer): void 
 
     if (currentVersion === 0) {
       runSchema(db);
-    } else if (currentVersion < 2) {
-      targetDb.run("ALTER TABLE items ADD COLUMN otp_secret BLOB");
-      targetDb.run("ALTER TABLE items ADD COLUMN otp_period INTEGER DEFAULT 30");
-      targetDb.run("ALTER TABLE items ADD COLUMN otp_digits INTEGER DEFAULT 6");
-      targetDb.run("ALTER TABLE items ADD COLUMN otp_algorithm TEXT DEFAULT 'SHA1'");
+    }
+
+    if (currentVersion < 2) {
+      addColumnIfMissing(targetDb, 'ALTER TABLE items ADD COLUMN otp_secret BLOB');
+      addColumnIfMissing(targetDb, "ALTER TABLE items ADD COLUMN otp_period INTEGER DEFAULT 30");
+      addColumnIfMissing(targetDb, "ALTER TABLE items ADD COLUMN otp_digits INTEGER DEFAULT 6");
+      addColumnIfMissing(targetDb, "ALTER TABLE items ADD COLUMN otp_algorithm TEXT DEFAULT 'SHA1'");
     }
 
     if (currentVersion < 3) {

@@ -254,6 +254,166 @@ describe('Per-vault migration', () => {
     }
   });
 
+  it('migrates a version-1 database (no OTP columns) and adds OTP columns with correct defaults', () => {
+    const vault = createVaultMetadata({ name: 'Legacy v1' });
+
+    // Simulate a version-1 database: open, create schema manually without OTP columns,
+    // insert an item, set schema_version to 1, close.
+    openDatabaseForVault(vault.id);
+    try {
+      const db = getDatabase();
+      // Create a minimal items table without OTP columns (mimics v1 schema)
+      db.run(`CREATE TABLE IF NOT EXISTS items (
+        id TEXT PRIMARY KEY,
+        folder_id TEXT,
+        title TEXT NOT NULL,
+        username TEXT DEFAULT '',
+        password_encrypted BLOB,
+        url TEXT DEFAULT '',
+        notes_encrypted BLOB,
+        emoji TEXT,
+        cover_image TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        is_favorite INTEGER DEFAULT 0,
+        sort_order INTEGER DEFAULT 0
+      )`);
+      db.run(`CREATE TABLE IF NOT EXISTS folders (
+        id TEXT PRIMARY KEY,
+        parent_id TEXT,
+        name TEXT NOT NULL,
+        emoji TEXT,
+        cover_image TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        sort_order INTEGER DEFAULT 0
+      )`);
+      db.run(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
+      db.run(`INSERT INTO settings (key, value) VALUES ('schema_version', '1')`);
+      // Insert a legacy item without OTP columns
+      db.run(
+        "INSERT INTO items (id, folder_id, title, created_at, updated_at) VALUES ('legacy-1', NULL, 'Legacy Item', 0, 0)",
+      );
+    } finally {
+      closeDatabase();
+    }
+
+    // Now migrate — should detect version 1 and add OTP columns
+    migrateVaultDatabase(vault.id);
+
+    // Verify OTP columns exist and existing item has correct defaults
+    openDatabaseForVault(vault.id);
+    try {
+      const db = getDatabase();
+
+      // Verify OTP columns exist by querying them
+      const stmt = db.prepare(
+        'SELECT otp_secret, otp_period, otp_digits, otp_algorithm FROM items WHERE id = ?',
+      );
+      stmt.bind(['legacy-1']);
+      expect(stmt.step()).toBe(true);
+      const row = stmt.getAsObject() as {
+        otp_secret: unknown;
+        otp_period: number;
+        otp_digits: number;
+        otp_algorithm: string;
+      };
+      stmt.free();
+
+      // otp_secret should be NULL for existing items (no OTP configured)
+      expect(row.otp_secret).toBeNull();
+      // Other OTP fields should have sensible defaults
+      expect(row.otp_period).toBe(30);
+      expect(row.otp_digits).toBe(6);
+      expect(row.otp_algorithm).toBe('SHA1');
+
+      // Verify schema_version was updated to CURRENT_VERSION (3)
+      const versionStmt = db.prepare("SELECT value FROM settings WHERE key = 'schema_version'");
+      expect(versionStmt.step()).toBe(true);
+      const versionRow = versionStmt.getAsObject() as { value: string };
+      expect(parseInt(versionRow.value, 10)).toBe(3);
+      versionStmt.free();
+    } finally {
+      closeDatabase();
+    }
+  });
+
+  it('old database without OTP columns is still openable after migration (backward compatibility)', () => {
+    const vault = createVaultMetadata({ name: 'Old DB Compat' });
+
+    // Simulate an even older database: version 0 (no schema_version set at all)
+    openDatabaseForVault(vault.id);
+    try {
+      const db = getDatabase();
+      // Create the old v0 schema manually — items table without OTP columns, no settings table.
+      // Include folder_id since schema.sql creates an index on it (runSchema uses IF NOT EXISTS).
+      db.run(`CREATE TABLE IF NOT EXISTS items (
+        id TEXT PRIMARY KEY,
+        folder_id TEXT,
+        title TEXT NOT NULL,
+        username TEXT DEFAULT '',
+        password_encrypted BLOB,
+        url TEXT DEFAULT '',
+        notes_encrypted BLOB,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        is_favorite INTEGER DEFAULT 0,
+        sort_order INTEGER DEFAULT 0
+      )`);
+      db.run(
+        "INSERT INTO items (id, title, created_at, updated_at) VALUES ('old-1', 'Old Item', 0, 0)",
+      );
+      // No schema_version setting — mimics pre-versioned database
+    } finally {
+      closeDatabase();
+    }
+
+    // Migrate — should detect version 0 and run full schema, then upgrade to v3
+    migrateVaultDatabase(vault.id);
+
+    // Verify the database is openable and has OTP columns
+    openDatabaseForVault(vault.id);
+    try {
+      const db = getDatabase();
+
+      // Verify the old item still exists
+      const stmt = db.prepare('SELECT title FROM items WHERE id = ?');
+      stmt.bind(['old-1']);
+      expect(stmt.step()).toBe(true);
+      const row = stmt.getAsObject() as { title: string };
+      expect(row.title).toBe('Old Item');
+      stmt.free();
+
+      // Verify OTP columns exist on the old item
+      const otpStmt = db.prepare(
+        'SELECT otp_secret, otp_period, otp_digits, otp_algorithm FROM items WHERE id = ?',
+      );
+      otpStmt.bind(['old-1']);
+      expect(otpStmt.step()).toBe(true);
+      const otpRow = otpStmt.getAsObject() as {
+        otp_secret: unknown;
+        otp_period: number;
+        otp_digits: number;
+        otp_algorithm: string;
+      };
+      otpStmt.free();
+
+      expect(otpRow.otp_secret).toBeNull();
+      expect(otpRow.otp_period).toBe(30);
+      expect(otpRow.otp_digits).toBe(6);
+      expect(otpRow.otp_algorithm).toBe('SHA1');
+
+      // Verify schema_version is set to 3
+      const versionStmt = db.prepare("SELECT value FROM settings WHERE key = 'schema_version'");
+      expect(versionStmt.step()).toBe(true);
+      const versionRow = versionStmt.getAsObject() as { value: string };
+      expect(parseInt(versionRow.value, 10)).toBe(3);
+      versionStmt.free();
+    } finally {
+      closeDatabase();
+    }
+  });
+
   it('runSchema with explicit db parameter creates tables correctly', async () => {
     // Test the db-parameter overload of runSchema
     const { createDatabase } = await import('../../../src/main/database/connection');

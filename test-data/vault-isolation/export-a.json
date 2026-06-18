@@ -1,0 +1,14 @@
+[
+  {
+    "title": "Alpha Export",
+    "username": "user",
+    "password": "password",
+    "url": "https://example.com",
+    "notes": null,
+    "tags": [],
+    "folder": "Alpha Folder",
+    "isFavorite": false,
+    "createdAt": 1781763951554,
+    "updatedAt": 1781763951554
+  }
+]

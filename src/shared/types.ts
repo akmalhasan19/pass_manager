@@ -110,6 +110,7 @@ export interface AppSettings {
   trashAutoPurgeDays: number;
   passwordHealthOldDays: number;
   otpPrivacyMode: boolean;
+  otpOnboardingShown: boolean;
 }
 
 export interface SearchResultItem {

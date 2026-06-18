@@ -452,5 +452,10 @@
   "qrScan.manual.issuerPlaceholder": "e.g. GitHub",
   "qrScan.manual.label": "Label",
   "qrScan.manual.labelPlaceholder": "e.g. user@example.com",
-  "qrScan.manual.apply": "Apply OTP"
+  "qrScan.manual.apply": "Apply OTP",
+  "otp.onboarding.title": "New Feature: Two-Factor Authentication (2FA)",
+  "otp.onboarding.description": "You can now store and generate TOTP codes directly inside SecurePass Manager — no extra authenticator app needed. Add OTP to any item from the item detail view.",
+  "otp.onboarding.learnMore": "Learn more",
+  "otp.onboarding.dismiss": "Got it",
+  "otp.onboarding.optional": "This feature is optional and has no impact on performance if not used."
 }
