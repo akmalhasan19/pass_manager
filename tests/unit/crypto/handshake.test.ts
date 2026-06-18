@@ -148,10 +148,12 @@ describe('Session Management', () => {
 
   it('should create a session and retrieve it', () => {
     const sharedKey = randomBytes(32);
-    const session = createSession('sp_session1', 'fakepubkey', sharedKey);
+    const session = createSession('sp_session1', 'fakepubkey', sharedKey, 'test-ext-id', 'vault-1');
 
     expect(session.sessionId).toBe('sp_session1');
     expect(session.sharedKey).toEqual(sharedKey);
+    expect(session.extensionId).toBe('test-ext-id');
+    expect(session.vaultId).toBe('vault-1');
     expect(session.expiresAt).toBeGreaterThan(session.createdAt);
 
     const retrieved = getSession('sp_session1');
@@ -165,7 +167,7 @@ describe('Session Management', () => {
 
   it('should revoke a session', () => {
     const sharedKey = randomBytes(32);
-    createSession('sp_revoke1', 'fakepubkey', sharedKey);
+    createSession('sp_revoke1', 'fakepubkey', sharedKey, 'test-ext-id', null);
 
     expect(getSession('sp_revoke1')).not.toBeNull();
     revokeSession('sp_revoke1');
@@ -174,8 +176,8 @@ describe('Session Management', () => {
 
   it('should revoke all sessions', () => {
     const key = randomBytes(32);
-    createSession('sp_all1', 'pk1', key);
-    createSession('sp_all2', 'pk2', key);
+    createSession('sp_all1', 'pk1', key, 'ext-1', null);
+    createSession('sp_all2', 'pk2', key, 'ext-2', null);
 
     expect(getActiveSessionCount()).toBe(2);
     revokeAllSessions();
@@ -184,7 +186,7 @@ describe('Session Management', () => {
 
   it('should refresh a session token', () => {
     const sharedKey = randomBytes(32);
-    const session = createSession('sp_refresh1', 'fakepubkey', sharedKey);
+    const session = createSession('sp_refresh1', 'fakepubkey', sharedKey, 'test-ext', null);
 
     const newToken = refreshSession('sp_refresh1');
     expect(newToken).not.toBeNull();
@@ -202,10 +204,10 @@ describe('Session Management', () => {
     const key = randomBytes(32);
     expect(getActiveSessionCount()).toBe(0);
 
-    createSession('sp_count1', 'pk1', key);
+    createSession('sp_count1', 'pk1', key, 'ext-a', null);
     expect(getActiveSessionCount()).toBe(1);
 
-    createSession('sp_count2', 'pk2', key);
+    createSession('sp_count2', 'pk2', key, 'ext-b', null);
     expect(getActiveSessionCount()).toBe(2);
 
     revokeSession('sp_count1');
@@ -219,7 +221,7 @@ describe('Message Encryption / Decryption', () => {
   beforeEach(() => {
     revokeAllSessions();
     const sharedKey = randomBytes(32);
-    session = createSession('sp_encrypt_test', 'fakepubkey', sharedKey);
+    session = createSession('sp_encrypt_test', 'fakepubkey', sharedKey, 'test-ext', null);
   });
 
   afterEach(() => {
@@ -274,7 +276,7 @@ describe('Message Encryption / Decryption', () => {
     const plaintext = { secret: 'data' };
     const envelope = encryptMessage(plaintext, session);
 
-    const wrongSession = createSession('sp_wrong', 'fakepubkey', randomBytes(32));
+    const wrongSession = createSession('sp_wrong', 'fakepubkey', randomBytes(32), 'wrong-ext', null);
     expect(() => decryptMessage(envelope, wrongSession)).toThrow('Session ID mismatch');
   });
 
@@ -350,10 +352,11 @@ describe('Handshake Flow', () => {
       protocolVersion: 1,
       type: HandshakeMessageType.HANDSHAKE_INIT,
       publicKey: extensionKeyPair.publicKeyBase64,
+      extensionId: 'test-extension-id',
     };
 
-    // Host side: process the init message
-    const completeMessage = processHandshakeInit(initMessage);
+    // Host side: process the init message (with active vault)
+    const completeMessage = processHandshakeInit(initMessage, 'vault-test');
 
     // Verify response
     expect(completeMessage.type).toBe(HandshakeMessageType.HANDSHAKE_COMPLETE);
@@ -368,6 +371,8 @@ describe('Handshake Flow', () => {
     const session = getSession(completeMessage.sessionId);
     expect(session).not.toBeNull();
     expect(session!.sharedKey.length).toBe(32);
+    expect(session!.extensionId).toBe('test-extension-id');
+    expect(session!.vaultId).toBe('vault-test');
   });
 
   it('should allow encrypted communication after handshake', () => {
@@ -379,9 +384,10 @@ describe('Handshake Flow', () => {
       protocolVersion: 1,
       type: HandshakeMessageType.HANDSHAKE_INIT,
       publicKey: extKeyPair.publicKeyBase64,
+      extensionId: 'test-extension-encrypted',
     };
 
-    const completeMessage = processHandshakeInit(initMessage);
+    const completeMessage = processHandshakeInit(initMessage, null);
     const session = getSession(completeMessage.sessionId)!;
 
     // Extension encrypts a request
@@ -418,7 +424,7 @@ describe('Token Refresh Flow', () => {
   it('should refresh an existing session token', () => {
     // Create a session
     const sharedKey = randomBytes(32);
-    const session = createSession('sp_refresh_flow', 'fakepubkey', sharedKey);
+    const session = createSession('sp_refresh_flow', 'fakepubkey', sharedKey, 'test-ext', null);
 
     // Generate initial token
     const initialToken = generateSessionToken('sp_refresh_flow', session.tokenSigningKey);
@@ -481,10 +487,11 @@ describe('Integration: End-to-End Secure Communication', () => {
       protocolVersion: 1,
       type: HandshakeMessageType.HANDSHAKE_INIT,
       publicKey: extKeyPair.publicKeyBase64,
+      extensionId: 'e2e-test-extension',
     };
 
-    // 3. Host processes init → HANDSHAKE_COMPLETE
-    const completeMsg = processHandshakeInit(initMsg);
+    // 3. Host processes init → HANDSHAKE_COMPLETE (with active vault)
+    const completeMsg = processHandshakeInit(initMsg, 'vault-e2e');
     expect(completeMsg.sessionId).toBeTruthy();
 
     // 4. Host retrieves session
@@ -500,6 +507,8 @@ describe('Integration: End-to-End Secure Communication', () => {
     const extSession: SessionState = {
       sessionId: completeMsg.sessionId,
       extensionPublicKey: extKeyPair.publicKeyBase64,
+      extensionId: 'e2e-test-extension',
+      vaultId: 'vault-e2e',
       sharedKey: extDerivedKey,
       tokenSigningKey: hostSession!.tokenSigningKey, // exchanged during handshake
       createdAt: Date.now(),

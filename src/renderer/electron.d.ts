@@ -122,6 +122,21 @@ export interface ElectronTrashAPI {
   purge(): Promise<void>;
 }
 
+export interface ElectronShortcutsAPI {
+  getBindings(): Promise<{
+    COPY_PASSWORD: string;
+    COPY_USERNAME: string;
+    LOCK_VAULT: string;
+    QUICK_PICKER: string;
+  }>;
+  updateBinding(action: string, accelerator: string): Promise<{ valid: boolean; error?: string }>;
+  register(): Promise<{ success: boolean }>;
+  unregister(): Promise<void>;
+  enabledState(locked: boolean): Promise<{ success: boolean }>;
+  onAction(callback: (action: { action: string }) => void): void;
+  removeActionListener(): void;
+}
+
 export interface ElectronWindowAPI {
   minimize(): Promise<void>;
   maximize(): Promise<void>;
@@ -179,6 +194,18 @@ export interface ElectronOtpAPI {
   }>>;
 }
 
+export interface ElectronQuickPickerAPI {
+  search(query: string): Promise<{ success: boolean; data: unknown[] }>;
+  action(itemId: string, action: string): Promise<void>;
+  show(): Promise<void>;
+  hide(): Promise<void>;
+  getItems(): Promise<{ success: boolean; data: unknown[] }>;
+  onItems(callback: (items: unknown[]) => void): void;
+  onFocusSearch(callback: () => void): void;
+  removeItemsListener(): void;
+  removeFocusSearchListener(): void;
+}
+
 export interface ElectronUpdatesAPI {
   check(): Promise<boolean>;
   download(): Promise<void>;
@@ -217,6 +244,13 @@ export interface ElectronVaultsAPI {
   restore(params: { filePath: string; name: string }): Promise<IpcResult<{ vaultId: string; vaultName: string }>>;
 }
 
+export interface ElectronClipboardAPI {
+  copy(text: string, options: unknown): Promise<{ success: boolean; clearAfterSeconds?: number; error?: string }>;
+  status(): Promise<{ success: boolean; data: { hasAutoClear: boolean; clearInSeconds: number | null } }>;
+  onStatusChange(callback: (status: { hasAutoClear: boolean; clearInSeconds: number | null }) => void): void;
+  clearStatusListener(): void;
+}
+
 export interface ElectronAPI {
   auth: ElectronAuthAPI;
   import: ElectronImportAPI;
@@ -233,7 +267,9 @@ export interface ElectronAPI {
   health: ElectronHealthAPI;
   otp: ElectronOtpAPI;
   window: ElectronWindowAPI;
+  shortcuts: ElectronShortcutsAPI;
   updates: ElectronUpdatesAPI;
+  quickPicker: ElectronQuickPickerAPI;
 }
 
 declare global {

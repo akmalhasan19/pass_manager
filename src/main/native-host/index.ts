@@ -2,8 +2,8 @@
  * Native Messaging Host Module
  *
  * Provides the native messaging host manifest generation, platform-specific
- * registration, and installation/uninstallation orchestration for the
- * SecurePass Manager Electron app.
+ * registration, installation/uninstallation orchestration, and the stdio
+ * listener for the SecurePass Manager Electron app.
  *
  * @module native-host
  */
@@ -30,6 +30,18 @@ export {
 } from './manifest';
 
 export {
+  startWebSocketFallbackServer,
+  startDiscoveryServer,
+  stopWebSocketFallbackServer,
+  isWebSocketFallbackRunning,
+  getWebSocketPort,
+  getActiveConnectionCount,
+  DISCOVERY_PORT,
+  type WsRequestHandler,
+  type WebSocketFallbackConfig,
+} from './websocketServer';
+
+export {
   getRegistryKeyPath,
   writeManifestFile,
   readManifestFile,
@@ -53,3 +65,12 @@ export {
   type InstallResult,
   type UninstallResult,
 } from './installer';
+
+export {
+  startNativeMessagingListener,
+  isNativeMessagingMode,
+  stopNativeMessagingListener,
+  type RequestHandler,
+  type LifecycleHandler,
+  type NativeMessagingListenerConfig,
+} from './listener';

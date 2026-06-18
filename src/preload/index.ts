@@ -218,6 +218,46 @@ const api = {
     isMaximized: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_IS_MAXIMIZED),
   },
 
+  shortcuts: {
+    getBindings: () => ipcRenderer.invoke(IPC_CHANNELS.SHORTCUT_GET_BINDINGS),
+    updateBinding: (action: string, accelerator: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.SHORTCUT_UPDATE_BINDING, { action, accelerator }),
+    register: () => ipcRenderer.invoke(IPC_CHANNELS.SHORTCUT_REGISTER),
+    unregister: () => ipcRenderer.invoke(IPC_CHANNELS.SHORTCUT_UNREGISTER),
+    enabledState: (locked: boolean) =>
+      ipcRenderer.invoke(IPC_CHANNELS.SHORTCUT_ENABLED_STATE, { locked }),
+    onAction: (callback: (action: { action: string }) => void) =>
+      ipcRenderer.on(IPC_CHANNELS.SHORTCUT_ACTION, (_event, data) => callback(data)),
+    removeActionListener: () =>
+      ipcRenderer.removeAllListeners(IPC_CHANNELS.SHORTCUT_ACTION),
+  },
+
+  quickPicker: {
+    search: (query: string) => ipcRenderer.invoke(IPC_CHANNELS.QUICK_PICKER_SEARCH, { query }),
+    action: (itemId: string, action: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.QUICK_PICKER_ACTION, { itemId, action }),
+    show: () => ipcRenderer.invoke(IPC_CHANNELS.QUICK_PICKER_SHOW),
+    hide: () => ipcRenderer.invoke(IPC_CHANNELS.QUICK_PICKER_HIDE),
+    getItems: () => ipcRenderer.invoke(IPC_CHANNELS.QUICK_PICKER_GET_ITEMS),
+    onItems: (callback: (items: unknown) => void) =>
+      ipcRenderer.on(IPC_CHANNELS.QUICK_PICKER_ITEMS, (_event, items) => callback(items)),
+    onFocusSearch: (callback: () => void) =>
+      ipcRenderer.on(IPC_CHANNELS.QUICK_PICKER_FOCUS_SEARCH, () => callback()),
+    removeItemsListener: () => ipcRenderer.removeAllListeners(IPC_CHANNELS.QUICK_PICKER_ITEMS),
+    removeFocusSearchListener: () =>
+      ipcRenderer.removeAllListeners(IPC_CHANNELS.QUICK_PICKER_FOCUS_SEARCH),
+  },
+
+  clipboard: {
+    copy: (text: string, options: unknown) =>
+      ipcRenderer.invoke(IPC_CHANNELS.CLIPBOARD_COPY, { text, options }),
+    status: () => ipcRenderer.invoke(IPC_CHANNELS.CLIPBOARD_STATUS),
+    onStatusChange: (callback: (status: unknown) => void) =>
+      ipcRenderer.on(IPC_CHANNELS.CLIPBOARD_STATUS, (_event, status) => callback(status)),
+    clearStatusListener: () =>
+      ipcRenderer.removeAllListeners(IPC_CHANNELS.CLIPBOARD_STATUS),
+  },
+
   updates: {
     check: () => ipcRenderer.invoke(IPC_CHANNELS.CHECK_FOR_UPDATES),
     download: () => ipcRenderer.invoke(IPC_CHANNELS.DOWNLOAD_UPDATE),
@@ -270,6 +310,8 @@ function removeAllSensitiveListeners(): void {
   ipcRenderer.removeAllListeners(IPC_CHANNELS.UPDATE_ERROR);
   // Remove export progress listener
   ipcRenderer.removeAllListeners(IPC_CHANNELS.EXPORT_PROGRESS);
+  // Remove shortcut action listener
+  ipcRenderer.removeAllListeners(IPC_CHANNELS.SHORTCUT_ACTION);
 }
 
 contextBridge.exposeInMainWorld('electron', api);

@@ -44,6 +44,12 @@ import {
   type AnyProtocolMessage,
 } from './handshake';
 
+import {
+  ALLOWED_EXTENSION_IDS,
+  EXTENSION_ORIGIN_PREFIXES,
+  EXTENSION_ERRORS,
+} from '../constants';
+
 // ---------------------------------------------------------------------------
 // Validation result types
 // ---------------------------------------------------------------------------
@@ -678,6 +684,55 @@ export function createErrorResponse(
 }
 
 // ---------------------------------------------------------------------------
+// Extension ID Authorization
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalize an extension ID to a full origin string for comparison.
+ *
+ * - If already a full origin (starts with `chrome-extension://` or `moz-extension://`), returns as-is.
+ * - Otherwise, wraps it with `chrome-extension://<id>/`.
+ *
+ * @param id - Bare extension ID or full origin string.
+ * @returns Normalized origin string.
+ */
+function normalizeExtensionId(id: string): string {
+  const trimmed = id.trim();
+
+  if (
+    trimmed.startsWith(EXTENSION_ORIGIN_PREFIXES.chrome) ||
+    trimmed.startsWith(EXTENSION_ORIGIN_PREFIXES.firefox)
+  ) {
+    return trimmed;
+  }
+
+  // Bare ID — wrap with chrome-extension:// prefix
+  return `${EXTENSION_ORIGIN_PREFIXES.chrome}${trimmed}/`;
+}
+
+/**
+ * Check if an extension ID is authorized to communicate with the host.
+ *
+ * Performs a case-insensitive comparison against the whitelist after
+ * normalizing both the input and whitelist entries to full origin format.
+ *
+ * @param extensionId - The extension ID to check (bare or full origin).
+ * @returns true if the extension is in the whitelist.
+ */
+export function isExtensionIdAuthorized(extensionId: string): boolean {
+  if (!extensionId || extensionId.trim().length === 0) {
+    return false;
+  }
+
+  const normalizedInput = normalizeExtensionId(extensionId).toLowerCase();
+
+  return ALLOWED_EXTENSION_IDS.some((allowedId) => {
+    const normalizedAllowed = normalizeExtensionId(allowedId).toLowerCase();
+    return normalizedInput === normalizedAllowed;
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Handshake message validation
 // ---------------------------------------------------------------------------
 
@@ -781,6 +836,30 @@ export function validateHandshakeInit(
     };
   }
 
+  // Validate extensionId is present
+  if (!isNonEmptyString(obj.extensionId)) {
+    return {
+      ok: false,
+      error: {
+        code: ErrorCode.UNAUTHORIZED,
+        message: EXTENSION_ERRORS.MISSING_EXTENSION_ID,
+        field: 'extensionId',
+      },
+    };
+  }
+
+  // Validate extensionId against whitelist
+  if (!isExtensionIdAuthorized(obj.extensionId as string)) {
+    return {
+      ok: false,
+      error: {
+        code: ErrorCode.UNAUTHORIZED,
+        message: EXTENSION_ERRORS.UNAUTHORIZED,
+        field: 'extensionId',
+      },
+    };
+  }
+
   return {
     ok: true,
     value: {
@@ -789,6 +868,7 @@ export function validateHandshakeInit(
       protocolVersion: obj.protocolVersion,
       type: HandshakeMessageType.HANDSHAKE_INIT,
       publicKey: obj.publicKey as string,
+      extensionId: obj.extensionId as string,
     },
   };
 }

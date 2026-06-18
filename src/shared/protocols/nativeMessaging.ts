@@ -43,6 +43,7 @@ export enum ExtensionResponseType {
   NO_MATCH_FOUND = 'NO_MATCH_FOUND',
   VAULT_LOCKED = 'VAULT_LOCKED',
   CLIPBOARD_CONFIRMATION = 'CLIPBOARD_CONFIRMATION',
+  HOST_SHUTDOWN = 'HOST_SHUTDOWN',
   ERROR = 'ERROR',
 }
 
@@ -256,6 +257,17 @@ export interface ErrorResponse extends ProtocolMessage {
   details?: Record<string, unknown>;
 }
 
+/**
+ * Notification sent from the host when it is shutting down.
+ * The extension should treat this as a graceful disconnect.
+ */
+export interface HostShutdownResponse extends ProtocolMessage {
+  type: ExtensionResponseType.HOST_SHUTDOWN;
+
+  /** Human-readable shutdown reason. */
+  message: string;
+}
+
 // ---------------------------------------------------------------------------
 // Error codes
 // ---------------------------------------------------------------------------
@@ -335,6 +347,7 @@ export type ExtensionResponse =
   | NoMatchFoundResponse
   | VaultLockedResponse
   | ClipboardConfirmationResponse
+  | HostShutdownResponse
   | ErrorResponse;
 
 /** Any message in the protocol (request or response). */
@@ -414,4 +427,10 @@ export function isErrorResponse(
   msg: ExtensionResponse,
 ): msg is ErrorResponse {
   return msg.type === ExtensionResponseType.ERROR;
+}
+
+export function isHostShutdownResponse(
+  msg: ExtensionResponse,
+): msg is HostShutdownResponse {
+  return msg.type === ExtensionResponseType.HOST_SHUTDOWN;
 }

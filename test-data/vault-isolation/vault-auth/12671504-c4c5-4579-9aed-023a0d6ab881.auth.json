@@ -1,0 +1,9 @@
+{
+  "salt": "wM9Pfb9Cl/fLGGzgTZLstbAOayg6jLhone1hJHFYuO8=",
+  "kdfAlgorithm": "pbkdf2",
+  "kdfIterations": 600000,
+  "kdfMemory": null,
+  "kdfParallelism": null,
+  "verificationHash": "acd301b142eb5f59703ae0eaa4e8ff3259141fea5802ce08eb3c67cc36c0c76c",
+  "createdAt": 1781772300307
+}

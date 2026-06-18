@@ -65,6 +65,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: !isProduction,
+    // Multi-page app: quick-picker is a separate entry for the overlay
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        'quick-picker': resolve(__dirname, 'quick-picker.html'),
+      },
+    },
   },
   server: {
     port: 5173,

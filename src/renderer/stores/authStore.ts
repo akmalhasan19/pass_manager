@@ -261,6 +261,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isCreatingVault: false,
         ...deriveFlags('unlocked'),
       });
+
+      // Enable global shortcuts and quick picker when vault is unlocked
+      try {
+        await window.electron.shortcuts.enabledState(false);
+        await window.electron.shortcuts.register();
+      } catch {
+        // Non-fatal: shortcuts are optional
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : t('auth.error.failedInit');
       set({
@@ -303,6 +311,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         error: null,
         ...deriveFlags('unlocked'),
       });
+
+      // Enable global shortcuts and quick picker when vault is unlocked
+      try {
+        await window.electron.shortcuts.enabledState(false);
+        await window.electron.shortcuts.register();
+      } catch {
+        // Non-fatal: shortcuts are optional
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : t('auth.error.failedUnlock');
       set({
@@ -332,6 +348,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         window.electron?.auth?.cleanupListeners?.();
       } catch {
         // Cleanup should not block lock
+      }
+      // Disable global shortcuts when vault is locked
+      try {
+        await window.electron?.shortcuts?.enabledState(true);
+        await window.electron?.shortcuts?.unregister();
+      } catch {
+        // Non-fatal: shortcuts cleanup is best-effort
       }
       set({
         status: 'locked',

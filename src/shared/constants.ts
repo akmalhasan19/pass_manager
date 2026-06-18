@@ -48,3 +48,41 @@ export const OTP_VALID_ALGORITHMS = ['SHA1', 'SHA256', 'SHA512'] as const;
 
 /** Union type of valid TOTP algorithms */
 export type TotpAlgorithm = (typeof OTP_VALID_ALGORITHMS)[number];
+
+// ---------------------------------------------------------------------------
+// Browser Extension Security
+// ---------------------------------------------------------------------------
+
+/** Browser extension origin prefixes by browser. */
+export const EXTENSION_ORIGIN_PREFIXES = {
+  chrome: 'chrome-extension://',
+  firefox: 'moz-extension://',
+  edge: 'chrome-extension://',
+} as const;
+
+/**
+ * Whitelisted browser extension IDs.
+ *
+ * Only extensions with these IDs are authorized to communicate with the host.
+ * In production, these are the published Chrome Web Store / Firefox Add-on IDs.
+ * For development, add the unpacked extension ID here.
+ *
+ * Format: bare ID (e.g. "abcdefghijklmnopabcdefghijklmnop") or
+ *         full origin (e.g. "chrome-extension://abcdefghijklmnop/").
+ */
+export const ALLOWED_EXTENSION_IDS: readonly string[] = [
+  // Production Chrome Web Store ID (replace with actual published ID)
+  'securepass-chrome-extension-placeholder',
+  // Production Firefox Add-on ID
+  'securepass-firefox-extension-placeholder',
+];
+
+/** Maximum age of a handshake initiation message in milliseconds (30 seconds). */
+export const HANDSHAKE_INIT_MAX_AGE_MS = 30_000;
+
+/** Extension validation error messages. */
+export const EXTENSION_ERRORS = {
+  UNAUTHORIZED: 'Extension ID is not authorized. Check the whitelist configuration.',
+  MISSING_EXTENSION_ID: 'Extension must provide its ID during handshake.',
+  INVALID_EXTENSION_ID: 'Invalid extension ID format.',
+} as const;

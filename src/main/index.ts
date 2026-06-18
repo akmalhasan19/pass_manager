@@ -13,6 +13,19 @@ import { registerImportHandlers } from './ipc/importHandlers';
 import { registerExportHandlers } from './ipc/exportHandlers';
 import { registerVaultHandlers } from './ipc/vaultHandlers';
 import {
+  registerShortcutHandlers,
+  cleanupShortcutHandlers,
+} from './ipc/shortcutHandlers';
+import {
+  registerQuickPickerHandlers,
+  cleanupQuickPickerHandlers,
+} from './ipc/quickPickerHandlers';
+import {
+  initializeQuickPicker,
+  setQuickPickerVaultState,
+  cleanupQuickPicker,
+} from './quickPicker/quickPickerManager';
+import {
   initAutoUpdater,
   checkForUpdates,
   downloadUpdate,
@@ -20,6 +33,18 @@ import {
   disposeAutoUpdater,
 } from './ipc/updateHandlers';
 import { IPC_CHANNELS } from '../shared/ipcChannels';
+import {
+  isNativeMessagingMode,
+  startNativeMessagingListener,
+  stopNativeMessagingListener,
+} from './native-host/listener';
+import {
+  startWebSocketFallbackServer,
+  startDiscoveryServer,
+  stopWebSocketFallbackServer,
+} from './native-host/websocketServer';
+import { handleExtensionRequest } from './services/extensionService';
+import { logger } from '../shared/logger';
 
 const isDev = !!process.env.VITE_DEV_SERVER_URL;
 
@@ -125,6 +150,8 @@ function registerAllHandlers(): void {
   registerImportHandlers();
   registerExportHandlers();
   registerVaultHandlers();
+  registerShortcutHandlers();
+  registerQuickPickerHandlers();
 
   // Auto-updater IPC handlers
   ipcMain.handle(IPC_CHANNELS.CHECK_FOR_UPDATES, async () => {
@@ -183,9 +210,44 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(() => {
+    // If launched as a native messaging host (stdin is a pipe), start the
+    // native messaging listener and skip the normal Electron GUI flow.
+    if (isNativeMessagingMode()) {
+      logger.info('App launched in native messaging mode');
+      startNativeMessagingListener({
+        onRequest: handleExtensionRequest,
+      }).catch((err) => {
+        logger.error('Native messaging listener failed', {
+          cause: err instanceof Error ? err.message : String(err),
+        });
+        app.quit();
+      });
+      return;
+    }
+
+    // Start WebSocket fallback server for browser extension communication
+    // This allows the extension to connect even when Native Messaging is unavailable
+    startWebSocketFallbackServer({
+      onRequest: handleExtensionRequest,
+    })
+      .then((wsPort) => {
+        logger.info('WebSocket fallback server started', { wsPort });
+        // Start the discovery server on the fixed port for extension discovery
+        return startDiscoveryServer();
+      })
+      .then((discoveryPort) => {
+        logger.info('WebSocket discovery server started', { discoveryPort });
+      })
+      .catch((err) => {
+        logger.warn('Failed to start WebSocket fallback server (non-fatal)', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+
     setCSP();
     registerAllHandlers();
     createWindow();
+    initializeQuickPicker();
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
@@ -197,7 +259,15 @@ if (!gotTheLock) {
   app.on('before-quit', () => {
     // SECURITY: Wipe decryption keys from memory before process exits
     clearKeys();
+    cleanupShortcutHandlers();
+    cleanupQuickPickerHandlers();
+    cleanupQuickPicker();
     disposeAutoUpdater();
+    stopWebSocketFallbackServer();
+    // Stop native messaging listener if running (sends HOST_SHUTDOWN notification)
+    if (isNativeMessagingMode()) {
+      stopNativeMessagingListener();
+    }
     mainWindow = null;
   });
 

@@ -34,6 +34,7 @@ export enum ExtensionResponseType {
   VAULT_LOCKED = 'VAULT_LOCKED',
   CLIPBOARD_CONFIRMATION = 'CLIPBOARD_CONFIRMATION',
   CREATE_ITEM_RESPONSE = 'CREATE_ITEM_RESPONSE',
+  HOST_SHUTDOWN = 'HOST_SHUTDOWN',
   ERROR = 'ERROR',
 }
 
@@ -183,6 +184,11 @@ export interface CreateItemResponse extends ProtocolMessage {
   message: string;
 }
 
+export interface HostShutdownResponse extends ProtocolMessage {
+  type: ExtensionResponseType.HOST_SHUTDOWN;
+  message: string;
+}
+
 export type ExtensionResponse =
   | CredentialsResponse
   | DecryptedCredentialsResponse
@@ -191,6 +197,7 @@ export type ExtensionResponse =
   | VaultLockedResponse
   | ClipboardConfirmationResponse
   | CreateItemResponse
+  | HostShutdownResponse
   | ErrorResponse;
 
 // ---------------------------------------------------------------------------

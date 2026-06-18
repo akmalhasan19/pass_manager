@@ -93,6 +93,16 @@ export interface HandshakeInitMessage extends HandshakeMessage {
    * The host uses this to derive the shared secret.
    */
   publicKey: string;
+
+  /**
+   * The extension's unique identifier.
+   * Chrome: extension ID from chrome.runtime.id (e.g. "abcdefghijklmnopabcdefghijklmnop")
+   * Firefox: addon ID from browser.runtime.id (e.g. "user@example.com")
+   * Edge: same format as Chrome.
+   *
+   * The host validates this against a whitelist before completing the handshake.
+   */
+  extensionId: string;
 }
 
 /**

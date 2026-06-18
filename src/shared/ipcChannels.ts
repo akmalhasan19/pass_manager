@@ -91,6 +91,14 @@ export const IPC_CHANNELS = {
   WINDOW_CLOSE: 'window:close',
   WINDOW_IS_MAXIMIZED: 'window:isMaximized',
 
+  // Global shortcuts
+  SHORTCUT_GET_BINDINGS: 'shortcut:getBindings',
+  SHORTCUT_UPDATE_BINDING: 'shortcut:updateBinding',
+  SHORTCUT_REGISTER: 'shortcut:register',
+  SHORTCUT_UNREGISTER: 'shortcut:unregister',
+  SHORTCUT_ACTION: 'shortcut:action',
+  SHORTCUT_ENABLED_STATE: 'shortcut:enabledState',
+
   // Auto-updater
   UPDATE_AVAILABLE: 'update:available',
   UPDATE_NOT_AVAILABLE: 'update:not-available',
@@ -100,4 +108,19 @@ export const IPC_CHANNELS = {
   CHECK_FOR_UPDATES: 'update:check',
   DOWNLOAD_UPDATE: 'update:download',
   QUIT_AND_INSTALL: 'update:quit-and-install',
+
+  // Quick Picker
+  QUICK_PICKER_SEARCH: 'quickPicker:search',
+  QUICK_PICKER_ACTION: 'quickPicker:action',
+  QUICK_PICKER_SHOW: 'quickPicker:show',
+  QUICK_PICKER_HIDE: 'quickPicker:hide',
+  QUICK_PICKER_GET_ITEMS: 'quickPicker:getItems',
+  QUICK_PICKER_ITEMS: 'quickPicker:items',
+  QUICK_PICKER_FOCUS_SEARCH: 'quickPicker:focusSearch',
+
+  // Clipboard management
+  CLIPBOARD_COPY: 'clipboard:copy',
+  CLIPBOARD_STATUS: 'clipboard:status',
+  CLIPBOARD_ON_STATUS_CHANGE: 'clipboard:onStatusChange',
+  CLIPBOARD_CLEAR_STATUS_LISTENER: 'clipboard:clearStatusListener',
 } as const;

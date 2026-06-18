@@ -70,6 +70,12 @@ export interface SessionState {
   /** Base64-encoded SPKI public key of the extension (for reference). */
   extensionPublicKey: string;
 
+  /** The whitelisted extension ID that established this session. */
+  extensionId: string;
+
+  /** The vault ID this session is scoped to (null if no vault is active). */
+  vaultId: string | null;
+
   /** 32-byte derived shared key (for AES-256-GCM). */
   sharedKey: Buffer;
 
@@ -251,12 +257,16 @@ const activeSessions = new Map<string, SessionState>();
  * @param sessionId - Unique session identifier.
  * @param extensionPublicKeyBase64 - Base64-encoded SPKI public key from extension.
  * @param sharedKey - 32-byte derived shared key.
+ * @param extensionId - The whitelisted extension ID that initiated the handshake.
+ * @param vaultId - The vault ID this session is scoped to (null if no vault is active).
  * @returns The new session state.
  */
 export function createSession(
   sessionId: string,
   extensionPublicKeyBase64: string,
   sharedKey: Buffer,
+  extensionId: string,
+  vaultId: string | null,
 ): SessionState {
   const now = Date.now();
   const tokenSigningKey = randomBytes(32);
@@ -264,6 +274,8 @@ export function createSession(
   const session: SessionState = {
     sessionId,
     extensionPublicKey: extensionPublicKeyBase64,
+    extensionId,
+    vaultId,
     sharedKey: Buffer.from(sharedKey), // defensive copy
     tokenSigningKey,
     createdAt: now,
@@ -481,15 +493,17 @@ export function decryptMessage<T = unknown>(
  * This function:
  * 1. Generates the host's ECDH key pair
  * 2. Derives the shared key using the extension's public key
- * 3. Creates a new session
+ * 3. Creates a new session bound to the extension ID and active vault
  * 4. Generates a signed session token
  * 5. Returns the HANDSHAKE_COMPLETE response
  *
  * @param initMessage - The HANDSHAKE_INIT message from the extension.
+ * @param activeVaultId - The vault ID currently unlocked (null if none).
  * @returns The HANDSHAKE_COMPLETE response message.
  */
 export function processHandshakeInit(
   initMessage: HandshakeInitMessage,
+  activeVaultId: string | null,
 ): HandshakeCompleteMessage {
   // Generate host key pair
   const hostKeyPair = generateEcdhKeyPair();
@@ -500,8 +514,14 @@ export function processHandshakeInit(
   // Generate session ID
   const sessionId = `sp_${randomBytes(16).toString('hex')}`;
 
-  // Create session
-  const session = createSession(sessionId, initMessage.publicKey, sharedKey);
+  // Create session bound to the extension ID and current vault
+  const session = createSession(
+    sessionId,
+    initMessage.publicKey,
+    sharedKey,
+    initMessage.extensionId,
+    activeVaultId,
+  );
 
   // Generate signed token
   const sessionToken = generateSessionToken(sessionId, session.tokenSigningKey);

@@ -701,6 +701,11 @@ function fillForm(form: DetectedLoginForm, item: EncryptedCredentialItem): void 
           showTemporaryToast(`OTP filled — rotates in ${decryptedItem.otpRemainingSeconds}s`);
         }
       }
+
+      // Notify background for autofill-success animation
+      chrome.runtime.sendMessage({ action: 'autofillSuccess' }).catch(() => {
+        // Best-effort — ignore if background is unavailable
+      });
     },
   );
 }

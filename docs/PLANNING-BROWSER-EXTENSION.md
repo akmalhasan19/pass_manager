@@ -114,48 +114,47 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ### Sub-Task 2.6: Icon dan Badge Extension
 
-- [ ] Icon extension berubah warna ketika vault unlocked (misalnya hijau) vs locked (merah).
-- [ ] Badge bisa menampilkan jumlah matching items untuk URL saat ini.
-- [ ] Animasi subtle saat autofill berhasil.
+- [x] Icon extension berubah warna ketika vault unlocked (misalnya hijau) vs locked (merah).
+- [x] Badge bisa menampilkan jumlah matching items untuk URL saat ini.
+- [x] Animasi subtle saat autofill berhasil.
 
 ---
 
 ## 3. Task: Integrasi Electron App dengan Extension
 
-- [ ] Task 3 Complete
+- [x] Task 3 Complete
 
-###熠Sub-Task 3.1: Native Messaging Host di Main Process
-
-- [ ] Implementasi Native Messaging listener di Electron `main` process.
-- [ ] Handle lifecycle: connect, message, disconnect, error.
-- [ ] Parse dan validate setiap pesan yang diterima sesuai schema protokol.
-- [ ] Enforce rate limiting untuk mencegah brute-force message.
+### Sub-Task 3.1: Native Messaging Host di Main Process
+- [x] Implementasi Native Messaging listener di Electron `main` process.
+- [x] Handle lifecycle: connect, message, disconnect, error.
+- [x] Parse dan validate setiap pesan yang diterima sesuai schema protokol.
+- [x] Enforce rate limiting untuk mencegah brute-force message.
 
 ### Sub-Task 3.2: Bridge ke Vault dan Credential Service
 
-- [ ] Buat `ExtensionService` di main process yang bertindak sebagai bridge.
-- [ ] `ExtensionService` memiliki akses read-only ke vault yang sedang aktif dan unlocked.
-- [ ] Query matching items berdasarkan `url` atau `domain` dari request extension.
-- [ ] Return encrypted response yang hanya bisa didekripsi oleh extension yang berhasil handshake.
+- [x] Buat `ExtensionService` di main process yang bertindak sebagai bridge.
+- [x] `ExtensionService` memiliki akses read-only ke vault yang sedang aktif dan unlocked.
+- [x] Query matching items berdasarkan `url` atau `domain` dari request extension.
+- [x] Return encrypted response yang hanya bisa didekripsi oleh extension yang berhasil handshake.
 
 ### Sub-Task 3.3: WebSocket Fallback (Opsional)
 
-- [ ] Jika Native Messaging gagal atau tidak tersedia, buka WebSocket server lokal di port tertentu.
-- [ ] Port harus dipilih secara dinamik dan dikomunikasikan ke extension melalui local storage atau manifest.
-- [ ] Autentikasi WebSocket menggunakan token JWT yang expiring cepat.
+- [x] Jika Native Messaging gagal atau tidak tersedia, buka WebSocket server lokal di port tertentu.
+- [x] Port harus dipilih secara dinamik dan dikomunikasikan ke extension melalui local storage atau manifest.
+- [x] Autentikasi WebSocket menggunakan token JWT yang expiring cepat.
 
 ### Sub-Task 3.4: Security Boundary dan Validation
 
-- [ ] Extension tidak boleh memiliki akses ke API-database atau storage langsung.
-- [ ] Semua request extension harus melalui `ExtensionService` dengan context `vaultId`.
-- [ ] Validate bahwa extension yang terkoneksi memiliki ID yang di-whitelist (Chrome Web Store ID atau Firefox Addon ID).
-- [ ] Reject request dari extension yang belum melalui handshake atau memiliki token expired.
+- [x] Extension tidak boleh memiliki akses ke API-database atau storage langsung.
+- [x] Semua request extension harus melalui `ExtensionService` dengan context `vaultId`.
+- [x] Validate bahwa extension yang terkoneksi memiliki ID yang di-whitelist (Chrome Web Store ID atau Firefox Addon ID).
+- [x] Reject request dari extension yang belum melalui handshake atau memiliki token expired.
 
 ### Sub-Task 3.5: Lifecycle dan Error Handling
 
-- [ ] Handle scenario ketika aplikasi utama di-close sementara extension masih aktif.
-- [ ] Tampilkan error yang bisa dipahami extension ketika vault locked.
-- [ ] Implementasi retry logic dengan exponential backoff untuk reconnect ke host.
+- [x] Handle scenario ketika aplikasi utama di-close sementara extension masih aktif.
+- [x] Tampilkan error yang bisa dipahami extension ketika vault locked.
+- [x] Implementasi retry logic dengan exponential backoff untuk reconnect ke host.
 
 ---
 
@@ -165,18 +164,18 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ### Sub-Task 4.1: Global Keyboard Shortcut (System-Wide)
 
-- [ ] Definisikan global shortcut default: misalnya `Ctrl+Shift+P` untuk copy password, `Ctrl+Shift+U` untuk copy username.
-- [ ] Shortcut harus bekerja bahkan ketika aplikasi tidak memiliki focus window.
-- [ ] Pengguna bisa mengubah shortcut melalui Settings di aplikasi utama.
+- [x] Definisikan global shortcut default: misalnya `Ctrl+Shift+P` untuk copy password, `Ctrl+Shift+U` untuk copy username, `Ctrl+Shift+L` untuk lock vault.
+- [x] Shortcut harus bekerja bahkan ketika aplikasi tidak memiliki focus window (via Electron `globalShortcut` API).
+- [x] Pengguna bisa mengubah shortcut melalui Settings di aplikasi utama (via IPC channels `shortcut:updateBinding`).
 - [ ] Jika ada multiple matching items atau active item, tampilkan quick picker overlay (mirip Spotlight/Alfred).
 
 ### Sub-Task 4.2: Quick Picker Overlay
 
-- [ ] Implementasi tray icon atau system-level quick picker.
-- [ ] Di-trigger via global shortcut atau tray click.
-- [ ] Pengguna bisa search item vault menggunakan fuzzy search.
-- [ ] Ketika item dipilih, pilihan: Copy Username, Copy Password, Copy OTP, atau Open URL.
-- [ ] Overlay harus minimal dan tidak mengambil focus dari aplikasi yang sedang digunakan.
+- [x] Implementasi tray icon atau system-level quick picker.
+- [x] Di-trigger via global shortcut atau tray click.
+- [x] Pengguna bisa search item vault menggunakan fuzzy search.
+- [x] Ketika item dipilih, pilihan: Copy Username, Copy Password, Copy OTP, atau Open URL.
+- [x] Overlay harus minimal dan tidak mengambil focus dari aplikasi yang sedang digunakan.
 
 ### Sub--Task 4.3: Clipboard Management
 
@@ -343,14 +342,14 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 - [x] Sub-Task 2.3: Implementasi Autofill Engine
 - [x] Sub-Task 2.4: Save/New Credential Prompt
 - [x] Sub-Task 2.5: Popup UI Extension
-- [ ] Sub-Task 2.6: Icon dan Badge Extension
-- [ ] Sub-Task 3.1: Native Messaging Host Listener
-- [ ] Sub-Task 3.2: Bridge ke Vault Service
-- [ ] Sub-Task 3.3: WebSocket Fallback (Opsional)
-- [ ] Sub-Task 3.4: Security Boundary dan Validation
-- [ ] Sub-Task 3.5: Lifecycle dan Error Handling
-- [ ] Sub-Task 4.1: Global Keyboard Shortcut
-- [ ] Sub-Task 4.2: Quick Picker Overlay
+- [x] Sub-Task 2.6: Icon dan Badge Extension
+- [x] Sub-Task 3.1: Native Messaging Host Listener
+- [x] Sub-Task 3.2: Bridge ke Vault Service
+- [x] Sub-Task 3.3: WebSocket Fallback (Opsional)
+- [x] Sub-Task 3.4: Security Boundary dan Validation
+- [x] Sub-Task 3.5: Lifecycle dan Error Handling
+- [x] Sub-Task 4.1: Global Keyboard Shortcut
+- [x] Sub-Task 4.2: Quick Picker Overlay (Lihat daftar lengkap di atas)
 - [ ] Sub-Task 4.3: Clipboard Management
 - [ ] Sub-Task 4.4: Tray Icon Integration
 - [ ] Sub-Task 5.1: Extension Popup Design
