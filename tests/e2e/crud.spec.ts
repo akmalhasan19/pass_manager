@@ -7,6 +7,7 @@ import {
   clickSidebarFolder,
   clickButton,
   quickFind,
+  fillMasterPassword,
 } from './helpers';
 import type { E2EContext } from './helpers';
 
@@ -20,19 +21,7 @@ test.describe('Folder & Item CRUD E2E', () => {
     await waitForLockScreen(ctx.page);
 
     // Setup or unlock
-    const passwordInput = ctx.page.locator('input[type="password"]');
-    await passwordInput.fill(MASTER_PASSWORD);
-    const confirmInput = ctx.page.locator('input[type="password"]').nth(1);
-    if (await confirmInput.isVisible().catch(() => false)) {
-      await confirmInput.fill(MASTER_PASSWORD);
-    }
-    const submitBtn = ctx.page
-      .locator('button:has-text("Create"), button:has-text("Unlock")')
-      .first();
-    if (await submitBtn.isVisible()) {
-      await submitBtn.click();
-    }
-
+    await fillMasterPassword(ctx.page, MASTER_PASSWORD);
     await waitForMainApp(ctx.page);
   });
 

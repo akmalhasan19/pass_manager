@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { registerAuthHandlers, clearKeys } from './ipc/authHandlers';
 import { registerFolderHandlers } from './ipc/folderHandlers';
 import { registerItemHandlers } from './ipc/itemHandlers';
+import { registerOtpHandlers } from './ipc/otpHandlers';
 import { registerSearchHandlers } from './ipc/searchHandlers';
 import { registerFileHandlers } from './ipc/fileHandlers';
 import { registerCoverHandlers } from './ipc/coverHandlers';
@@ -115,6 +116,7 @@ function registerAllHandlers(): void {
   registerAuthHandlers();
   registerFolderHandlers();
   registerItemHandlers();
+  registerOtpHandlers();
   registerSearchHandlers();
   registerFileHandlers();
   registerCoverHandlers();

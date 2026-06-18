@@ -173,6 +173,10 @@ export function buildEncryptedPayload(vaultContext?: ActiveVaultContext | null):
       isFavorite: item.isFavorite,
       sortOrder: item.sortOrder,
       tagIds,
+      otpSecretEncrypted: arrayBufferToBase64(item.otpSecretEncrypted),
+      otpPeriod: item.otpPeriod,
+      otpDigits: item.otpDigits,
+      otpAlgorithm: item.otpAlgorithm,
     };
   });
 

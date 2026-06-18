@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS items (
     updated_at INTEGER NOT NULL,
     is_favorite INTEGER DEFAULT 0,
     sort_order INTEGER DEFAULT 0,
-    otp_secret TEXT,
+    otp_secret BLOB,
     otp_period INTEGER DEFAULT 30,
     otp_digits INTEGER DEFAULT 6,
     otp_algorithm TEXT DEFAULT 'SHA1'
@@ -105,6 +105,6 @@ INSERT OR IGNORE INTO settings (key, value) VALUES ('default_password_numbers', 
 INSERT OR IGNORE INTO settings (key, value) VALUES ('default_password_symbols', 'true');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('default_password_exclude_ambiguous', 'true');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('trash_auto_purge_days', '30');
-INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '2');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('schema_version', '3');
 
 

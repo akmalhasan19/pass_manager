@@ -154,6 +154,31 @@ export interface ElectronHealthAPI {
   analyze(oldDays?: number): Promise<IpcResult<HealthReport>>;
 }
 
+export interface ElectronOtpAPI {
+  /**
+   * Generate a TOTP code for an item. The secret is decrypted and used
+   * entirely within the main process — only the code string is returned.
+   * SECURITY: The plaintext secret never reaches the renderer.
+   */
+  generate(itemId: string): Promise<IpcResult<{ code: string; remaining: number }>>;
+  /**
+   * Retrieve the OTP config (including secret) for an item.
+   * Used by OtpSection in edit mode. The renderer MUST NOT persist
+   * the secret in Zustand or any state management store.
+   */
+  getConfig(itemId: string): Promise<IpcResult<TotpConfig | null>>;
+  /**
+   * Check for system clock drift that could affect TOTP code validity.
+   * No network request is made — the check is purely heuristic.
+   * Returns an object indicating whether concerning drift was detected.
+   */
+  checkTimeSync(): Promise<IpcResult<{
+    driftDetected: boolean;
+    driftMs: number;
+    period: number;
+  }>>;
+}
+
 export interface ElectronUpdatesAPI {
   check(): Promise<boolean>;
   download(): Promise<void>;
@@ -206,6 +231,7 @@ export interface ElectronAPI {
   settings: ElectronSettingsAPI;
   trash: ElectronTrashAPI;
   health: ElectronHealthAPI;
+  otp: ElectronOtpAPI;
   window: ElectronWindowAPI;
   updates: ElectronUpdatesAPI;
 }

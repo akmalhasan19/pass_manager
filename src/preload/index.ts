@@ -188,6 +188,29 @@ const api = {
     analyze: (oldDays?: number) => ipcRenderer.invoke(IPC_CHANNELS.HEALTH_ANALYZE, { oldDays }),
   },
 
+  otp: {
+    /**
+     * Generate a TOTP code for an item. The secret is decrypted and used
+     * entirely within the main process — only the code string is returned.
+     */
+    generate: (itemId: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.OTP_GENERATE, { itemId }),
+    /**
+     * Retrieve the OTP config (including secret) for an item.
+     * Used by OtpSection in edit mode. The renderer MUST NOT persist
+     * the secret in Zustand or any state management store.
+     */
+    getConfig: (itemId: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.OTP_GET_CONFIG, { itemId }),
+    /**
+     * Check for system clock drift that could affect TOTP code validity.
+     * No network request is made — the check is purely heuristic.
+     * Returns { driftDetected, driftMs, period } if drift is found.
+     */
+    checkTimeSync: () =>
+      ipcRenderer.invoke(IPC_CHANNELS.OTP_CHECK_TIME_SYNC),
+  },
+
   window: {
     minimize: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_MINIMIZE),
     maximize: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_MAXIMIZE),

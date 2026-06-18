@@ -883,6 +883,7 @@ export default function ItemDetailView({
 
         {/* OTP Section */}
         <OtpSection
+          itemId={item.id}
           itemTitle={item.title}
           otpConfig={item.otp}
           isEditMode={editMode}

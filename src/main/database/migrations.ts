@@ -3,8 +3,10 @@ import { join } from 'node:path';
 import { app } from 'electron';
 import type { Database as SqlJsDatabase } from 'sql.js';
 import { runMany, getDatabase, openDatabaseForVault, saveDatabase, closeDatabase } from './connection';
+import { encryptString } from '../crypto/encryption';
+import { secureClear } from '../../shared/secureMemory';
 
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 export function getAuthPath(): string {
   const userDataPath = app?.getPath?.('userData') ?? join(process.cwd(), 'data');
@@ -81,7 +83,7 @@ function runQueryOnDb(sql: string, params: unknown[] = [], db?: SqlJsDatabase): 
   return null;
 }
 
-export function runMigrations(db?: SqlJsDatabase): void {
+export function runMigrations(db?: SqlJsDatabase, encryptionKey?: Buffer): void {
   const currentVersion = getCurrentSchemaVersion(db);
 
   if (currentVersion < CURRENT_VERSION) {
@@ -91,10 +93,49 @@ export function runMigrations(db?: SqlJsDatabase): void {
     if (currentVersion === 0) {
       runSchema(db);
     } else if (currentVersion < 2) {
-      targetDb.run("ALTER TABLE items ADD COLUMN otp_secret TEXT");
+      targetDb.run("ALTER TABLE items ADD COLUMN otp_secret BLOB");
       targetDb.run("ALTER TABLE items ADD COLUMN otp_period INTEGER DEFAULT 30");
       targetDb.run("ALTER TABLE items ADD COLUMN otp_digits INTEGER DEFAULT 6");
       targetDb.run("ALTER TABLE items ADD COLUMN otp_algorithm TEXT DEFAULT 'SHA1'");
+    }
+
+    if (currentVersion < 3) {
+      // SECURITY: Migrate otp_secret from plaintext TEXT to encrypted BLOB.
+      // For existing vaults, encrypt any plaintext secrets using the master key.
+      // New vaults have no items, so this is a no-op when encryptionKey is absent.
+      if (encryptionKey) {
+        const stmt = targetDb.prepare(
+          'SELECT id, otp_secret, otp_period, otp_digits, otp_algorithm FROM items WHERE otp_secret IS NOT NULL',
+        );
+        interface PlaintextOtpRow {
+          id: string;
+          otp_secret: string;
+          otp_period: number;
+          otp_digits: number;
+          otp_algorithm: string;
+        }
+        const rows: PlaintextOtpRow[] = [];
+        while (stmt.step()) {
+          const row = stmt.getAsObject() as Record<string, unknown>;
+          rows.push({
+            id: row.id as string,
+            otp_secret: row.otp_secret as string,
+            otp_period: (row.otp_period as number) ?? 30,
+            otp_digits: (row.otp_digits as number) ?? 6,
+            otp_algorithm: (row.otp_algorithm as string) ?? 'SHA1',
+          });
+        }
+        stmt.free();
+
+        for (const row of rows) {
+          const encryptedBuf = encryptString(row.otp_secret, encryptionKey);
+          targetDb.run(
+            'UPDATE items SET otp_secret = ?, otp_period = ?, otp_digits = ?, otp_algorithm = ? WHERE id = ?',
+            [encryptedBuf as unknown as ArrayBuffer, row.otp_period, row.otp_digits, row.otp_algorithm, row.id],
+          );
+          secureClear(encryptedBuf);
+        }
+      }
     }
 
     targetDb.run('UPDATE settings SET value = ? WHERE key = ?', [
@@ -117,13 +158,14 @@ export function initializeDatabase(): void {
  * by closing the vault database after migration completes.
  *
  * @param vaultId - The vault whose database should be migrated.
+ * @param encryptionKey - Optional master key for encrypting existing plaintext secrets during migration.
  * @throws {Error} If the vault database cannot be opened, migrated, or saved.
  *   The error message is safe to display to the user and does not leak sensitive data.
  */
-export function migrateVaultDatabase(vaultId: string): void {
+export function migrateVaultDatabase(vaultId: string, encryptionKey?: Buffer): void {
   openDatabaseForVault(vaultId);
   try {
-    runMigrations();
+    runMigrations(undefined, encryptionKey);
     saveDatabase();
   } finally {
     try {

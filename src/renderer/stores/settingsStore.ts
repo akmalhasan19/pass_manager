@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   defaultPasswordExcludeAmbiguous: true,
   trashAutoPurgeDays: 30,
   passwordHealthOldDays: 90,
+  otpPrivacyMode: false,
 };
 
 type SettingKey = keyof AppSettings;
@@ -37,8 +38,23 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const loaded = await window.electron.settings.getAll();
+      const parsed: AppSettings = { ...DEFAULT_SETTINGS };
+      const defaults = DEFAULT_SETTINGS as unknown as Record<string, unknown>;
+      const target = parsed as unknown as Record<string, unknown>;
+      for (const [key, value] of Object.entries(loaded)) {
+        if (key in defaults) {
+          const defaultVal = defaults[key];
+          if (typeof defaultVal === 'boolean') {
+            target[key] = value === 'true' || value === true;
+          } else if (typeof defaultVal === 'number') {
+            target[key] = Number(value);
+          } else {
+            target[key] = value;
+          }
+        }
+      }
       set({
-        settings: { ...DEFAULT_SETTINGS, ...loaded },
+        settings: parsed,
         isLoaded: true,
         isLoading: false,
       });

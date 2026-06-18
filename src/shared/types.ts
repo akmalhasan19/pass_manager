@@ -32,6 +32,10 @@ export interface Item {
   isFavorite: boolean;
   sortOrder: number;
   otp: TotpConfig | null;
+  otpSecretEncrypted: ArrayBuffer | null;
+  otpPeriod: number;
+  otpDigits: number;
+  otpAlgorithm: string;
   tags?: Tag[];
 }
 
@@ -105,6 +109,7 @@ export interface AppSettings {
   defaultPasswordExcludeAmbiguous: boolean;
   trashAutoPurgeDays: number;
   passwordHealthOldDays: number;
+  otpPrivacyMode: boolean;
 }
 
 export interface SearchResultItem {
@@ -234,6 +239,10 @@ export interface ExportItem {
   isFavorite: boolean;
   sortOrder: number;
   tagIds: string[];
+  otpSecretEncrypted: string | null;
+  otpPeriod: number;
+  otpDigits: number;
+  otpAlgorithm: string;
 }
 
 export interface ExportTag {

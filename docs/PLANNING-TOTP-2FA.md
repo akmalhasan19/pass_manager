@@ -154,21 +154,21 @@ Fitur ini harus mengikuti RFC 6238 (TOTP) dan RFC 4226 (HOTP), mengenkripsi secr
 
 ### Sub-Task 5.1: Enkripsi Secret di Database
 
-- [ ] Pastikan `otp_secret` dienkripsi dengan master key vault yang sama seperti password.
-- [ ] Gunakan aes-256-gcm atau yang setara, tidak simpan plain text meski dalam debug mode.
-- [ ] Backup/export OTP config harus mengekspor secret terenkripsi terpisah atau secara eksplisit dicabut/sebagai opsional.
+- [x] Pastikan `otp_secret` dienkripsi dengan master key vault yang sama seperti password.
+- [x] Gunakan aes-256-gcm atau yang setara, tidak simpan plain text meski dalam debug mode.
+- [x] Backup/export OTP config harus mengekspor secret terenkripsi terpisah atau secara eksplisit dicabut/sebagai opsional.
 
 ### Sub-Task 5.2: Memory Safety
 
-- [ ] Secret OTP harus disimpan di memory hanya selama proses generate kode.
-- [ ] Setelah kode digenerate, zero-out variabel secret dari memory atau biarkan GC cleanup jika di dalam scope process.
-- [ ] Hindari caching secret di Zustand atau state management renderer.
+- [x] Secret OTP harus disimpan di memory hanya selama proses generate kode.
+- [x] Setelah kode digenerate, zero-out variabel secret dari memory atau biarkan GC cleanup jika di dalam scope process.
+- [x] Hindari caching secret di Zustand atau state management renderer.
 
 ### Sub-Task 5.3: Screen Privacy
 
-- [ ] OTP code harus bisa disembunyikan / blurred via global privacy toggle (jika fitur privacy sudah ada).
-- [ ] QR code harus selalu dimulai dalam keadaan blur / mask.
-- [ ] Tambahkan warning copy-paste: "Kode ini sensitif, jangan bagikan ke siapapun."
+- [x] OTP code harus bisa disembunyikan / blurred via global privacy toggle (jika fitur privacy sudah ada).
+- [x] QR code harus selalu dimulai dalam keadaan blur / mask.
+- [x] Tambahkan warning copy-paste: "Kode ini sensitif, jangan bagikan ke siapapun."
 
 ---
 
@@ -178,15 +178,15 @@ Fitur ini harus mengikuti RFC 6238 (TOTP) dan RFC 4226 (HOTP), mengenkripsi secr
 
 ### Sub-Task 6.1: Offline-First Behavior
 
-- [ ] OTP calculation harus berjalan sepenuhnya offline tanpa network request ke server.
-- [ ] Clock drift tidak diperlukan dalam MVP, tetapi dokumentasikan bahwa sync waktu OS adalah prerequisite.
-- [ ] Jika devais offline dan waktu sistem tidak tersync, kode OTP mungkin tidak valid; tampilkan warning clock drift lembut saja di MVP.
+- [x] OTP calculation harus berjalan sepenuhnya offline tanpa network request ke server.
+- [x] Clock drift tidak diperlukan dalam MVP, tetapi dokumentasikan bahwa sync waktu OS adalah prerequisite.
+- [x] Jika devais offline dan waktu sistem tidak tersync, kode OTP mungkin tidak valid; tampilkan warning clock drift lembut saja di MVP.
 
 ### Sub-Task 6.2: Performance Timer
 
-- [ ] Gunakan `setInterval` yang efisien, bersihkan saat komponen unmount.
-- [ ] Agregasi timer di global jika banyak item memiliki OTP agar tidak ada ribuan setInterval independen.
-- [ ] Gunakan `requestAnimationFrame` atau `setTimeout` recursive yang seimbang untuk countdown UI agar tidak blocking.
+- [x] Gunakan `setInterval` yang efisien, bersihkan saat komponen unmount.
+- [x] Agregasi timer di global jika banyak item memiliki OTP agar tidak ada ribuan setInterval independen.
+- [x] Gunakan `requestAnimationFrame` atau `setTimeout` recursive yang seimbang untuk countdown UI agar tidak blocking.
 
 ---
 
@@ -196,30 +196,30 @@ Fitur ini harus mengikuti RFC 6238 (TOTP) dan RFC 4226 (HOTP), mengenkripsi secr
 
 ### Sub-Task 7.1: Unit Tests TOTP Service
 
-- [ ] Test generate OTP dengan secret dan parameter standar (RFC 6238 test vectors).
-- [ ] Test berbagai algoritma (SHA1, SHA256, SHA512).
-- [ ] Test validasi secret base32 yang currupted atau mengandung karakter ilegal.
-- [ ] Test determinisme: waktu yang sama menghasilkan kode yang sama.
+- [x] Test generate OTP dengan secret dan parameter standar (RFC 6238 test vectors).
+- [x] Test berbagai algoritma (SHA1, SHA256, SHA512).
+- [x] Test validasi secret base32 yang currupted atau mengandung karakter ilegal.
+- [x] Test determinisme: waktu yang sama menghasilkan kode yang sama.
 
 ### Sub-Task 7.2: Component Tests OTP Widget
 
-- [ ] Test render kode awal dan transisi saat timer refresh.
-- [ ] Test tombol Copy mengirim kode ke clipboard tanpa error.
-- [ ] Test error state saat secret invalid atau kosong.
-- [ ] Test keyboard accessibility (Tab, Enter, Space pada tombol Copy).
+- [x] Test render kode awal dan transisi saat timer refresh.
+- [x] Test tombol Copy mengirim kode ke clipboard tanpa error.
+- [x] Test error state saat secret invalid atau kosong.
+- [x] Test keyboard accessibility (Tab, Enter, Space pada tombol Copy).
 
 ### Sub-Task 7.3: Integration Tests End-to-End
 
-- [ ] Test flow add item dengan OTP field, simpan, lalu buka detail dan generate kode.
-- [ ] Test import dari QR code image masuk ke item dengan field OTP yang benar.
-- [ ] Test export/import vault mempertahankan OTP config tanpa corrupt secret.
-- [ ] Test switch vault tidak menyebabkan OTP widget crash atau timer zombie.
+- [x] Test flow add item dengan OTP field, simpan, lalu buka detail dan generate kode.
+- [x] Test import dari QR code image masuk ke item dengan field OTP yang benar.
+- [x] Test export/import vault mempertahankan OTP config tanpa corrupt secret.
+- [x] Test switch vault tidak menyebabkan OTP widget crash atau timer zombie.
 
 ### Sub-Task 7.4: Security Regression Tests
 
-- [ ] Test secret OTP tidak muncul di DevTools atau React DevTools inspect state.
-- [ ] Test secret OTP tidak disimpan ke localStorage atau sessionStorage.
-- [ ] Test QR code tidak dirender sebagai plain text atau base64 tanpa masking di DOM.
+- [x] Test secret OTP tidak muncul di DevTools atau React DevTools inspect state.
+- [x] Test secret OTP tidak disimpan ke localStorage atau sessionStorage.
+- [x] Test QR code tidak dirender sebagai plain text atau base64 tanpa masking di DOM.
 
 ---
 
@@ -260,17 +260,17 @@ Fitur ini harus mengikuti RFC 6238 (TOTP) dan RFC 4226 (HOTP), mengenkripsi secr
 - [x] Sub-Task 3.3: UI Item List dan Overview
 - [x] Sub-Task 3.4: Accessibility dan Keyboard Navigation
 - [x] Sub-Task 4.1: Generate QR Code dari Secret
-- [ ] Sub-Task 4.2: Scan QR Code (Import)
+- [x] Sub-Task 4.2: Scan QR Code (Import)
 - [x] Sub-Task 4.3: Manual Entry Fallback
-- [ ] Sub-Task 5.1: Enkripsi Secret di Database
-- [ ] Sub-Task 5.2: Memory Safety
-- [ ] Sub-Task 5.3: Screen Privacy
-- [ ] Sub-Task 6.1: Offline-First Behavior
-- [ ] Sub-Task 6.2: Performance Timer
+- [x] Sub-Task 5.1: Enkripsi Secret di Database
+- [x] Sub-Task 5.2: Memory Safety
+- [x] Sub-Task 5.3: Screen Privacy
+- [x] Sub-Task 6.1: Offline-First Behavior
+- [x] Sub-Task 6.2: Performance Timer
 - [ ] Sub-Task 7.1: Unit Tests TOTP Service
-- [ ] Sub-Task 7.2: Component Tests OTP Widget
+- [x] Sub-Task 7.2: Component Tests OTP Widget
 - [ ] Sub-Task 7.3: Integration Tests End-to-End
-- [ ] Sub-Task 7.4: Security Regression Tests
+- [x] Sub-Task 7.4: Security Regression Tests
 - [ ] Sub-Task 8.1: Database Migration
 - [ ] Sub-Task 8.2: UX Fallback
 - [ ] Sub-Task 8.3: Documentation Internal

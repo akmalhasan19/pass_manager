@@ -42,6 +42,10 @@ export const IPC_CHANNELS = {
   ITEM_SEARCH_BY_TAG: 'item:searchByTag',
   ITEM_GET_ALL: 'item:getAll',
 
+  OTP_GENERATE: 'otp:generate',
+  OTP_GET_CONFIG: 'otp:getConfig',
+  OTP_CHECK_TIME_SYNC: 'otp:checkTimeSync',
+
   HEALTH_ANALYZE: 'health:analyze',
 
   TAG_GET_ALL: 'tag:getAll',

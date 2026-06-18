@@ -80,9 +80,13 @@ export async function waitForLockScreen(page: Page): Promise<void> {
 
 /** Fill in the master password and submit (setup flow or unlock). */
 export async function fillMasterPassword(page: Page, password: string): Promise<void> {
-  const input = page.locator('input[type="password"]');
+  const input = page.locator('#master-password');
   await input.fill(password);
-  await page.locator('button:has-text("Unlock"), button:has-text("Create")').click();
+  const confirm = page.locator('#confirm-password');
+  if (await confirm.isVisible().catch(() => false)) {
+    await confirm.fill(password);
+  }
+  await page.locator('button:has-text("Unlock"), button:has-text("Create")').first().click();
 }
 
 /** Wait for the main app interface (sidebar visible). */

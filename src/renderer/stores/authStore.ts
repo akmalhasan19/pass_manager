@@ -6,6 +6,7 @@ import { useFolderStore } from './folderStore';
 import { useToastStore } from './toastStore';
 import { useErrorStore } from './errorStore';
 import { useSettingsStore } from './settingsStore';
+import { otpTimerService } from '../services/otpTimerService';
 import { t } from '../i18n/useTranslation';
 
 export type AuthStatus = 'idle' | 'checking' | 'setup' | 'locked' | 'unlocked' | 'error';
@@ -88,6 +89,11 @@ function resetAllVaultStores(): void {
   useSettingsStore.getState().reset();
   useToastStore.getState().clearToasts();
   useErrorStore.getState().clearAll();
+
+  // PERFORMANCE: Reset global OTP timer to prevent timer zombies
+  // after vault lock or switch. All OTP subscriptions are cleared
+  // and the shared setInterval is stopped.
+  otpTimerService.reset();
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({

@@ -221,6 +221,25 @@
           "items": { "type": "string" },
           "default": [],
           "description": "Array of tag IDs associated with this item."
+        },
+        "otpSecretEncrypted": {
+          "type": ["string", "null"],
+          "description": "Base64-encoded AES-256-GCM encrypted OTP secret blob, or null if no OTP is configured."
+        },
+        "otpPeriod": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "TOTP refresh period in seconds."
+        },
+        "otpDigits": {
+          "type": "integer",
+          "enum": [6, 8],
+          "description": "Number of digits in the generated OTP code."
+        },
+        "otpAlgorithm": {
+          "type": "string",
+          "enum": ["SHA1", "SHA256", "SHA512"],
+          "description": "HMAC algorithm used for OTP generation."
         }
       }
     },

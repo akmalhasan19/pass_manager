@@ -21,6 +21,30 @@ const itemRepo = new ItemRepository();
 const tagRepo = new TagRepository();
 const trashRepo = new TrashRepository();
 
+/**
+ * Populate `item.otp` with OTP config metadata for an Item.
+ * Used by list-view IPC handlers before returning data to the renderer.
+ *
+ * SECURITY: The plaintext secret is NEVER included in the returned config.
+ * Only period, digits, and algorithm are populated. OTP code generation
+ * must be performed via the OTP_GENERATE IPC channel, which decrypts
+ * the secret transiently in the main process.
+ */
+function decryptOtpForItem(item: Item, _key: Buffer): void {
+  if (!item.otpSecretEncrypted) {
+    item.otp = null;
+    return;
+  }
+  // SECURITY: Do NOT decrypt the secret here. The renderer only needs
+  // metadata to display OTP status and configuration details.
+  item.otp = {
+    secret: '', // Intentionally empty — secret never leaves main process
+    period: item.otpPeriod,
+    digits: item.otpDigits,
+    algorithm: item.otpAlgorithm,
+  };
+}
+
 function decryptItem(item: Item, key: Buffer): ItemDecrypted {
   const tags = tagRepo.getByItem(item.id);
 
@@ -36,6 +60,21 @@ function decryptItem(item: Item, key: Buffer): ItemDecrypted {
   if (item.notesEncrypted) {
     notesBuf = Buffer.from(item.notesEncrypted);
     notes = decryptString(notesBuf, key);
+  }
+
+  // SECURITY: OTP secret is NOT decrypted here. The renderer receives only
+  // the config metadata (period, digits, algorithm). OTP code generation
+  // and secret retrieval are handled via dedicated IPC channels
+  // (OTP_GENERATE, OTP_GET_CONFIG) that keep the plaintext in the main
+  // process scope and wipe it after use.
+  let otp: TotpConfig | null = null;
+  if (item.otpSecretEncrypted) {
+    otp = {
+      secret: '', // Intentionally empty — secret never leaves main process
+      period: item.otpPeriod,
+      digits: item.otpDigits,
+      algorithm: item.otpAlgorithm,
+    };
   }
 
   // SECURITY: Wipe temporary buffers containing encrypted data
@@ -56,14 +95,7 @@ function decryptItem(item: Item, key: Buffer): ItemDecrypted {
     updatedAt: item.updatedAt,
     isFavorite: item.isFavorite,
     sortOrder: item.sortOrder,
-    otp: item.otp
-      ? {
-          secret: item.otp.secret,
-          period: item.otp.period,
-          digits: item.otp.digits,
-          algorithm: item.otp.algorithm,
-        }
-      : null,
+    otp,
     tags: tags.length > 0 ? tags : undefined,
   };
 }
@@ -83,9 +115,17 @@ function serializeItemForTrash(item: Item): string {
     notesBase64 = notesBuf.toString('base64');
   }
 
+  let otpSecretBase64: string | null = null;
+  let otpBuf: Buffer | null = null;
+  if (item.otpSecretEncrypted) {
+    otpBuf = Buffer.from(item.otpSecretEncrypted);
+    otpSecretBase64 = otpBuf.toString('base64');
+  }
+
   // SECURITY: Wipe temporary buffers containing encrypted data
   secureClear(passwordBuf);
   secureClear(notesBuf);
+  secureClear(otpBuf);
 
   return JSON.stringify({
     id: item.id,
@@ -101,7 +141,10 @@ function serializeItemForTrash(item: Item): string {
     updatedAt: item.updatedAt,
     isFavorite: item.isFavorite,
     sortOrder: item.sortOrder,
-    otp: item.otp,
+    otpSecretEncrypted: otpSecretBase64,
+    otpPeriod: item.otpPeriod,
+    otpDigits: item.otpDigits,
+    otpAlgorithm: item.otpAlgorithm,
   });
 }
 
@@ -118,6 +161,11 @@ function deserializeItemFromTrash(json: string) {
     notesEncrypted = Buffer.from(parsed.notesEncrypted, 'base64');
   }
 
+  let otpSecretEncrypted: Buffer | null = null;
+  if (parsed.otpSecretEncrypted) {
+    otpSecretEncrypted = Buffer.from(parsed.otpSecretEncrypted, 'base64');
+  }
+
   // Note: The base64 strings in parsed are now sensitive and should ideally
   // be cleared too, but JavaScript strings are immutable. The Buffers above
   // are the primary concern and are wiped by the caller after use.
@@ -126,6 +174,7 @@ function deserializeItemFromTrash(json: string) {
     ...parsed,
     passwordEncrypted,
     notesEncrypted,
+    otpSecretEncrypted,
   };
 }
 
@@ -136,8 +185,14 @@ export function registerItemHandlers(): void {
         return { success: false, error: 'Database is not open.' };
       }
 
+      const key = getMasterKey();
+      if (!key) {
+        return { success: false, error: 'No master key available. Unlock first.' };
+      }
+
       const data = itemRepo.getByFolder(folderId);
       const itemsWithTags = data.map((item) => {
+        decryptOtpForItem(item, key);
         const tags = tagRepo.getByItem(item.id);
         return { ...item, tags: tags.length > 0 ? tags : undefined };
       });
@@ -306,6 +361,17 @@ export function registerItemHandlers(): void {
           notesEncrypted = encryptString(fields.notes, key) as unknown as ArrayBuffer;
         }
 
+        let otpSecretEncrypted: ArrayBuffer | null = null;
+        let otpPeriod = OTP_DEFAULTS.PERIOD;
+        let otpDigits = OTP_DEFAULTS.DIGITS;
+        let otpAlgorithm = OTP_DEFAULTS.ALGORITHM;
+        if (normalizedOtpConfig) {
+          otpSecretEncrypted = encryptString(normalizedOtpConfig.secret, key) as unknown as ArrayBuffer;
+          otpPeriod = normalizedOtpConfig.period;
+          otpDigits = normalizedOtpConfig.digits;
+          otpAlgorithm = normalizedOtpConfig.algorithm;
+        }
+
         const item = itemRepo.create(folderId, {
           title: trimmedTitle,
           username: sanitizedUsername ?? '',
@@ -314,12 +380,16 @@ export function registerItemHandlers(): void {
           notesEncrypted,
           emoji: fields.emoji ?? null,
           coverImage: fields.coverImage ?? null,
-          otpConfig: normalizedOtpConfig,
+          otpSecretEncrypted,
+          otpPeriod,
+          otpDigits,
+          otpAlgorithm,
         });
 
         // SECURITY: Wipe encrypted buffers after they've been persisted to DB
         secureClear(passwordEncrypted as unknown as Buffer);
         secureClear(notesEncrypted as unknown as Buffer);
+        secureClear(otpSecretEncrypted as unknown as Buffer);
 
         const data = decryptItem(item, key);
         return { success: true, data };
@@ -378,7 +448,10 @@ export function registerItemHandlers(): void {
           coverImage: string | null;
           isFavorite: boolean;
           sortOrder: number;
-          otpConfig: TotpConfig | null;
+          otpSecretEncrypted: ArrayBuffer | null;
+          otpPeriod: number;
+          otpDigits: number;
+          otpAlgorithm: string;
         }> = {};
 
         if (fields.title !== undefined)
@@ -472,9 +545,12 @@ export function registerItemHandlers(): void {
           if (error) {
             return { success: false, error: 'Invalid OTP configuration: ' + error };
           }
-          updateFields.otpConfig = sanitized;
+          updateFields.otpSecretEncrypted = encryptString(sanitized.secret, key) as unknown as ArrayBuffer;
+          updateFields.otpPeriod = sanitized.period;
+          updateFields.otpDigits = sanitized.digits;
+          updateFields.otpAlgorithm = sanitized.algorithm;
         } else if (fields.otpConfig === null) {
-          updateFields.otpConfig = null;
+          updateFields.otpSecretEncrypted = null;
         }
 
         if (updateFields.title !== undefined && updateFields.title !== existing.title) {
@@ -507,6 +583,9 @@ export function registerItemHandlers(): void {
         }
         if (updateFields.notesEncrypted !== undefined) {
           secureClear(updateFields.notesEncrypted as unknown as Buffer);
+        }
+        if (updateFields.otpSecretEncrypted !== undefined) {
+          secureClear(updateFields.otpSecretEncrypted as unknown as Buffer);
         }
 
         const data = decryptItem(item, key);
@@ -597,7 +676,6 @@ export function registerItemHandlers(): void {
         }
       }
 
-      const restoreOtpConfig = itemData.otp ?? null;
       const now = Date.now();
       db.run(
         `INSERT INTO items (id, folder_id, title, username, password_encrypted, url, notes_encrypted, emoji, cover_image, created_at, updated_at, is_favorite, sort_order, otp_secret, otp_period, otp_digits, otp_algorithm)
@@ -616,16 +694,17 @@ export function registerItemHandlers(): void {
           now,
           itemData.isFavorite ? 1 : 0,
           itemData.sortOrder ?? 0,
-          restoreOtpConfig?.secret ?? null,
-          restoreOtpConfig?.period ?? OTP_DEFAULTS.PERIOD,
-          restoreOtpConfig?.digits ?? OTP_DEFAULTS.DIGITS,
-          restoreOtpConfig?.algorithm ?? OTP_DEFAULTS.ALGORITHM,
+          itemData.otpSecretEncrypted ?? null,
+          itemData.otpPeriod ?? OTP_DEFAULTS.PERIOD,
+          itemData.otpDigits ?? OTP_DEFAULTS.DIGITS,
+          itemData.otpAlgorithm ?? OTP_DEFAULTS.ALGORITHM,
         ],
       );
 
       // SECURITY: Wipe deserialized encrypted buffers after DB insert
       secureClear(itemData.passwordEncrypted);
       secureClear(itemData.notesEncrypted);
+      secureClear(itemData.otpSecretEncrypted);
 
       trashRepo.removeByOriginalId(id);
 
@@ -674,8 +753,13 @@ export function registerItemHandlers(): void {
       if (!isDatabaseOpen()) {
         return { success: false, error: 'Database is not open.' };
       }
+      const key = getMasterKey();
+      if (!key) {
+        return { success: false, error: 'No master key available. Unlock first.' };
+      }
       const data = itemRepo.getAll();
       const itemsWithTags = data.map((item) => {
+        decryptOtpForItem(item, key);
         const tags = tagRepo.getByItem(item.id);
         return { ...item, tags: tags.length > 0 ? tags : undefined };
       });

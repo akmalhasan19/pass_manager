@@ -1,7 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { TOTP } from 'otpauth';
 import type { Item, ItemDecrypted, TotpConfig } from '../../../shared/types';
-import { normalizeBase32Secret } from '../../../shared/validation';
 import { useToast } from '../../hooks/useToast';
 import { useTranslation } from '../../i18n/useTranslation';
 
@@ -108,18 +106,14 @@ export default function FolderView({
   }, []);
 
   const handleCopyOtp = useCallback(
-    async (e: React.MouseEvent, itemId: string, otpConfig: TotpConfig) => {
+    async (e: React.MouseEvent, itemId: string, _otpConfig: TotpConfig) => {
       e.stopPropagation();
       try {
-        const normalized = normalizeBase32Secret(otpConfig.secret);
-        const totp = new TOTP({
-          secret: normalized,
-          digits: otpConfig.digits,
-          period: otpConfig.period,
-          algorithm: otpConfig.algorithm as 'SHA1' | 'SHA256' | 'SHA512',
-        });
-        const code = totp.generate();
-        await navigator.clipboard.writeText(code);
+        // SECURITY: OTP code is generated in the main process.
+        // The plaintext secret is never sent to the renderer.
+        const result = await window.electron.otp.generate(itemId);
+        if (!result.success || !result.data) return;
+        await navigator.clipboard.writeText(result.data.code);
         if (copiedOtpTimerRef.current) clearTimeout(copiedOtpTimerRef.current);
         setCopiedOtpItemId(itemId);
         showSuccess(t('item.otpBadge.copied'));

@@ -217,6 +217,11 @@ export const useItemStore = create<ItemState>((set, get) => ({
     // SECURITY: Overwrite decrypted passwords and notes in all cached items
     // before releasing references. V8 strings are immutable, but overwriting
     // the property ensures the old value becomes unreachable for GC.
+    //
+    // OTP secrets are NEVER stored in the renderer — the `otp.secret` field
+    // is always an empty string. OTP codes are generated in the main process
+    // via IPC (OTP_GENERATE channel), so the plaintext secret never persists
+    // in Zustand or any renderer state.
     const { items } = get();
     for (const id of Object.keys(items)) {
       const item = items[id];
@@ -225,6 +230,10 @@ export const useItemStore = create<ItemState>((set, get) => ({
       }
       if ('notes' in item && typeof item.notes === 'string') {
         (item as ItemDecrypted).notes = null;
+      }
+      // SECURITY: Ensure OTP secret is wiped even if somehow present
+      if ('otp' in item && item.otp && typeof item.otp.secret === 'string' && item.otp.secret) {
+        item.otp.secret = '';
       }
     }
     get().reset();

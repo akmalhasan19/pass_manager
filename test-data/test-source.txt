@@ -1,1 +1,0 @@
-Hello, SecurePass! This is a test file for attachment encryption.

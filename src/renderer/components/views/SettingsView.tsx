@@ -391,6 +391,48 @@ export default function SettingsView(): React.ReactElement {
                   <option value={365}>1 year</option>
                 </select>
               </div>
+
+              {/* OTP Screen Privacy */}
+              <div className="mt-6 space-y-3">
+                <label className="flex cursor-pointer items-center gap-3">
+                  <div
+                    className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-colors ${
+                      settings.otpPrivacyMode
+                        ? 'border-accent-500 bg-accent-500'
+                        : 'border-surface-300 dark:border-surface-600'
+                    }`}
+                    onClick={() => updateSetting('otpPrivacyMode', !settings.otpPrivacyMode)}
+                    role="checkbox"
+                    aria-checked={settings.otpPrivacyMode}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        updateSetting('otpPrivacyMode', !settings.otpPrivacyMode);
+                      }
+                    }}
+                  >
+                    {settings.otpPrivacyMode && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-3.5 w-3.5 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={3}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-sm font-medium text-surface-700 dark:text-surface-300">
+                    {t('settings.security.otpPrivacyMode')}
+                  </span>
+                </label>
+                <p className="text-xs text-surface-400 dark:text-surface-500">
+                  {t('settings.security.otpPrivacyModeDesc')}
+                </p>
+              </div>
             </section>
           )}
 

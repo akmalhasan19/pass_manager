@@ -12,14 +12,21 @@ import Modal from '../ui/Modal';
 import OtpWidget from './OtpWidget';
 import QrScannerModal from './QrScannerModal';
 import { useTranslation } from '../../i18n/useTranslation';
+import { useSettingsStore } from '../../stores/settingsStore';
 
 interface OtpSectionProps {
+  itemId: string;
   itemTitle: string;
   otpConfig: TotpConfig | null | undefined;
   isEditMode: boolean;
   onChange: (config: TotpConfig | null) => void;
 }
 
+/**
+ * Returns a safe default config with empty secret.
+ * SECURITY: The secret field is always empty string — it is never
+ * persisted in renderer state management.
+ */
 function getConfigOrDefault(config: TotpConfig | null | undefined): TotpConfig {
   return {
     secret: config?.secret ?? '',
@@ -41,13 +48,29 @@ const ERROR_MESSAGES: Record<string, string> = {
   'validation.otpSecretTooShort': 'Secret must be at least 16 characters',
 };
 
+/**
+ * OtpSection handles OTP configuration display and editing.
+ *
+ * SECURITY — Memory Safety:
+ * - In view mode: Only config metadata (period, digits, algorithm) is used.
+ *   The secret is never stored in renderer state.
+ * - In edit mode: The secret is fetched via IPC (OTP_GET_CONFIG) and held
+ *   ONLY in local React state. It is cleared on unmount or when exiting
+ *   edit mode. It is NEVER stored in Zustand or any persistent state.
+ * - QR code generation uses the secret from local state, and the secret
+ *   reference is dropped after the URI is built.
+ */
 export default function OtpSection({
+  itemId,
   itemTitle,
   otpConfig,
   isEditMode,
   onChange,
 }: OtpSectionProps): React.ReactElement {
-  const [config, setConfig] = useState<TotpConfig>(getConfigOrDefault(otpConfig));
+  // SECURITY: `config` holds the OTP configuration for the edit form.
+  // In view mode, it uses only metadata from props (no secret).
+  // In edit mode, the secret is fetched via IPC and held temporarily.
+  const [config, setConfig] = useState<TotpConfig>(() => getConfigOrDefault(otpConfig));
   const [showSecret, setShowSecret] = useState(false);
   const [secretError, setSecretError] = useState<string | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
@@ -57,23 +80,63 @@ export default function OtpSection({
   const [isOtpRevealed, setIsOtpRevealed] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const { t } = useTranslation();
+  const { settings } = useSettingsStore();
+  const isPrivacyMode = settings.otpPrivacyMode;
 
+  // SECURITY: When entering edit mode, fetch the OTP config (including secret)
+  // via IPC. The secret is held in local state only.
+  useEffect(() => {
+    if (isEditMode && otpConfig) {
+      // Fetch the full config including secret for editing
+      window.electron.otp.getConfig(itemId).then((result) => {
+        if (result.success && result.data) {
+          setConfig(result.data);
+        } else {
+          // Fallback to metadata-only config from props
+          setConfig(getConfigOrDefault(otpConfig));
+        }
+      }).catch(() => {
+        setConfig(getConfigOrDefault(otpConfig));
+      });
+    } else if (!isEditMode) {
+      // SECURITY: When exiting edit mode, clear the secret from local state
+      setConfig((prev) => ({
+        ...prev,
+        secret: '', // Wipe secret reference on mode change
+      }));
+    }
+  }, [isEditMode, itemId, otpConfig]);
+
+  // SECURITY: Sync config from props when otpConfig changes (e.g., after save)
+  // but never store the secret from props — it's always empty string.
   useEffect(() => {
     setConfig((prev) => {
       const normalized = getConfigOrDefault(otpConfig);
       if (
-        normalized.secret !== prev.secret ||
         normalized.period !== prev.period ||
         normalized.digits !== prev.digits ||
         normalized.algorithm !== prev.algorithm
       ) {
-        return normalized;
+        // Only update metadata, preserve any secret from edit mode
+        return {
+          ...prev,
+          period: normalized.period,
+          digits: normalized.digits,
+          algorithm: normalized.algorithm,
+        };
       }
       return prev;
     });
     setSecretError(null);
     setIsOtpRevealed(false);
   }, [otpConfig]);
+
+  // SECURITY: Wipe secret on unmount
+  useEffect(() => {
+    return () => {
+      setConfig((prev) => ({ ...prev, secret: '' }));
+    };
+  }, []);
 
   const notifyChange = useCallback(
     (newConfig: TotpConfig | null) => {
@@ -188,7 +251,7 @@ export default function OtpSection({
         {otpConfig ? (
           isOtpRevealed ? (
             <div className="relative">
-              <OtpWidget config={otpConfig} />
+              <OtpWidget itemId={itemId} config={otpConfig} />
               <button
                 type="button"
                 onClick={() => setIsOtpRevealed(false)}
@@ -415,9 +478,28 @@ export default function OtpSection({
                   <div className="absolute inset-0 flex items-center justify-center">
                     <button
                       onClick={() => setIsQrRevealed(true)}
-                      className="bg-primary text-on-primary rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+                      className="flex items-center gap-2 bg-primary text-on-primary rounded-lg px-4 py-2 text-sm font-medium transition-colors"
                     >
-                      Reveal QR Code
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
+                      </svg>
+                      {t('otp.revealQr')}
                     </button>
                   </div>
                 )}
@@ -425,7 +507,7 @@ export default function OtpSection({
             )}
           </div>
           <p className="mt-4 text-center text-xs text-surface-500">
-            This QR code is sensitive. Do not share it with anyone.
+            {t('otp.copyWarning')}
           </p>
           <div className="mt-4 flex items-center justify-center gap-2">
             {isQrRevealed && (

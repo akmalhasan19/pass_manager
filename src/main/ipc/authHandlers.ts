@@ -139,7 +139,7 @@ export async function unlockVault(
 
     // Run per-vault migration before opening for use
     try {
-      migrateVaultDatabase(vaultId);
+      migrateVaultDatabase(vaultId, key);
     } catch (migrationError) {
       return {
         success: false,
@@ -271,7 +271,7 @@ export function registerAuthHandlers(): void {
 
         // Run schema and migrations on the vault's own database file
         try {
-          migrateVaultDatabase(vault.id);
+          migrateVaultDatabase(vault.id, key);
         } catch (migrationError) {
           throw new Error(
             `Database migration failed for vault "${vault.name}": ${migrationError instanceof Error ? migrationError.message : String(migrationError)}`,
