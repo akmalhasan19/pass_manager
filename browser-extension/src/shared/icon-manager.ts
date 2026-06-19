@@ -196,6 +196,22 @@ export function setBadgeCount(count: number): void {
 }
 
 /**
+ * Show a warning badge (!) to indicate suspicious activity detected.
+ * Clears when setBadgeCount or clearWarningBadge is called.
+ */
+export function setWarningBadge(): void {
+  chrome.action.setBadgeText({ text: '!' });
+  chrome.action.setBadgeBackgroundColor({ color: '#dc2626' }); // Red
+}
+
+/**
+ * Clear any warning badge that was set.
+ */
+export function clearWarningBadge(): void {
+  chrome.action.setBadgeText({ text: '' });
+}
+
+/**
  * Trigger the subtle autofill-success pulse animation.
  *
  * The icon briefly flashes to a lighter green shade and then returns

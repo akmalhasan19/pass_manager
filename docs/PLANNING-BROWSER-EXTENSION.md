@@ -72,7 +72,7 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ## 2. Task: Implementasi Browser Extension
 
-- [ ] Task 2 Complete
+- [x] Task 2 Complete
 
 ### Sub-Task 2.1: Setup Project Extension
 
@@ -160,7 +160,7 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ## 4. Task: Global Shortcut dan Quick Access
 
-- [ ] Task 4 Complete
+- [x] Task 4 Complete
 
 ### Sub-Task 4.1: Global Keyboard Shortcut (System-Wide)
 
@@ -219,11 +219,11 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ### Sub-Task 5.4: Settings dan Preferences Extension
 
-- [ ] Toggle: "Offer to save passwords" (default: on).
-- [ ] Toggle: "Auto-fill forms automatically" (default: on).
-- [ ] Toggle: "Clear clipboard after copy" (default: on, dengan input durasi).
-- [ ] Dropdown: Default action ketika item diklik (autofill, copy password, atau copy username).
-- [ ] Settings harus sync dengan aplikasi utama jika memungkinkan.
+- [x] Toggle: "Offer to save passwords" (default: on).
+- [x] Toggle: "Auto-fill forms automatically" (default: on).
+- [x] Toggle: "Clear clipboard after copy" (default: on, dengan input durasi).
+- [x] Dropdown: Default action ketika item diklik (autofill, copy password, atau copy username).
+- [x] Settings harus sync dengan aplikasi utama jika memungkinkan.
 
 ---
 
@@ -233,34 +233,34 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ### Sub-Task 6.1: Isolasi Content Script
 
-- [ ] Content script tidak boleh memiliki akses ke variabel JavaScript halaman web.
-- [ ] Gunakan isolated world di content script (default di manifest v3).
-- [ ] Hindari `eval` atau `Function()` construct di extension codebase.
-- [ ] Sandboxing iframe untuk UI extension (popup, prompt bar).
+- [x] Content script tidak boleh memiliki akses ke variabel JavaScript halaman web.
+- [x] Gunakan isolated world di content script (default di manifest v3).
+- [x] Hindari `eval` atau `Function()` construct di extension codebase.
+- [x] Sandboxing iframe untuk UI extension (popup, prompt bar).
 
 ### Sub-Task 6.2: Validasi Input dan Sanitasi
 
-- [ ] Semua input dari extension (URL, form fields) harus di-sanitize term-sebelum diproses.
-- [ ] Validate URL scheme (hanya allow `http://` dan `https://`), tolak `javascript:`, `data:`, dll.
-- [ ] Escape output sebelum render di popup untuk mencegah XSS via malicious page title.
+- [x] Semua input dari extension (URL, form fields) harus di-sanitize term-sebelum diproses.
+- [x] Validate URL scheme (hanya allow `http://` dan `https://`), tolak `javascript:`, `data:`, dll.
+- [x] Escape output sebelum render di popup untuk mencegah XSS via malicious page title.
 
 ### Sub-Task 6.3: Anti-Phishing Protection
 
-- [ ] Implementasi domain matching yang ketat sebelum autofill.
-- [ ] Warning jika domain yang diminta tidak cocok dengan domain yang tersimpan di vault (misalnya phishing site dengan typo `paypa1.com` vs `paypal.com`).
-- [ ] Visual indicator yang jelas di browser extension ketika sedang melakukan autofill untuk domain berisiko.
+- [x] Implementasi domain matching yang ketat sebelum autofill.
+- [x] Warning jika domain yang diminta tidak cocok dengan domain yang tersimpan di vault (misalnya phishing site dengan typo `paypa1.com` vs `paypal.com`).
+- [x] Visual indicator yang jelas di browser extension ketika sedang melakukan autofill untuk domain berisiko.
 
 ### Sub-Task 6.4: Secure Memory Practices
 
-- [ ] Credential di memory extension harus di-clear secara eksplisit setelah digunakan.
-- [ ] Gunakan `chrome.storage.session` (di Chrome 102+) untuk menyimpan state yang tidak persistent dan otomatis dihapus ketika browser/session berakhir.
-- [ ] Hindari `localStorage` dan `chrome.storage.local` untuk data sensitif.
+- [x] Credential di memory extension harus di-clear secara eksplisit setelah digunakan.
+- [x] Gunakan `chrome.storage.session` (di Chrome 102+) untuk menyimpan state yang tidak persistent dan otomatis dihapus ketika browser/session berakhir.
+- [x] Hindari `localStorage` dan `chrome.storage.local` untuk data sensitif.
 
 ### Sub-Task 6.5: Audit dan Rate Limiting
 
-- [ ] Log semua request extension (tanpa credential) untuk audit trail.
-- [ ] Rate limit request per window/tab untuk mencegah abuse.
-- [ ] Alert user jika ada aktivitas extension yang mencurigakan (misalnya terlalu banyak request dalam waktu singkat).
+- [x] Log semua request extension (tanpa credential) untuk audit trail.
+- [x] Rate limit request per window/tab untuk mencegah abuse.
+- [x] Alert user jika ada aktivitas extension yang mencurigakan (misalnya terlalu banyak request dalam waktu singkat).
 
 ---
 
@@ -270,17 +270,17 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ### Sub-Task 7.1: Unit Tests Extension
 
-- [ ] Test content script heuristik untuk form detection.
-- [ ] Test domain matching dan URL parsing (edge cases seperti subdomain, path, query params).
-- [ ] Test encryption/decryption round-trip di background script.
-- [ ] Test rate limiting dan error handling.
+- [x] Test content script heuristik untuk form detection.
+- [x] Test domain matching dan URL parsing (edge cases seperti subdomain, path, query params).
+- [x] Test encryption/decryption round-trip di background script.
+- [x] Test rate limiting dan error handling.
 
-### Sub--Task 7.2: Integration Tests IPC dan Native Messaging
+### Sub-Task 7.2: Integration Tests IPC dan Native Messaging
 
-- [ ] Test handshake ECDH antara extension dan Electron app.
-- [ ] Test send/receive pesan encrypted melalui Native Messaging mock.
-- [ ] Test fallback WebSocket (jika diimplementasikan).
-- [ ] Test scenario Electron app tidak berjalan atau vault locked.
+- [x] Test handshake ECDH antara extension dan Electron app.
+- [x] Test send/receive pesan encrypted melalui Native Messaging mock.
+- [x] Test fallback WebSocket (jika diimplementasikan).
+- [x] Test scenario Electron app tidak berjalan atau vault locked.
 
 ### Sub-Task 7.3: Cross-Browser Testing
 
@@ -290,10 +290,10 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ### Sub-Task 7.4: Security Testing
 
-- [ ] Test XSS: Inject malicious page title/URL dan pastikan tidak dieksekusi di popup.
-- [ ] Test MITM: Intercept pesan Native Messaging, pastikan tidak bisa didekripsi tanpa shared key.
-- [ ] Test replay attack: Duplikasi pesan yang sudah dikirim sebelumnya harus ditolak karena timestamp/tid.
-- [ ] Test phishing resistance: Buat halaman phishing dengan typo domain, pastikan tidak auto-fill.
+- [x] Test XSS: Inject malicious page title/URL dan pastikan tidak dieksekusi di popup.
+- [x] Test MITM: Intercept pesan Native Messaging, pastikan tidak bisa didekripsi tanpa shared key.
+- [x] Test replay attack: Duplikasi pesan yang sudah dikirim sebelumnya harus ditolak karena timestamp/tid.
+- [x] Test phishing resistance: Buat halaman phishing dengan typo domain, pastikan tidak auto-fill.
 
 ### Sub-Task 7.5: UX Regression Testing
 
@@ -310,10 +310,10 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ### Sub-Task 8.1: Build dan Package Extension
 
-- [ ] Script CI/CD untuk build extension untuk Chrome, Firefox, dan Edge secara otomatis.
-- [ ] Package extension dalam format `.zip` untuk submission ke store.
-- [ ] Generate source maps untuk debugging dan review store.
-- [ ] Signing extension (Firefox AMO, Edge Partner Center).
+- [x] Script CI/CD untuk build extension untuk Chrome, Firefox, dan Edge secara otomatis.
+- [x] Package extension dalam format `.zip` untuk submission ke store.
+- [x] Generate source maps untuk debugging dan review store.
+- [x] Signing extension (Firefox AMO, Edge Partner Center).
 
 ### Sub-Task 8.2: Integrasi dengan Aplikasi Utama
 
@@ -355,17 +355,17 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 - [x] Sub-Task 5.1: Extension Popup Design
 - [x] Sub-Task 5.2: Autofill Prompt Bar
 - [x] Sub-Task 5.3: Error dan Empty States
-- [ ] Sub-Task 5.4: Settings Extension
-- [ ] Sub-Task 6.1: Isolasi Content Script
-- [ ] Sub-Task 6.2: Validasi Input dan Sanitasi
-- [ ] Sub-Task 6.3: Anti-Phishing Protection
-- [ ] Sub-Task 6.4: Secure Memory Practices
-- [ ] Sub-Task 6.5: Audit dan Rate Limiting
-- [ ] Sub-Task 7.1: Unit Tests Extension
-- [ ] Sub-Task 7.2: Integration Tests IPC
+- [x] Sub-Task 5.4: Settings Extension
+- [x] Sub-Task 6.1: Isolasi Content Script
+- [x] Sub-Task 6.2: Validasi Input dan Sanitasi
+- [x] Sub-Task 6.3: Anti-Phishing Protection
+- [x] Sub-Task 6.4: Secure Memory Practices
+- [x] Sub-Task 6.5: Audit dan Rate Limiting
+- [x] Sub-Task 7.1: Unit Tests Extension
+- [x] Sub-Task 7.2: Integration Tests IPC
 - [ ] Sub-Task 7.3: Cross-Browser Testing
-- [ ] Sub-Task 7.4: Security Testing
+- [x] Sub-Task 7.4: Security Testing
 - [ ] Sub-Task 7.5: UX Regression Testing
-- [ ] Sub-Task 8.1: Build dan Package Extension
+- [x] Sub-Task 8.1: Build dan Package Extension
 - [ ] Sub-Task 8.2: Integrasi dengan Aplikasi Utama
 - [ ] Sub-Task 8.3: Dokumentasi User

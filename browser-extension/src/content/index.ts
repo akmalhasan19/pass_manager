@@ -8,6 +8,12 @@
  * It delegates form detection to form-detector.ts and manages the
  * overlay UI lifecycle.
  *
+ * All injected UI (overlay, prompt bar, toast) is rendered inside Shadow DOM
+ * containers to ensure CSS and DOM isolation from the host page, preventing:
+ * - CSS style leakage from the host page
+ * - Style override by malicious page stylesheets
+ * - Accidental DOM manipulation by page scripts
+ *
  * @module content/index
  */
 
@@ -29,6 +35,25 @@ import {
   isElementVisible,
   type DetectedLoginForm,
 } from './form-detector';
+import {
+  getOrCreateIsolatedContainer,
+  removeIsolatedContainer,
+  injectShadowStyles,
+} from '../shared/dom-isolation';
+import {
+  sanitizeUrl,
+  sanitizeDomain,
+  sanitizeDisplayTitle,
+  sanitizeUsername,
+  escapeHtml,
+  sanitizeFormField,
+} from '../shared/sanitize';
+import {
+  checkDomainMatch,
+  isCommonlyPhishedDomain,
+  type DomainMatchResult,
+} from '../shared/anti-phishing';
+import { secureClearString } from '../shared/secureMemory';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -42,6 +67,11 @@ const PROMPT_BAR_ID = 'securepass-prompt-bar';
 
 /** Toast ID for transient content-script messages. */
 const TOAST_ID = 'securepass-toast';
+
+/** Shadow DOM container IDs. */
+const OVERLAY_CONTAINER = 'overlay';
+const PROMPT_CONTAINER = 'prompt';
+const TOAST_CONTAINER = 'toast';
 
 /** Debounce delay for MutationObserver scans (ms). */
 const SCAN_DEBOUNCE_MS = 300;
@@ -78,6 +108,12 @@ let pendingSaveCandidate: {
 let currentPromptBar: HTMLElement | null = null;
 /** Domains where user chose "Never for this site". */
 const neverSaveDomains = new Set<string>();
+
+/** Domain match results per item ID (for anti-phishing). */
+let domainMatchResults: Map<string, DomainMatchResult> = new Map();
+
+/** Current page domain (extracted for anti-phishing checks). */
+let currentPageDomain: string = '';
 /** Current prompt language, following app storage when available, then browser language. */
 let promptLanguage: PromptLanguage = 'en';
 let extensionPreferences: ExtensionPreferences = {
@@ -128,7 +164,7 @@ const PROMPT_COPY: Record<PromptLanguage, PromptCopy> = {
 };
 
 // ---------------------------------------------------------------------------
-// Styles
+// Styles — Rendered inside Shadow DOM to isolate from host page CSS
 // ---------------------------------------------------------------------------
 
 const OVERLAY_STYLES = `
@@ -288,6 +324,41 @@ const OVERLAY_STYLES = `
   }
   #${OVERLAY_ID} .sp-lock-msg button:hover {
     background: #f3f4f6;
+  }
+  /* Phishing warning banner */
+  #${OVERLAY_ID} .sp-phishing-warning {
+    padding: 8px 14px;
+    background: #fef2f2;
+    border-bottom: 1px solid #fecaca;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #991b1b;
+  }
+  #${OVERLAY_ID} .sp-phishing-warning .sp-warning-icon {
+    flex-shrink: 0;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  #${OVERLAY_ID} .sp-phishing-warning .sp-warning-text {
+    flex: 1;
+    min-width: 0;
+  }
+  #${OVERLAY_ID} .sp-phishing-warning .sp-warning-title {
+    font-weight: 600;
+    color: #7f1d1d;
+  }
+  @media (prefers-color-scheme: dark) {
+    #${OVERLAY_ID} .sp-phishing-warning {
+      background: #450a0a;
+      border-color: #7f1d1d;
+      color: #fca5a5;
+    }
+    #${OVERLAY_ID} .sp-phishing-warning .sp-warning-title {
+      color: #fecaca;
+    }
   }
 `;
 
@@ -480,21 +551,21 @@ const PROMPT_BAR_STYLES = `
 
 /**
  * Show the autofill overlay near a password field.
+ * Renders inside a Shadow DOM container to ensure CSS/DOM isolation.
  */
 function showOverlay(
   form: DetectedLoginForm,
   items: EncryptedCredentialItem[],
   vaultLocked: boolean = false,
+  hasRiskyItem: boolean = false,
 ): void {
   removeOverlay();
 
+  const shadowRoot = getOrCreateIsolatedContainer(OVERLAY_CONTAINER);
+  injectShadowStyles(shadowRoot, OVERLAY_STYLES);
+
   const overlay = document.createElement('div');
   overlay.id = OVERLAY_ID;
-
-  // Inject scoped styles
-  const style = document.createElement('style');
-  style.textContent = OVERLAY_STYLES;
-  overlay.appendChild(style);
 
   // Header with close button
   const header = document.createElement('div');
@@ -510,6 +581,20 @@ function showOverlay(
     e.stopPropagation();
     removeOverlay();
   });
+
+  // Phishing warning banner: shown when any item's domain doesn't match
+  if (hasRiskyItem) {
+    const phishingBanner = document.createElement('div');
+    phishingBanner.className = 'sp-phishing-warning';
+    phishingBanner.innerHTML = `
+      <span class="sp-warning-icon">&#9888;</span>
+      <div class="sp-warning-text">
+        <div class="sp-warning-title">${escapeHtml('Phishing Warning')}</div>
+        <div>${escapeHtml('Some credentials do not match this domain. Verify before filling.')}</div>
+      </div>
+    `;
+    overlay.appendChild(phishingBanner);
+  }
 
   if (vaultLocked) {
     // Vault locked state
@@ -532,15 +617,18 @@ function showOverlay(
       itemEl.className = 'sp-item';
 
       const icon = item.emoji || (item.title ? item.title.charAt(0).toUpperCase() : '&#128274;');
-
       const hasOtp = !!item.otpCode || !!form.otpField;
 
+      const matchResult = domainMatchResults.get(item.id);
+      const isRisky = matchResult && !matchResult.isSafe;
+
       itemEl.innerHTML = `
-        <div class="sp-item-icon">${escapeHtml(icon)}</div>
+        <div class="sp-item-icon" style="${isRisky ? 'border:2px solid #dc2626;' : ''}">${escapeHtml(icon)}</div>
         <div class="sp-item-info">
           <div class="sp-item-title">${escapeHtml(item.title || item.url)}</div>
           <div class="sp-item-username">${escapeHtml(item.username)}</div>
         </div>
+        ${isRisky ? '<span style="margin-left:auto;color:#dc2626;font-size:16px;flex-shrink:0;" title="' + escapeHtml(matchResult!.description) + '">&#9888;</span>' : ''}
         <div class="sp-item-actions">
           <button class="sp-action-btn" data-action="fill">Fill</button>
           ${hasOtp ? '<button class="sp-action-btn" data-action="fill-otp">OTP</button>' : ''}
@@ -549,9 +637,12 @@ function showOverlay(
         </div>
       `;
 
+      if (isRisky) {
+        itemEl.style.borderLeft = '3px solid #dc2626';
+      }
+
       // Click on item row → autofill
       itemEl.addEventListener('click', (e) => {
-        // Don't autofill if an action button was clicked
         if ((e.target as HTMLElement).closest('.sp-action-btn')) return;
         fillForm(form, item);
         removeOverlay();
@@ -594,7 +685,6 @@ function showOverlay(
     left = window.innerWidth - overlayWidth - 16;
   }
   if (top + 200 > window.innerHeight) {
-    // Show above the field if not enough space below
     top = rect.top - 6;
     overlay.style.transform = 'translateY(-100%)';
   }
@@ -602,7 +692,7 @@ function showOverlay(
   overlay.style.top = `${top}px`;
   overlay.style.left = `${Math.max(8, left)}px`;
 
-  document.body.appendChild(overlay);
+  shadowRoot.appendChild(overlay);
   currentOverlay = overlay;
 
   // Close on outside click (with delay to avoid immediate closure)
@@ -622,6 +712,11 @@ function removeOverlay(): void {
     currentOverlay.remove();
     currentOverlay = null;
   }
+  removeIsolatedContainer(OVERLAY_CONTAINER);
+
+  // Securely clear cached credential references from memory
+  matchedItems = [];
+  domainMatchResults = new Map();
 }
 
 // ---------------------------------------------------------------------------
@@ -633,14 +728,12 @@ function removePromptBar(): void {
     currentPromptBar.remove();
     currentPromptBar = null;
   }
+  removeIsolatedContainer(PROMPT_CONTAINER);
 }
 
 /**
  * Show the save-credential prompt bar at the bottom of the viewport.
- *
- * @param username - The username that was submitted.
- * @param password - The password that was submitted (will be cleared after save).
- * @param formUrl  - The page URL where the form was submitted.
+ * Renders inside a Shadow DOM container to ensure CSS/DOM isolation.
  */
 function showSavePrompt(
   username: string,
@@ -654,14 +747,13 @@ function showSavePrompt(
   if (neverSaveDomains.has(domain) || !extensionPreferences.offerToSavePasswords) return;
   const copy = PROMPT_COPY[promptLanguage];
 
+  const shadowRoot = getOrCreateIsolatedContainer(PROMPT_CONTAINER);
+  injectShadowStyles(shadowRoot, PROMPT_BAR_STYLES);
+
   const bar = document.createElement('div');
   bar.id = PROMPT_BAR_ID;
   bar.dataset.position = position;
   bar.lang = promptLanguage;
-
-  const style = document.createElement('style');
-  style.textContent = PROMPT_BAR_STYLES;
-  bar.appendChild(style);
 
   const icon = document.createElement('div');
   icon.className = 'sp-prompt-icon';
@@ -718,10 +810,10 @@ function showSavePrompt(
 
   bar.appendChild(actions);
 
-  document.body.appendChild(bar);
+  shadowRoot.appendChild(bar);
   currentPromptBar = bar;
 
-  // Auto-dismiss after 15 seconds of inactivity
+  // Auto-dismiss after 15 seconds
   setTimeout(() => {
     if (currentPromptBar === bar) {
       removePromptBar();
@@ -736,19 +828,18 @@ function showSaveSuccess(): void {
   removePromptBar();
   const copy = PROMPT_COPY[promptLanguage];
 
+  const shadowRoot = getOrCreateIsolatedContainer(PROMPT_CONTAINER);
+  injectShadowStyles(shadowRoot, PROMPT_BAR_STYLES);
+
   const bar = document.createElement('div');
   bar.id = PROMPT_BAR_ID;
-
-  const style = document.createElement('style');
-  style.textContent = PROMPT_BAR_STYLES;
-  bar.appendChild(style);
 
   const success = document.createElement('div');
   success.className = 'sp-prompt-success';
   success.innerHTML = `<span class="sp-prompt-success-icon">&#10003;</span> ${escapeHtml(copy.saved)}`;
   bar.appendChild(success);
 
-  document.body.appendChild(bar);
+  shadowRoot.appendChild(bar);
   currentPromptBar = bar;
 
   setTimeout(() => {
@@ -801,7 +892,6 @@ function sendCreateItem(
 
 /**
  * Extract the registrable domain from a URL for "never save" tracking.
- * Falls back to hostname if public suffix list is unavailable.
  */
 function extractDomain(urlString: string): string {
   try {
@@ -868,22 +958,17 @@ function setupPreferenceListener(): void {
 // Credential filling
 // ---------------------------------------------------------------------------
 
-/**
- * Fill a form with credentials from a matched item.
- *
- * Flow:
- * 1. Fill username directly (already available from the item).
- * 2. Request decrypted password from background via GET_CREDENTIALS.
- * 3. If OTP field is detected and item has OTP config, request OTP code.
- * 4. Fill all available fields.
- */
 function fillForm(form: DetectedLoginForm, item: EncryptedCredentialItem): void {
-  // Fill username field
+  // Anti-phishing: warn if domain doesn't match before filling
+  const matchResult = domainMatchResults.get(item.id);
+  if (matchResult && !matchResult.isSafe) {
+    showTemporaryToast(`⚠ Warning: ${matchResult.description}. Fill at your own risk.`);
+  }
+
   if (form.usernameField && item.username) {
     setFieldValue(form.usernameField.element, item.username);
   }
 
-  // Request decrypted credentials from background script
   const includeOtp = !!form.otpField;
 
   chrome.runtime.sendMessage(
@@ -906,31 +991,26 @@ function fillForm(form: DetectedLoginForm, item: EncryptedCredentialItem): void 
       const decryptedItem = response.item;
       if (!decryptedItem) return;
 
-      // Fill password field
       if (form.passwordField && decryptedItem.password) {
         setFieldValue(form.passwordField.element, decryptedItem.password);
+        // Clear password from memory after use
+        decryptedItem.password = secureClearString(decryptedItem.password);
       }
 
-      // Fill OTP field if available
       if (form.otpField && decryptedItem.otpCode) {
         setFieldValue(form.otpField.element, decryptedItem.otpCode);
+        // Clear OTP code from memory after use
+        decryptedItem.otpCode = secureClearString(decryptedItem.otpCode);
         if (decryptedItem.otpRemainingSeconds) {
           showTemporaryToast(`OTP filled — rotates in ${decryptedItem.otpRemainingSeconds}s`);
         }
       }
 
-      // Notify background for autofill-success animation
-      chrome.runtime.sendMessage({ action: 'autofillSuccess' }).catch(() => {
-        // Best-effort — ignore if background is unavailable
-      });
+      chrome.runtime.sendMessage({ action: 'autofillSuccess' }).catch(() => {});
     },
   );
 }
 
-/**
- * Fill only the OTP field without touching username/password.
- * Used when user clicks the OTP button specifically.
- */
 function fillOtpOnly(form: DetectedLoginForm, item: EncryptedCredentialItem): void {
   if (!form.otpField) return;
 
@@ -950,6 +1030,8 @@ function fillOtpOnly(form: DetectedLoginForm, item: EncryptedCredentialItem): vo
       const decryptedItem = response.item;
       if (decryptedItem?.otpCode) {
         setFieldValue(form.otpField!.element, decryptedItem.otpCode);
+        // Clear OTP code from memory after use
+        decryptedItem.otpCode = secureClearString(decryptedItem.otpCode);
         showTemporaryToast(
           decryptedItem.otpRemainingSeconds
             ? `OTP filled — rotates in ${decryptedItem.otpRemainingSeconds}s`
@@ -962,10 +1044,6 @@ function fillOtpOnly(form: DetectedLoginForm, item: EncryptedCredentialItem): vo
   );
 }
 
-/**
- * Set a value on an input field, dispatching events to trigger frameworks.
- * Uses the native setter to bypass framework value interception.
- */
 function setFieldValue(field: HTMLInputElement, value: string): void {
   const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
     window.HTMLInputElement.prototype,
@@ -978,13 +1056,10 @@ function setFieldValue(field: HTMLInputElement, value: string): void {
     field.value = value;
   }
 
-  // Dispatch events in the order a real user interaction would trigger
   field.dispatchEvent(new Event('focus', { bubbles: true }));
   field.dispatchEvent(new Event('focusin', { bubbles: true }));
   field.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
   field.dispatchEvent(new Event('change', { bubbles: true }));
-
-  // Some frameworks listen for keyboard events
   field.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Unidentified' }));
   field.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Unidentified' }));
 }
@@ -997,7 +1072,6 @@ function copyToClipboard(text: string, field: string): void {
   navigator.clipboard.writeText(text).then(() => {
     showTemporaryToast(`${field} copied to clipboard`);
   }).catch(() => {
-    // Fallback for older browsers
     const textarea = document.createElement('textarea');
     textarea.value = text;
     textarea.style.position = 'fixed';
@@ -1024,6 +1098,8 @@ function requestPasswordCopy(itemId: string): void {
       if (chrome.runtime.lastError) return;
       if (response?.type === 'CREDENTIALS_RESPONSE' && response.item?.password) {
         copyToClipboard(response.item.password, 'Password');
+        // Clear password from memory after copying to clipboard
+        response.item.password = secureClearString(response.item.password);
       }
     },
   );
@@ -1034,11 +1110,11 @@ function requestPasswordCopy(itemId: string): void {
 // ---------------------------------------------------------------------------
 
 function showTemporaryToast(message: string): void {
-  const existing = document.getElementById('securepass-toast');
+  const existing = document.getElementById(TOAST_ID);
   if (existing) existing.remove();
 
   const toast = document.createElement('div');
-  toast.id = 'securepass-toast';
+  toast.id = TOAST_ID;
   toast.textContent = message;
   Object.assign(toast.style, {
     position: 'fixed',
@@ -1069,9 +1145,6 @@ function showTemporaryToast(message: string): void {
 // Communication with background
 // ---------------------------------------------------------------------------
 
-/**
- * Request matching credentials for the current page URL.
- */
 async function requestMatchingItems(
   url: string,
 ): Promise<{ items: EncryptedCredentialItem[]; vaultLocked: boolean }> {
@@ -1102,30 +1175,45 @@ async function requestMatchingItems(
 }
 
 // ---------------------------------------------------------------------------
-// Core: detect → query → show overlay
+// Core: detect -> query -> show overlay (all via isolated Shadow DOM)
 // ---------------------------------------------------------------------------
 
 async function handleDetectedForm(form: DetectedLoginForm): Promise<void> {
-  // Don't show overlay if one is already visible for this form
   if (currentOverlay && currentForm === form) return;
 
   const url = window.location.href;
 
-  // Deduplicate: don't re-query if URL hasn't changed
   if (url === lastScanUrl && currentOverlay) return;
 
   lastScanUrl = url;
   const { items, vaultLocked } = await requestMatchingItems(url);
 
+  // Compute anti-phishing domain match results
+  try {
+    currentPageDomain = new URL(url).hostname;
+  } catch {
+    currentPageDomain = '';
+  }
+  domainMatchResults = new Map();
+  let hasRiskyItem = false;
+  for (const item of items) {
+    let itemDomain = '';
+    try {
+      itemDomain = new URL(item.url).hostname;
+    } catch {
+      // Try treating item.url as a bare domain
+      itemDomain = item.url;
+    }
+    const result = checkDomainMatch(itemDomain, currentPageDomain);
+    domainMatchResults.set(item.id, result);
+    if (!result.isSafe) hasRiskyItem = true;
+  }
+
   matchedItems = items;
   currentForm = form;
-  showOverlay(form, items, vaultLocked);
+  showOverlay(form, items, vaultLocked, hasRiskyItem);
 }
 
-/**
- * Scan the page for login forms and show overlay if found.
- * Handles both top-level pages and iframe contexts.
- */
 function scanForForms(): void {
   if (!extensionPreferences.autoFillFormsAutomatically) return;
 
@@ -1133,7 +1221,6 @@ function scanForForms(): void {
 
   if (!form) return;
 
-  // Only show overlay if the password field is visible or focused
   const isActive = document.activeElement === form.passwordField.element;
   const isVisible = isElementVisible(form.passwordField.element);
 
@@ -1142,16 +1229,13 @@ function scanForForms(): void {
   }
 }
 
-/**
- * Debounced scan — prevents excessive scanning during rapid DOM mutations.
- */
 function debouncedScan(): void {
   if (scanTimer) clearTimeout(scanTimer);
   scanTimer = setTimeout(scanForForms, SCAN_DEBOUNCE_MS);
 }
 
 // ---------------------------------------------------------------------------
-// DOM observation for dynamic content
+// DOM observation
 // ---------------------------------------------------------------------------
 
 function setupMutationObserver(): void {
@@ -1160,20 +1244,15 @@ function setupMutationObserver(): void {
 
     for (const mutation of mutations) {
       if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-        // Check if any added node contains inputs
         for (const node of Array.from(mutation.addedNodes)) {
           if (node instanceof Element) {
-            if (
-              node.tagName === 'INPUT' ||
-              node.querySelector?.('input')
-            ) {
+            if (node.tagName === 'INPUT' || node.querySelector?.('input')) {
               shouldScan = true;
               break;
             }
           }
         }
       }
-
       if (shouldScan) break;
     }
 
@@ -1192,22 +1271,14 @@ function setupMutationObserver(): void {
 // Iframe handling
 // ---------------------------------------------------------------------------
 
-/**
- * Detect if the current content script is running inside an iframe.
- */
 function isInsideIframe(): boolean {
   try {
     return window.self !== window.top;
   } catch {
-    // Cross-origin iframe — cannot access window.top
     return true;
   }
 }
 
-/**
- * Check if the current frame is likely a login-related iframe
- * (e.g., Google Sign-In, Facebook Login, Apple ID, OAuth providers).
- */
 function isLoginIframe(): boolean {
   const hostname = window.location.hostname.toLowerCase();
 
@@ -1228,26 +1299,16 @@ function isLoginIframe(): boolean {
   return loginIframeHosts.some((pattern) => hostname.includes(pattern));
 }
 
-/**
- * For cross-origin iframes, the parent page cannot inject into child frames.
- * However, Manifest V3 content scripts run independently in each frame, so
- * form detection and autofill work naturally within the iframe's context.
- *
- * The overlay is positioned relative to the iframe's viewport. If the iframe
- * is small (e.g., a popup login), the overlay will be clipped. In that case,
- * we use the iframe element from the top frame as reference.
- */
 function getIframeBoundingClientRect(): DOMRect | null {
   if (!isInsideIframe()) return null;
 
   try {
-    // Try to get the iframe element from the parent frame
     const iframe = window.frameElement as HTMLIFrameElement | null;
     if (iframe) {
       return iframe.getBoundingClientRect();
     }
   } catch {
-    // Cross-origin — cannot access frameElement
+    // Cross-origin
   }
 
   return null;
@@ -1258,19 +1319,13 @@ function getIframeBoundingClientRect(): DOMRect | null {
 // ---------------------------------------------------------------------------
 
 function setupEventListeners(): void {
-  // Scan when a password field receives focus
   document.addEventListener('focusin', (event) => {
     const target = event.target;
-    if (
-      target instanceof HTMLInputElement &&
-      target.type === 'password'
-    ) {
-      // Short delay to let the form render
+    if (target instanceof HTMLInputElement && target.type === 'password') {
       setTimeout(scanForForms, 50);
     }
   });
 
-  // Remove overlay when user starts typing in the password field
   document.addEventListener('keydown', (event) => {
     if (
       event.target instanceof HTMLInputElement &&
@@ -1281,31 +1336,21 @@ function setupEventListeners(): void {
     }
   });
 
-  // Detect form submissions for save-credential prompt
   document.addEventListener('submit', handleFormSubmit, { capture: true });
 
-  // Also handle AJAX-based logins by watching for navigation after
-  // password field interaction (common in SPAs)
   let passwordInteracted = false;
   document.addEventListener('focusin', (event) => {
-    if (
-      event.target instanceof HTMLInputElement &&
-      event.target.type === 'password'
-    ) {
+    if (event.target instanceof HTMLInputElement && event.target.type === 'password') {
       passwordInteracted = true;
     }
   });
   document.addEventListener('input', (event) => {
-    if (
-      event.target instanceof HTMLInputElement &&
-      event.target.type === 'password'
-    ) {
+    if (event.target instanceof HTMLInputElement && event.target.type === 'password') {
       passwordInteracted = true;
       capturePendingSaveCandidate(event.target);
     }
   });
 
-  // Re-scan on URL changes (pushState / popstate for SPAs)
   let lastUrl = window.location.href;
   const urlObserver = new MutationObserver(() => {
     const currentUrl = window.location.href;
@@ -1314,8 +1359,6 @@ function setupEventListeners(): void {
       lastScanUrl = '';
       removeOverlay();
 
-      // If password was recently interacted with and URL changed,
-      // this may be a successful SPA login — show save prompt
       if (passwordInteracted) {
         passwordInteracted = false;
         detectAndShowSavePrompt(currentUrl);
@@ -1338,7 +1381,7 @@ function setupEventListeners(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Form submission detection for save prompt
+// Form submission detection
 // ---------------------------------------------------------------------------
 
 function capturePendingSaveCandidate(passwordInput: HTMLInputElement): void {
@@ -1358,32 +1401,24 @@ function capturePendingSaveCandidate(passwordInput: HTMLInputElement): void {
   };
 }
 
-/**
- * Intercept form submission to capture credentials before the page navigates.
- */
 function handleFormSubmit(event: Event): void {
   const form = event.target;
   if (!(form instanceof HTMLFormElement)) return;
 
-  // Check if this form contains a password field
   const passwordInput = form.querySelector('input[type="password"]');
   if (!passwordInput || !(passwordInput instanceof HTMLInputElement)) return;
 
-  // Find the username field using our detector's heuristics
   const usernameInput = findUsernameInForm(form, passwordInput);
 
   const username = usernameInput?.value?.trim() || '';
   const password = passwordInput.value;
 
-  // Don't prompt for empty passwords
   if (!password) return;
 
-  // Don't prompt if this domain is in the "never save" list
   const domain = extractDomain(window.location.href);
   if (neverSaveDomains.has(domain) || !extensionPreferences.offerToSavePasswords) return;
   const promptPosition = getPromptPosition(passwordInput);
 
-  // Store for prompt after navigation
   pendingSaveForm = {
     passwordField: { element: passwordInput, confidence: 1, reasons: ['submit'] },
     usernameField: usernameInput
@@ -1401,8 +1436,6 @@ function handleFormSubmit(event: Event): void {
     capturedAt: Date.now(),
   };
 
-  // Show prompt only for a new login (no matching vault item for this site).
-  // Keep it asynchronous and delayed so native form submission is not blocked.
   setTimeout(() => {
     requestMatchingItems(window.location.href)
       .then(({ items, vaultLocked }) => {
@@ -1417,14 +1450,10 @@ function handleFormSubmit(event: Event): void {
   }, 100);
 }
 
-/**
- * Find the username field within a form using simple heuristics.
- */
 function findUsernameInForm(
   form: HTMLFormElement,
   passwordInput: HTMLInputElement,
 ): HTMLInputElement | null {
-  // Strategy 1: look for autocomplete="username" or type="email"
   const candidates = form.querySelectorAll('input');
   for (const input of Array.from(candidates)) {
     if (input === passwordInput) continue;
@@ -1439,7 +1468,6 @@ function findUsernameInForm(
     }
   }
 
-  // Strategy 2: look for text/tel inputs near the password field
   const allInputs = Array.from(candidates).filter(
     (input) =>
       input !== passwordInput &&
@@ -1449,14 +1477,12 @@ function findUsernameInForm(
 
   if (allInputs.length === 1) return allInputs[0];
 
-  // Pick the one closest to the password field in DOM order
   let best: HTMLInputElement | null = null;
   let bestDistance = Infinity;
 
   for (const input of allInputs) {
     const pos = passwordInput.compareDocumentPosition(input);
     if (pos & Node.DOCUMENT_POSITION_PRECEDING) {
-      // input is before password — good candidate
       const distance = Math.abs(
         passwordInput.getBoundingClientRect().top - input.getBoundingClientRect().top,
       );
@@ -1500,10 +1526,6 @@ function findUsernameNearPassword(passwordInput: HTMLInputElement): HTMLInputEle
   return best;
 }
 
-/**
- * Attempt to show save prompt after SPA navigation.
- * Checks if the URL changed and there was recent password interaction.
- */
 function detectAndShowSavePrompt(newUrl: string): void {
   if (!pendingSaveCandidate) return;
 
@@ -1511,21 +1533,31 @@ function detectAndShowSavePrompt(newUrl: string): void {
   pendingSaveCandidate = null;
   pendingSaveForm = null;
 
-  // Ignore stale captured credentials from old interactions.
-  if (Date.now() - candidate.capturedAt > 60_000) return;
+  if (Date.now() - candidate.capturedAt > 60_000) {
+    // Expired — securely clear the captured password
+    secureClearString(candidate.password);
+    return;
+  }
 
   const domain = extractDomain(candidate.url);
-  if (neverSaveDomains.has(domain) || !extensionPreferences.offerToSavePasswords) return;
+  if (neverSaveDomains.has(domain) || !extensionPreferences.offerToSavePasswords) {
+    secureClearString(candidate.password);
+    return;
+  }
 
   requestMatchingItems(newUrl)
     .then(({ items, vaultLocked }) => {
-      if (vaultLocked || items.length > 0 || neverSaveDomains.has(domain)) return;
+      if (vaultLocked || items.length > 0 || neverSaveDomains.has(domain)) {
+        secureClearString(candidate.password);
+        return;
+      }
       showSavePrompt(candidate.username, candidate.password, candidate.url, candidate.position);
     })
     .catch(() => {
       if (!neverSaveDomains.has(domain)) {
         showSavePrompt(candidate.username, candidate.password, candidate.url, candidate.position);
       }
+      secureClearString(candidate.password);
     });
 }
 
@@ -1538,7 +1570,6 @@ async function initialize(): Promise<void> {
   loadPromptLanguage();
   setupPreferenceListener();
 
-  // Load "never save" domains from persistent storage
   chrome.storage.local.get(NEVER_SAVE_DOMAINS_KEY, (data) => {
     const stored: string[] = data[NEVER_SAVE_DOMAINS_KEY] || [];
     for (const domain of stored) {
@@ -1549,24 +1580,12 @@ async function initialize(): Promise<void> {
   setupMutationObserver();
   setupEventListeners();
 
-  // If inside a known login iframe, scan more aggressively
   const initialDelay = isLoginIframe() ? 200 : INITIAL_SCAN_DELAY_MS;
   setTimeout(scanForForms, initialDelay);
 }
 
-// Start the content script
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initialize);
 } else {
   initialize();
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function escapeHtml(str: string): string {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
 }

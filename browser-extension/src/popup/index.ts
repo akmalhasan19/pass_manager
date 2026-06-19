@@ -30,6 +30,13 @@ import {
   type ExtensionPreferences,
   type DefaultItemClickAction,
 } from '../shared/preferences';
+import {
+  sanitizeUrl,
+  sanitizeDisplayTitle,
+  sanitizeUsername,
+  escapeHtml,
+  isValidTabUrl,
+} from '../shared/sanitize';
 
 const statusDot = document.getElementById('statusDot')!;
 const statusText = document.getElementById('statusText')!;
@@ -60,12 +67,6 @@ const HOST_DISCONNECTED_STEPS = [
   'Reload this popup or restart the browser extension.',
   'If the desktop app was updated, reinstall the native messaging host from Settings.',
 ];
-
-function escapeHtml(str: string): string {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
 
 function showToast(message: string, durationMs = 2500): void {
   if (toastTimer) clearTimeout(toastTimer);
@@ -480,7 +481,7 @@ async function copyToClipboard(
     field,
     clearAfterSeconds: preferences.clearClipboardAfterCopy
       ? preferences.clipboardClearAfterSeconds
-      : null,
+      : undefined,
     requestId: crypto.randomUUID(),
     timestamp: Date.now(),
     protocolVersion: 1,
@@ -581,16 +582,12 @@ openAppBtn.addEventListener('click', () => {
   chrome.runtime.sendMessage({ action: 'openApp' });
 });
 
-settingsBtn.addEventListener('click', () => {
-  chrome.runtime.sendMessage({ action: 'openSettings' });
-});
-
 refreshBtn.addEventListener('click', () => {
   fetchMatchingItems();
 });
 
 settingsBtn.addEventListener('click', () => {
-  // Open settings page in a new popup
+  // Open settings page in a new tab
   chrome.tabs.create({
     url: chrome.runtime.getURL('src/popup/settings.html'),
     active: false,

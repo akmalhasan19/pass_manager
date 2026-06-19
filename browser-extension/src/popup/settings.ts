@@ -16,7 +16,7 @@ export interface ExtensionSettings {
   autoFillForms: boolean;
   clearClipboardAfterCopy: boolean;
   clipboardClearDelaySeconds: number;
-  defaultClickAction: 'autofill' | 'copy-password' | 'copy-username' | 'expand';
+  defaultClickAction: 'autofill' | 'copy-password' | 'copy-username';
   syncWithDesktopApp: boolean;
 }
 
@@ -175,10 +175,17 @@ async function syncSettingsWithDesktop(settings: ExtensionSettings): Promise<voi
   try {
     // Send settings to background script which will forward to desktop app
     const response = await chrome.runtime.sendMessage({
-      type: 'SYNC_SETTINGS',
-      settings,
+      type: 'UPDATE_EXTENSION_SETTINGS',
+      settings: {
+        offerToSavePasswords: settings.offerSavePasswords,
+        autoFillFormsAutomatically: settings.autoFillForms,
+        clearClipboardAfterCopy: settings.clearClipboardAfterCopy,
+        clipboardClearAfterSeconds: settings.clipboardClearDelaySeconds,
+        defaultItemClickAction: settings.defaultClickAction as 'autofill' | 'copy-password' | 'copy-username',
+      },
       requestId: crypto.randomUUID(),
       timestamp: Date.now(),
+      protocolVersion: 1,
     });
 
     if (response?.success) {

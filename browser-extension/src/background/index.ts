@@ -29,10 +29,24 @@ import { WebSocketTransport, type WsConnectionStatus } from '../shared/websocket
 import {
   setIconState,
   setBadgeCount,
+  setWarningBadge,
+  clearWarningBadge,
   pulseAutofillSuccess,
   updateFromHostResponse,
   setConnecting,
 } from '../shared/icon-manager';
+import {
+  secureClearString,
+  clearSessionCredentials as wipeSessionCredentials,
+} from '../shared/secureMemory';
+import {
+  setSessionCredentials,
+  getSessionCredentials,
+  clearSessionCredentials as clearStorageSessionCredentials,
+} from '../shared/sessionStorage';
+import { logRequest, getSuspiciousLogs } from '../shared/auditLog';
+import { checkRateLimit, resetAllRateLimits } from '../shared/rateLimiter';
+import { recordViolation, resetAllSuspicion, clearTabSuspicion, getSuspicionStats } from '../shared/suspiciousActivity';
 import {
   HandshakeMessageType,
   HostRequestType,
@@ -62,6 +76,17 @@ import {
 const HOST_NAME = 'com.securepass.manager';
 const SESSION_TOKEN_REFRESH_MS = 20 * 60 * 1000; // refresh at 20 min (token TTL = 30 min)
 const DISCOVERY_PORT = 18353;
+
+// Rate limit configurations per request type
+// Each limit is max requests per 60-second sliding window per tab
+const RATE_LIMITS: Record<string, { maxRequests: number; windowMs: number }> = {
+  [HostRequestType.GET_MATCHING_ITEMS]: { maxRequests: 20, windowMs: 60_000 },
+  [HostRequestType.GET_CREDENTIALS]: { maxRequests: 10, windowMs: 60_000 },
+  [HostRequestType.COPY_TO_CLIPBOARD]: { maxRequests: 10, windowMs: 60_000 },
+  [HostRequestType.CREATE_ITEM]: { maxRequests: 5, windowMs: 60_000 },
+  [HostRequestType.LOCK_VAULT]: { maxRequests: 3, windowMs: 60_000 },
+  [HostRequestType.UPDATE_EXTENSION_SETTINGS]: { maxRequests: 5, windowMs: 60_000 },
+};
 
 // ---------------------------------------------------------------------------
 // Transport mode
@@ -258,15 +283,26 @@ function resetSessionAndFallback(): void {
 function resetSession(): void {
   session.handshakeComplete = false;
   session.aesKey = null;
-  session.hmacKeyBase64 = '';
   session.hmacKey = null;
-  session.sessionId = null;
-  session.sessionToken = null;
   session.privateKey = null;
+
+  // Securely wipe sensitive strings before dropping references
+  session.hmacKeyBase64 = secureClearString(session.hmacKeyBase64);
+  session.sessionId = secureClearString(session.sessionId) as unknown as string;
+  session.sessionToken = secureClearString(session.sessionToken) as unknown as string;
+
   if (session.refreshTimer) {
     clearTimeout(session.refreshTimer);
     session.refreshTimer = null;
   }
+
+  // Also clear any session credentials persisted in chrome.storage.session
+  clearStorageSessionCredentials().catch(() => {});
+
+  // Clear rate limiting and suspicion tracking state
+  resetAllRateLimits();
+  resetAllSuspicion();
+  clearWarningBadge();
 
   // Reset icon to connecting state (unless host has shut down)
   if (!hostShutdown) {
@@ -321,6 +357,10 @@ async function performHandshake(): Promise<void> {
     session.handshakeComplete = true;
 
     console.log('[SecurePass] Handshake complete, session:', parsed.sessionId);
+
+    // Persist session credentials in chrome.storage.session so they survive
+    // service worker restarts within the same browser session
+    setSessionCredentials(parsed.sessionToken, parsed.sessionId).catch(() => {});
 
     // Update extension icon to unlocked state
     setIconState('unlocked');
@@ -382,6 +422,10 @@ async function performWsHandshake(): Promise<void> {
     session.handshakeComplete = true;
 
     console.log('[SecurePass] WebSocket handshake complete, session:', parsed.sessionId);
+
+    // Persist session credentials in chrome.storage.session
+    setSessionCredentials(parsed.sessionToken, parsed.sessionId).catch(() => {});
+
     setIconState('unlocked');
     scheduleTokenRefresh();
   } catch (error) {
@@ -511,6 +555,14 @@ chrome.runtime.onMessage.addListener(
   ) => {
     if (!message || (!('type' in message) && !message.action)) return false;
 
+    // Log the incoming request (without credentials) for audit trail
+    const requestType = 'type' in message ? (message as HostRequest).type : (message as UiActionMessage).action ?? 'UNKNOWN';
+    logRequest(
+      requestType,
+      sender,
+      { message: `Received: ${requestType}` },
+    );
+
     // Handle the message asynchronously
     handleContentMessage(message, sender)
       .then((response) => {
@@ -538,11 +590,14 @@ chrome.runtime.onMessage.addListener(
 
 async function handleContentMessage(
   message: (HostRequest & UiActionMessage) | UiActionMessage,
-  _sender: chrome.runtime.MessageSender,
+  sender: chrome.runtime.MessageSender,
 ): Promise<ExtensionResponse> {
+  const tabId = sender.tab?.id;
+
   // Handle non-protocol messages (e.g., autofill success notification)
   if (message.action === 'autofillSuccess') {
     pulseAutofillSuccess();
+    logRequest('autofillSuccess', sender, { message: 'Autofill success pulse' });
     return {
       type: ExtensionResponseType.CLIPBOARD_CONFIRMATION,
       field: 'password',
@@ -567,6 +622,10 @@ async function handleContentMessage(
   }
 
   if (!('type' in message)) {
+    logRequest('UNKNOWN', sender, {
+      level: 'warn',
+      message: 'Unknown message type received',
+    });
     return {
       type: ExtensionResponseType.ERROR,
       code: ErrorCode.UNKNOWN_MESSAGE_TYPE,
@@ -578,6 +637,10 @@ async function handleContentMessage(
   }
 
   if (hostShutdown) {
+    logRequest((message as HostRequest).type, sender, {
+      level: 'warn',
+      message: 'Request rejected — host shut down',
+    });
     return {
       type: ExtensionResponseType.HOST_SHUTDOWN,
       message: 'The SecurePass Manager app has been closed. Please reopen the app to use the extension.',
@@ -592,6 +655,11 @@ async function handleContentMessage(
     if (!nativePort?.isConnected && !wsTransport?.isConnected) {
       connectToHost();
     }
+    logRequest((message as HostRequest).type, sender, {
+      level: 'warn',
+      message: 'Request rejected — handshake not complete',
+      errorCode: ErrorCode.HANDSHAKE_REQUIRED,
+    });
     return {
       type: ExtensionResponseType.ERROR,
       code: ErrorCode.HANDSHAKE_REQUIRED,
@@ -602,9 +670,44 @@ async function handleContentMessage(
     };
   }
 
-  switch (message.type) {
+  // Rate limiting check per tab per request type
+  const requestType = (message as HostRequest).type;
+  const rateLimitConfig = RATE_LIMITS[requestType];
+  if (rateLimitConfig && !checkRateLimit(tabId, requestType, rateLimitConfig)) {
+    const suspicionResult = recordViolation(tabId);
+    logRequest(requestType, sender, {
+      level: 'warn',
+      message: `Rate limit exceeded for ${requestType}`,
+      errorCode: ErrorCode.RATE_LIMITED,
+      riskLevel: suspicionResult.isSuspicious ? 'suspicious' : 'blocked',
+    });
+
+    // If this tab has become suspicious, update the badge to alert the user
+    if (suspicionResult.shouldAlert) {
+      setWarningBadge();
+      console.warn(
+        `[SecurePass] Suspicious activity detected from tab ${tabId}: ` +
+        `${suspicionResult.violationCount} rate limit violations`,
+      );
+    }
+
+    return {
+      type: ExtensionResponseType.ERROR,
+      code: ErrorCode.RATE_LIMITED,
+      message: 'Too many requests. Please wait a moment and try again.',
+      requestId: generateRequestId(),
+      timestamp: currentTimestamp(),
+      protocolVersion: PROTOCOL_VERSION,
+    };
+  }
+
+  // Track request duration for audit
+  const requestStart = performance.now();
+  let response: ExtensionResponse;
+
+  switch (requestType) {
     case HostRequestType.GET_MATCHING_ITEMS: {
-      const response = await sendEncryptedRequest<ExtensionResponse>(
+      response = await sendEncryptedRequest<ExtensionResponse>(
         message as GetMatchingItemsRequest,
       );
       // Update badge count from the response
@@ -622,39 +725,48 @@ async function handleContentMessage(
         setIconState('locked');
         setBadgeCount(0);
       }
-      return response;
+      break;
     }
 
     case HostRequestType.GET_CREDENTIALS:
-      return sendEncryptedRequest<ExtensionResponse>(
+      response = await sendEncryptedRequest<ExtensionResponse>(
         message as GetCredentialsRequest,
       );
+      break;
 
     case HostRequestType.COPY_TO_CLIPBOARD:
-      return sendEncryptedRequest<ExtensionResponse>(
+      response = await sendEncryptedRequest<ExtensionResponse>(
         message as CopyToClipboardRequest,
       );
+      break;
 
     case HostRequestType.LOCK_VAULT: {
-      const lockResponse = await sendEncryptedRequest<ExtensionResponse>(
+      response = await sendEncryptedRequest<ExtensionResponse>(
         message as LockVaultRequest,
       );
       // Vault was explicitly locked
       updateFromHostResponse(true, 0);
-      return lockResponse;
+      break;
     }
 
     case HostRequestType.CREATE_ITEM:
-      return sendEncryptedRequest<ExtensionResponse>(
+      response = await sendEncryptedRequest<ExtensionResponse>(
         message as CreateItemRequest,
       );
+      break;
 
     case HostRequestType.UPDATE_EXTENSION_SETTINGS:
-      return sendEncryptedRequest<ExtensionResponse>(
+      response = await sendEncryptedRequest<ExtensionResponse>(
         message as UpdateExtensionSettingsRequest,
       );
+      break;
 
     default:
+      logRequest(requestType, sender, {
+        level: 'error',
+        message: `Unknown message type: ${requestType}`,
+        errorCode: ErrorCode.UNKNOWN_MESSAGE_TYPE,
+      });
       return {
         type: ExtensionResponseType.ERROR,
         code: ErrorCode.UNKNOWN_MESSAGE_TYPE,
@@ -664,15 +776,59 @@ async function handleContentMessage(
         protocolVersion: PROTOCOL_VERSION,
       };
   }
+
+  // Audit trail: log successful request with duration
+  const durationMs = Math.round(performance.now() - requestStart);
+  const responseType = response.type;
+  const errorCode = response.type === ExtensionResponseType.ERROR
+    ? (response as { code?: string }).code
+    : undefined;
+
+  logRequest(requestType, sender, {
+    message: `${requestType} → ${responseType}`,
+    durationMs,
+    errorCode,
+    level: errorCode ? 'warn' : 'info',
+  });
+
+  // If the request succeeded for a previously suspicious tab, reduce suspicion
+  if (tabId !== undefined && !errorCode) {
+    clearTabSuspicion(tabId);
+  }
+
+  return response;
 }
 
 // ---------------------------------------------------------------------------
 // Extension lifecycle
 // ---------------------------------------------------------------------------
 
+/**
+ * Attempt to restore session credentials from chrome.storage.session on
+ * service worker wake. This is best-effort — the session key material
+ * (aesKey, hmacKey) cannot be serialized, so a new handshake is still
+ * required. However, restoring session ID enables better logging and
+ * continuity across service worker restarts.
+ */
+async function onStartup(): Promise<void> {
+  hostShutdown = false;
+
+  // Try to restore any previously stored session credentials
+  try {
+    const stored = await getSessionCredentials();
+    if (stored.sessionId) {
+      session.sessionId = stored.sessionId;
+      session.sessionToken = stored.sessionToken ?? null;
+    }
+  } catch {
+    // Non-critical; proceed with fresh connection
+  }
+
+  connectToHost();
+}
+
 // Connect on service worker startup (reset shutdown state)
-hostShutdown = false;
-connectToHost();
+onStartup();
 
 // Reconnect when the service worker wakes up (Manifest V3 service workers
 // can be terminated and restarted by the browser)
