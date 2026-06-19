@@ -514,8 +514,9 @@
     }
 
     .footer {
+      padding: 10px 16px;
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 8px;
       padding: 10px 14px;
       border-top: 1px solid var(--border-color);
@@ -582,22 +583,16 @@
       transform: translateX(-50%) translateY(0);
     }
 
-    @media (max-width: 340px) {
-      body {
-        min-width: 300px;
-      }
+    /* Footer with 3 buttons */
+    .footer.three-buttons {
+      grid-template-columns: 1fr 1.2fr 1fr;
+    }
 
-      .credential-item {
-        grid-template-columns: 34px minmax(0, 1fr) 14px;
-      }
-
-      .credential-row-actions {
-        display: none;
-      }
-
-      .footer {
-        grid-template-columns: 1fr;
-      }
+    /* Separator */
+    .separator {
+      height: 1px;
+      background: var(--border-color);
+      flex-shrink: 0;
     }
   </style>
 </head>
@@ -642,11 +637,11 @@
     </div>
   </main>
 
-  <footer class="footer" id="footer">
-    <button class="btn btn-secondary" id="refreshBtn" type="button">Refresh</button>
-    <button class="btn btn-primary" id="openAppBtn" type="button">Open Full App</button>
-    <button class="btn btn-secondary" id="settingsBtn" type="button">Settings</button>
-  </footer>
+  <div class="footer" id="footer">
+    <button class="btn btn-secondary" id="refreshBtn">Refresh</button>
+    <button class="btn btn-primary" id="openAppBtn">Open App</button>
+    <button class="btn btn-secondary" id="settingsBtn" title="Settings">⚙️ Settings</button>
+  </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
