@@ -30,6 +30,7 @@ import {
 import { listVaults, getVaultById } from '../file-system/vaultRegistry';
 import { evaluateStrength } from '../crypto/passwordGenerator';
 import { logger } from '../../shared/logger';
+import { clearClipboardOnLock } from '../services/clipboardService';
 
 /**
  * Per-vault session state.
@@ -88,6 +89,8 @@ export function clearKeys(): void {
  */
 export function lockCurrentVault(): string | null {
   const lockedVaultId = activeVaultId;
+
+  clearClipboardOnLock();
 
   if (isDatabaseOpen()) {
     saveDatabase();

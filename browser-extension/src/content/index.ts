@@ -19,6 +19,12 @@ import {
   type CreateItemResponse,
 } from '../shared/protocol';
 import {
+  EXTENSION_PREFERENCES_KEY,
+  getExtensionPreferences,
+  normalizeExtensionPreferences,
+  type ExtensionPreferences,
+} from '../shared/preferences';
+import {
   detectBestLoginForm,
   isElementVisible,
   type DetectedLoginForm,
@@ -34,11 +40,20 @@ const OVERLAY_ID = 'securepass-autofill-overlay';
 /** Prompt bar ID for save-credential prompt. */
 const PROMPT_BAR_ID = 'securepass-prompt-bar';
 
+/** Toast ID for transient content-script messages. */
+const TOAST_ID = 'securepass-toast';
+
 /** Debounce delay for MutationObserver scans (ms). */
 const SCAN_DEBOUNCE_MS = 300;
 
 /** Delay before initial scan after DOMContentLoaded (ms). */
 const INITIAL_SCAN_DELAY_MS = 500;
+
+/** Storage key for domains where save prompts are disabled. */
+const NEVER_SAVE_DOMAINS_KEY = 'neverSaveDomains';
+
+/** Storage keys used by the app/extension for language preference. */
+const LANGUAGE_STORAGE_KEYS = ['language', 'locale', 'securepassLanguage'];
 
 // ---------------------------------------------------------------------------
 // State
@@ -52,10 +67,65 @@ let lastScanUrl: string = '';
 
 /** Track the last detected login form before submission for save prompt. */
 let pendingSaveForm: DetectedLoginForm | null = null;
+let pendingSaveCandidate: {
+  username: string;
+  password: string;
+  url: string;
+  position: 'top' | 'bottom';
+  capturedAt: number;
+} | null = null;
 /** Track the current save prompt bar element. */
 let currentPromptBar: HTMLElement | null = null;
 /** Domains where user chose "Never for this site". */
 const neverSaveDomains = new Set<string>();
+/** Current prompt language, following app storage when available, then browser language. */
+let promptLanguage: PromptLanguage = 'en';
+let extensionPreferences: ExtensionPreferences = {
+  offerToSavePasswords: true,
+  autoFillFormsAutomatically: true,
+  clearClipboardAfterCopy: true,
+  clipboardClearAfterSeconds: 45,
+  defaultItemClickAction: 'autofill',
+};
+
+type PromptLanguage = 'en' | 'id';
+
+interface PromptCopy {
+  saveTitle: string;
+  saveSubtitle: (username: string, domain: string) => string;
+  saveButton: string;
+  neverButton: string;
+  dismissButton: string;
+  saved: string;
+  saveFailed: string;
+  noHostResponse: string;
+  locked: string;
+}
+
+const PROMPT_COPY: Record<PromptLanguage, PromptCopy> = {
+  en: {
+    saveTitle: 'Save password to SecurePass?',
+    saveSubtitle: (username, domain) => `${username || 'New login'} on ${domain}`,
+    saveButton: 'Save to SecurePass',
+    neverButton: 'Never for this site',
+    dismissButton: 'Dismiss',
+    saved: 'Credential saved to SecurePass',
+    saveFailed: 'Failed to save credential',
+    noHostResponse: 'No response from SecurePass',
+    locked: 'Vault is locked - cannot save',
+  },
+  id: {
+    saveTitle: 'Simpan password ke SecurePass?',
+    saveSubtitle: (username, domain) => `${username || 'Login baru'} di ${domain}`,
+    saveButton: 'Simpan ke SecurePass',
+    neverButton: 'Jangan untuk situs ini',
+    dismissButton: 'Tutup',
+    saved: 'Credential tersimpan di SecurePass',
+    saveFailed: 'Gagal menyimpan credential',
+    noHostResponse: 'Tidak ada respons dari SecurePass',
+    locked: 'Vault terkunci - tidak bisa menyimpan',
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -224,23 +294,36 @@ const OVERLAY_STYLES = `
 const PROMPT_BAR_STYLES = `
   #${PROMPT_BAR_ID} {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    max-width: 720px;
+    margin: 0 auto;
     z-index: 2147483647;
     background: #ffffff;
-    border-top: 1px solid #d1d5db;
-    box-shadow: 0 -2px 12px rgba(0,0,0,0.12);
+    color: #1f2937;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(15,23,42,0.18);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 14px;
-    padding: 12px 16px;
+    font-size: 13px;
+    padding: 12px;
     display: flex;
     align-items: center;
     gap: 12px;
     animation: sp-prompt-slide-up 0.2s ease-out;
   }
+  #${PROMPT_BAR_ID}[data-position="top"] {
+    top: 16px;
+    bottom: auto;
+    animation: sp-prompt-slide-down 0.2s ease-out;
+  }
   @keyframes sp-prompt-slide-up {
-    from { transform: translateY(100%); opacity: 0; }
+    from { transform: translateY(12px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes sp-prompt-slide-down {
+    from { transform: translateY(-12px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
   }
   #${PROMPT_BAR_ID} * {
@@ -261,11 +344,23 @@ const PROMPT_BAR_STYLES = `
   }
   #${PROMPT_BAR_ID} .sp-prompt-text {
     flex: 1;
+    min-width: 0;
     color: #374151;
     line-height: 1.4;
   }
   #${PROMPT_BAR_ID} .sp-prompt-text strong {
+    display: block;
     font-weight: 600;
+    color: #111827;
+  }
+  #${PROMPT_BAR_ID} .sp-prompt-text span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #6b7280;
+    font-size: 12px;
+    margin-top: 2px;
   }
   #${PROMPT_BAR_ID} .sp-prompt-actions {
     display: flex;
@@ -273,9 +368,10 @@ const PROMPT_BAR_STYLES = `
     flex-shrink: 0;
   }
   #${PROMPT_BAR_ID} .sp-prompt-btn {
-    padding: 6px 14px;
+    min-height: 32px;
+    padding: 6px 12px;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     border: 1px solid transparent;
@@ -283,16 +379,16 @@ const PROMPT_BAR_STYLES = `
     white-space: nowrap;
   }
   #${PROMPT_BAR_ID} .sp-prompt-btn-save {
-    background: #6366f1;
+    background: #2563eb;
     color: white;
-    border-color: #6366f1;
+    border-color: #2563eb;
   }
   #${PROMPT_BAR_ID} .sp-prompt-btn-save:hover {
-    background: #5558e6;
+    background: #1d4ed8;
   }
   #${PROMPT_BAR_ID} .sp-prompt-btn-never {
     background: transparent;
-    color: #6b7280;
+    color: #374151;
     border-color: #d1d5db;
   }
   #${PROMPT_BAR_ID} .sp-prompt-btn-never:hover {
@@ -301,11 +397,11 @@ const PROMPT_BAR_STYLES = `
   }
   #${PROMPT_BAR_ID} .sp-prompt-btn-dismiss {
     background: transparent;
-    color: #9ca3af;
-    border: none;
-    padding: 6px 8px;
+    color: #6b7280;
+    border-color: transparent;
   }
   #${PROMPT_BAR_ID} .sp-prompt-btn-dismiss:hover {
+    background: #f3f4f6;
     color: #374151;
   }
   #${PROMPT_BAR_ID} .sp-prompt-success {
@@ -317,6 +413,64 @@ const PROMPT_BAR_STYLES = `
   }
   #${PROMPT_BAR_ID} .sp-prompt-success-icon {
     font-size: 16px;
+  }
+  @media (max-width: 560px) {
+    #${PROMPT_BAR_ID} {
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      align-items: stretch;
+      flex-wrap: wrap;
+    }
+    #${PROMPT_BAR_ID}[data-position="top"] {
+      top: 8px;
+    }
+    #${PROMPT_BAR_ID} .sp-prompt-actions {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+    #${PROMPT_BAR_ID} .sp-prompt-btn {
+      flex: 1;
+    }
+  }
+  @media (prefers-color-scheme: dark) {
+    #${PROMPT_BAR_ID} {
+      background: #161b22;
+      color: #f0f6fc;
+      border-color: #30363d;
+      box-shadow: 0 8px 24px rgba(1,4,9,0.45);
+    }
+    #${PROMPT_BAR_ID} .sp-prompt-icon {
+      background: #3fb950;
+      color: #0d1117;
+    }
+    #${PROMPT_BAR_ID} .sp-prompt-text {
+      color: #c9d1d9;
+    }
+    #${PROMPT_BAR_ID} .sp-prompt-text strong {
+      color: #f0f6fc;
+    }
+    #${PROMPT_BAR_ID} .sp-prompt-text span {
+      color: #8b949e;
+    }
+    #${PROMPT_BAR_ID} .sp-prompt-btn-save {
+      background: #238636;
+      border-color: #238636;
+      color: #ffffff;
+    }
+    #${PROMPT_BAR_ID} .sp-prompt-btn-save:hover {
+      background: #2ea043;
+    }
+    #${PROMPT_BAR_ID} .sp-prompt-btn-never,
+    #${PROMPT_BAR_ID} .sp-prompt-btn-dismiss {
+      color: #c9d1d9;
+      border-color: #30363d;
+    }
+    #${PROMPT_BAR_ID} .sp-prompt-btn-never:hover,
+    #${PROMPT_BAR_ID} .sp-prompt-btn-dismiss:hover {
+      background: #21262d;
+      color: #f0f6fc;
+    }
   }
 `;
 
@@ -492,14 +646,18 @@ function showSavePrompt(
   username: string,
   password: string,
   formUrl: string,
+  position: 'top' | 'bottom' = 'bottom',
 ): void {
   removePromptBar();
 
   const domain = extractDomain(formUrl);
-  if (neverSaveDomains.has(domain)) return;
+  if (neverSaveDomains.has(domain) || !extensionPreferences.offerToSavePasswords) return;
+  const copy = PROMPT_COPY[promptLanguage];
 
   const bar = document.createElement('div');
   bar.id = PROMPT_BAR_ID;
+  bar.dataset.position = position;
+  bar.lang = promptLanguage;
 
   const style = document.createElement('style');
   style.textContent = PROMPT_BAR_STYLES;
@@ -512,7 +670,10 @@ function showSavePrompt(
 
   const text = document.createElement('div');
   text.className = 'sp-prompt-text';
-  text.innerHTML = `<strong>Save password to SecurePass Manager?</strong><br/>${escapeHtml(username)} @ ${escapeHtml(domain)}`;
+  text.innerHTML = `
+    <strong>${escapeHtml(copy.saveTitle)}</strong>
+    <span>${escapeHtml(copy.saveSubtitle(username, domain))}</span>
+  `;
   bar.appendChild(text);
 
   const actions = document.createElement('div');
@@ -520,7 +681,8 @@ function showSavePrompt(
 
   const saveBtn = document.createElement('button');
   saveBtn.className = 'sp-prompt-btn sp-prompt-btn-save';
-  saveBtn.textContent = 'Save';
+  saveBtn.type = 'button';
+  saveBtn.textContent = copy.saveButton;
   saveBtn.addEventListener('click', () => {
     sendCreateItem(username, password, formUrl, domain);
     removePromptBar();
@@ -529,15 +691,15 @@ function showSavePrompt(
 
   const neverBtn = document.createElement('button');
   neverBtn.className = 'sp-prompt-btn sp-prompt-btn-never';
-  neverBtn.textContent = 'Never';
+  neverBtn.type = 'button';
+  neverBtn.textContent = copy.neverButton;
   neverBtn.addEventListener('click', () => {
     neverSaveDomains.add(domain);
-    // Persist to chrome.storage.local
-    chrome.storage.local.get('neverSaveDomains', (data) => {
-      const stored: string[] = data.neverSaveDomains || [];
+    chrome.storage.local.get(NEVER_SAVE_DOMAINS_KEY, (data) => {
+      const stored: string[] = data[NEVER_SAVE_DOMAINS_KEY] || [];
       if (!stored.includes(domain)) {
         stored.push(domain);
-        chrome.storage.local.set({ neverSaveDomains: stored });
+        chrome.storage.local.set({ [NEVER_SAVE_DOMAINS_KEY]: stored });
       }
     });
     removePromptBar();
@@ -546,8 +708,9 @@ function showSavePrompt(
 
   const dismissBtn = document.createElement('button');
   dismissBtn.className = 'sp-prompt-btn sp-prompt-btn-dismiss';
-  dismissBtn.textContent = '\u00d7';
-  dismissBtn.title = 'Dismiss';
+  dismissBtn.type = 'button';
+  dismissBtn.textContent = copy.dismissButton;
+  dismissBtn.title = copy.dismissButton;
   dismissBtn.addEventListener('click', () => {
     removePromptBar();
   });
@@ -571,6 +734,7 @@ function showSavePrompt(
  */
 function showSaveSuccess(): void {
   removePromptBar();
+  const copy = PROMPT_COPY[promptLanguage];
 
   const bar = document.createElement('div');
   bar.id = PROMPT_BAR_ID;
@@ -581,7 +745,7 @@ function showSaveSuccess(): void {
 
   const success = document.createElement('div');
   success.className = 'sp-prompt-success';
-  success.innerHTML = '<span class="sp-prompt-success-icon">&#10003;</span> Credential saved to SecurePass Manager';
+  success.innerHTML = `<span class="sp-prompt-success-icon">&#10003;</span> ${escapeHtml(copy.saved)}`;
   bar.appendChild(success);
 
   document.body.appendChild(bar);
@@ -600,6 +764,7 @@ function sendCreateItem(
   url: string,
   title: string,
 ): void {
+  const copy = PROMPT_COPY[promptLanguage];
   chrome.runtime.sendMessage(
     {
       type: HostRequestType.CREATE_ITEM,
@@ -614,21 +779,21 @@ function sendCreateItem(
     (response: CreateItemResponse | { type: string; message?: string } | undefined) => {
       if (chrome.runtime.lastError) {
         console.error('[SecurePass] CREATE_ITEM error:', chrome.runtime.lastError.message);
-        showTemporaryToast('Failed to save credential');
+        showTemporaryToast(copy.saveFailed);
         return;
       }
 
       if (!response) {
-        showTemporaryToast('No response from host');
+        showTemporaryToast(copy.noHostResponse);
         return;
       }
 
       if (response.type === 'CREATE_ITEM_RESPONSE' && (response as CreateItemResponse).success) {
         showSaveSuccess();
       } else if (response.type === 'VAULT_LOCKED') {
-        showTemporaryToast('Vault is locked — cannot save');
+        showTemporaryToast(copy.locked);
       } else {
-        showTemporaryToast(response.message || 'Failed to save credential');
+        showTemporaryToast(response.message || copy.saveFailed);
       }
     },
   );
@@ -645,6 +810,58 @@ function extractDomain(urlString: string): string {
   } catch {
     return urlString;
   }
+}
+
+function getPromptPosition(anchor?: HTMLElement | null): 'top' | 'bottom' {
+  if (!anchor) return 'bottom';
+  const rect = anchor.getBoundingClientRect();
+  return rect.top > window.innerHeight / 2 ? 'top' : 'bottom';
+}
+
+function normalizePromptLanguage(value: unknown): PromptLanguage | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.toLowerCase();
+  if (normalized.startsWith('id')) return 'id';
+  if (normalized.startsWith('en')) return 'en';
+  return null;
+}
+
+function loadPromptLanguage(): void {
+  chrome.storage.local.get(LANGUAGE_STORAGE_KEYS, (data) => {
+    for (const key of LANGUAGE_STORAGE_KEYS) {
+      const stored = normalizePromptLanguage(data[key]);
+      if (stored) {
+        promptLanguage = stored;
+        return;
+      }
+    }
+
+    promptLanguage = normalizePromptLanguage(navigator.language) ?? 'en';
+  });
+}
+
+async function loadExtensionPreferences(): Promise<void> {
+  extensionPreferences = await getExtensionPreferences();
+}
+
+function setupPreferenceListener(): void {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local') return;
+
+    const preferenceChange = changes[EXTENSION_PREFERENCES_KEY];
+    if (preferenceChange?.newValue) {
+      extensionPreferences = normalizeExtensionPreferences(preferenceChange.newValue);
+    }
+
+    for (const key of LANGUAGE_STORAGE_KEYS) {
+      const changed = changes[key];
+      const nextLanguage = normalizePromptLanguage(changed?.newValue);
+      if (nextLanguage) {
+        promptLanguage = nextLanguage;
+        return;
+      }
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -910,6 +1127,8 @@ async function handleDetectedForm(form: DetectedLoginForm): Promise<void> {
  * Handles both top-level pages and iframe contexts.
  */
 function scanForForms(): void {
+  if (!extensionPreferences.autoFillFormsAutomatically) return;
+
   const form = detectBestLoginForm(document);
 
   if (!form) return;
@@ -1082,6 +1301,7 @@ function setupEventListeners(): void {
       event.target.type === 'password'
     ) {
       passwordInteracted = true;
+      capturePendingSaveCandidate(event.target);
     }
   });
 
@@ -1121,6 +1341,23 @@ function setupEventListeners(): void {
 // Form submission detection for save prompt
 // ---------------------------------------------------------------------------
 
+function capturePendingSaveCandidate(passwordInput: HTMLInputElement): void {
+  if (!passwordInput.value) return;
+
+  const form = passwordInput.closest('form');
+  const usernameInput = form
+    ? findUsernameInForm(form, passwordInput)
+    : findUsernameNearPassword(passwordInput);
+
+  pendingSaveCandidate = {
+    username: usernameInput?.value?.trim() || '',
+    password: passwordInput.value,
+    url: window.location.href,
+    position: getPromptPosition(passwordInput),
+    capturedAt: Date.now(),
+  };
+}
+
 /**
  * Intercept form submission to capture credentials before the page navigates.
  */
@@ -1143,7 +1380,8 @@ function handleFormSubmit(event: Event): void {
 
   // Don't prompt if this domain is in the "never save" list
   const domain = extractDomain(window.location.href);
-  if (neverSaveDomains.has(domain)) return;
+  if (neverSaveDomains.has(domain) || !extensionPreferences.offerToSavePasswords) return;
+  const promptPosition = getPromptPosition(passwordInput);
 
   // Store for prompt after navigation
   pendingSaveForm = {
@@ -1155,11 +1393,27 @@ function handleFormSubmit(event: Event): void {
     formElement: form,
     overallConfidence: 1,
   };
+  pendingSaveCandidate = {
+    username,
+    password,
+    url: window.location.href,
+    position: promptPosition,
+    capturedAt: Date.now(),
+  };
 
-  // Show prompt immediately (before navigation completes for non-AJAX forms)
-  // Use a micro-delay to avoid interfering with form submission
+  // Show prompt only for a new login (no matching vault item for this site).
+  // Keep it asynchronous and delayed so native form submission is not blocked.
   setTimeout(() => {
-    showSavePrompt(username, password, window.location.href);
+    requestMatchingItems(window.location.href)
+      .then(({ items, vaultLocked }) => {
+        if (vaultLocked || items.length > 0 || neverSaveDomains.has(domain)) return;
+        showSavePrompt(username, password, window.location.href, promptPosition);
+      })
+      .catch(() => {
+        if (!neverSaveDomains.has(domain)) {
+          showSavePrompt(username, password, window.location.href, promptPosition);
+        }
+      });
   }, 100);
 }
 
@@ -1216,24 +1470,77 @@ function findUsernameInForm(
   return best || allInputs[0] || null;
 }
 
+function findUsernameNearPassword(passwordInput: HTMLInputElement): HTMLInputElement | null {
+  const parent = passwordInput.parentElement;
+  const root = parent?.closest('main, section, article, div') || document;
+  const candidates = Array.from(root.querySelectorAll('input')).filter(
+    (input): input is HTMLInputElement =>
+      input instanceof HTMLInputElement &&
+      input !== passwordInput &&
+      !input.disabled &&
+      !input.hidden &&
+      ['email', 'text', 'tel', ''].includes(input.type),
+  );
+
+  if (candidates.length === 0) return null;
+
+  let best: HTMLInputElement | null = null;
+  let bestDistance = Infinity;
+  const passwordRect = passwordInput.getBoundingClientRect();
+
+  for (const input of candidates) {
+    const rect = input.getBoundingClientRect();
+    const distance = Math.abs(passwordRect.top - rect.top) + Math.abs(passwordRect.left - rect.left);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = input;
+    }
+  }
+
+  return best;
+}
+
 /**
  * Attempt to show save prompt after SPA navigation.
  * Checks if the URL changed and there was recent password interaction.
  */
-function detectAndShowSavePrompt(_newUrl: string): void {
-  // This is called on URL change after password interaction.
-  // In a real implementation, we'd compare before/after states.
-  // For now, this is a hook for future SPA-specific logic.
+function detectAndShowSavePrompt(newUrl: string): void {
+  if (!pendingSaveCandidate) return;
+
+  const candidate = pendingSaveCandidate;
+  pendingSaveCandidate = null;
+  pendingSaveForm = null;
+
+  // Ignore stale captured credentials from old interactions.
+  if (Date.now() - candidate.capturedAt > 60_000) return;
+
+  const domain = extractDomain(candidate.url);
+  if (neverSaveDomains.has(domain) || !extensionPreferences.offerToSavePasswords) return;
+
+  requestMatchingItems(newUrl)
+    .then(({ items, vaultLocked }) => {
+      if (vaultLocked || items.length > 0 || neverSaveDomains.has(domain)) return;
+      showSavePrompt(candidate.username, candidate.password, candidate.url, candidate.position);
+    })
+    .catch(() => {
+      if (!neverSaveDomains.has(domain)) {
+        showSavePrompt(candidate.username, candidate.password, candidate.url, candidate.position);
+      }
+    });
 }
 
 // ---------------------------------------------------------------------------
 // Initialization
 // ---------------------------------------------------------------------------
 
-function initialize(): void {
+async function initialize(): Promise<void> {
+  await loadExtensionPreferences();
+  loadPromptLanguage();
+  setupPreferenceListener();
+
   // Load "never save" domains from persistent storage
-  chrome.storage.local.get('neverSaveDomains', (data) => {
-    const stored: string[] = data.neverSaveDomains || [];
+  chrome.storage.local.get(NEVER_SAVE_DOMAINS_KEY, (data) => {
+    const stored: string[] = data[NEVER_SAVE_DOMAINS_KEY] || [];
     for (const domain of stored) {
       neverSaveDomains.add(domain);
     }

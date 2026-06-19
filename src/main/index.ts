@@ -21,6 +21,10 @@ import {
   cleanupQuickPickerHandlers,
 } from './ipc/quickPickerHandlers';
 import {
+  registerClipboardHandlers,
+  cleanupClipboardHandlers,
+} from './ipc/clipboardHandlers';
+import {
   initializeQuickPicker,
   setQuickPickerVaultState,
   cleanupQuickPicker,
@@ -152,6 +156,7 @@ function registerAllHandlers(): void {
   registerVaultHandlers();
   registerShortcutHandlers();
   registerQuickPickerHandlers();
+  registerClipboardHandlers();
 
   // Auto-updater IPC handlers
   ipcMain.handle(IPC_CHANNELS.CHECK_FOR_UPDATES, async () => {
@@ -259,6 +264,7 @@ if (!gotTheLock) {
   app.on('before-quit', () => {
     // SECURITY: Wipe decryption keys from memory before process exits
     clearKeys();
+    cleanupClipboardHandlers();
     cleanupShortcutHandlers();
     cleanupQuickPickerHandlers();
     cleanupQuickPicker();

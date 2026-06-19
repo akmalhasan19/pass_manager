@@ -48,8 +48,8 @@ export function registerQuickPickerHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.QUICK_PICKER_ACTION,
     async (_event, { itemId, action }: { itemId: string; action: QuickPickerAction }) => {
-      await handleQuickPickerAction(itemId, action);
-      return { success: true };
+      const result = await handleQuickPickerAction(itemId, action);
+      return { success: result !== null, data: result };
     },
   );
 

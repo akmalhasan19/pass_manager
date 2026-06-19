@@ -25,7 +25,6 @@
 
 import { globalShortcut, BrowserWindow } from 'electron';
 import { logger } from '../../shared/logger';
-import { writeToClipboard } from '../services/clipboardService';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -67,7 +66,6 @@ interface ShortcutManagerState {
   registered: boolean;
   handler: ShortcutHandler | null;
   vaultLocked: boolean;
-  clipboardClearTimer: ReturnType<typeof setTimeout> | null;
 }
 
 const state: ShortcutManagerState = {
@@ -75,7 +73,6 @@ const state: ShortcutManagerState = {
   registered: false,
   handler: null,
   vaultLocked: true,
-  clipboardClearTimer: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -294,38 +291,6 @@ function shortcutActionHandler(action: ShortcutAction): void {
 }
 
 // ---------------------------------------------------------------------------
-// Clipboard auto-clear
-// ---------------------------------------------------------------------------
-
-/**
- * Schedule automatic clipboard clearing after a timeout.
- * This ensures copied credentials are not left on the clipboard.
- *
- * @param clearAfterSeconds - Seconds until clipboard is cleared (default: 45).
- */
-export function scheduleClipboardClear(clearAfterSeconds: number = 45): void {
-  if (state.clipboardClearTimer) {
-    clearTimeout(state.clipboardClearTimer);
-  }
-
-  state.clipboardClearTimer = setTimeout(() => {
-    clipboard.clear();
-    state.clipboardClearTimer = null;
-    logger.debug('Clipboard auto-cleared after global shortcut copy');
-  }, clearAfterSeconds * 1000);
-}
-
-/**
- * Cancel any pending clipboard clear.
- */
-export function cancelClipboardClear(): void {
-  if (state.clipboardClearTimer) {
-    clearTimeout(state.clipboardClearTimer);
-    state.clipboardClearTimer = null;
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Cleanup
 // ---------------------------------------------------------------------------
 
@@ -335,7 +300,6 @@ export function cancelClipboardClear(): void {
  */
 export function cleanupShortcutManager(): void {
   unregisterShortcuts();
-  cancelClipboardClear();
   state.handler = null;
   state.vaultLocked = true;
   logger.info('Shortcut manager cleaned up');

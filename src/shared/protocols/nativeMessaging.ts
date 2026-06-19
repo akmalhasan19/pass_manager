@@ -34,6 +34,8 @@ export enum HostRequestType {
   GET_MATCHING_ITEMS = 'GET_MATCHING_ITEMS',
   COPY_TO_CLIPBOARD = 'COPY_TO_CLIPBOARD',
   LOCK_VAULT = 'LOCK_VAULT',
+  CREATE_ITEM = 'CREATE_ITEM',
+  UPDATE_EXTENSION_SETTINGS = 'UPDATE_EXTENSION_SETTINGS',
 }
 
 /** Messages sent from the Electron host TO the browser extension. */
@@ -43,6 +45,8 @@ export enum ExtensionResponseType {
   NO_MATCH_FOUND = 'NO_MATCH_FOUND',
   VAULT_LOCKED = 'VAULT_LOCKED',
   CLIPBOARD_CONFIRMATION = 'CLIPBOARD_CONFIRMATION',
+  CREATE_ITEM_RESPONSE = 'CREATE_ITEM_RESPONSE',
+  EXTENSION_SETTINGS_RESPONSE = 'EXTENSION_SETTINGS_RESPONSE',
   HOST_SHUTDOWN = 'HOST_SHUTDOWN',
   ERROR = 'ERROR',
 }
@@ -139,6 +143,34 @@ export interface CopyToClipboardRequest extends ProtocolMessage {
  */
 export interface LockVaultRequest extends ProtocolMessage {
   type: HostRequestType.LOCK_VAULT;
+}
+
+/**
+ * Request to create a new vault item from the browser extension.
+ * The password is already encrypted by the host session key, so it must not
+ * be treated as plaintext by the extension.
+ */
+export interface CreateItemRequest extends ProtocolMessage {
+  type: HostRequestType.CREATE_ITEM;
+  title: string;
+  username: string;
+  password: string;
+  url: string;
+  notes?: string;
+}
+
+/**
+ * Request to persist browser extension preferences in the desktop app.
+ */
+export interface UpdateExtensionSettingsRequest extends ProtocolMessage {
+  type: HostRequestType.UPDATE_EXTENSION_SETTINGS;
+  settings: {
+    offerToSavePasswords: boolean;
+    autoFillFormsAutomatically: boolean;
+    clearClipboardAfterCopy: boolean;
+    clipboardClearAfterSeconds: number;
+    defaultItemClickAction: 'autofill' | 'copy-password' | 'copy-username';
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -241,6 +273,28 @@ export interface ClipboardConfirmationResponse extends ProtocolMessage {
   clearAfterSeconds: number;
 }
 
+/** Response confirming that a new item was created. */
+export interface CreateItemResponse extends ProtocolMessage {
+  type: ExtensionResponseType.CREATE_ITEM_RESPONSE;
+  success: boolean;
+  itemId?: string;
+  message: string;
+}
+
+/** Response confirming browser extension preferences were synced. */
+export interface ExtensionSettingsResponse extends ProtocolMessage {
+  type: ExtensionResponseType.EXTENSION_SETTINGS_RESPONSE;
+  success: boolean;
+  settings: {
+    offerToSavePasswords: boolean;
+    autoFillFormsAutomatically: boolean;
+    clearClipboardAfterCopy: boolean;
+    clipboardClearAfterSeconds: number;
+    defaultItemClickAction: 'autofill' | 'copy-password' | 'copy-username';
+  };
+  message: string;
+}
+
 /**
  * Generic error response from the host.
  */
@@ -338,7 +392,9 @@ export type HostRequest =
   | GetCredentialsRequest
   | GetMatchingItemsRequest
   | CopyToClipboardRequest
-  | LockVaultRequest;
+  | LockVaultRequest
+  | CreateItemRequest
+  | UpdateExtensionSettingsRequest;
 
 /** All response message types that can be sent from the host to the extension. */
 export type ExtensionResponse =
@@ -347,6 +403,8 @@ export type ExtensionResponse =
   | NoMatchFoundResponse
   | VaultLockedResponse
   | ClipboardConfirmationResponse
+  | CreateItemResponse
+  | ExtensionSettingsResponse
   | HostShutdownResponse
   | ErrorResponse;
 
@@ -385,6 +443,16 @@ export function isLockVaultRequest(msg: HostRequest): msg is LockVaultRequest {
   return msg.type === HostRequestType.LOCK_VAULT;
 }
 
+export function isCreateItemRequest(msg: HostRequest): msg is CreateItemRequest {
+  return msg.type === HostRequestType.CREATE_ITEM;
+}
+
+export function isUpdateExtensionSettingsRequest(
+  msg: HostRequest,
+): msg is UpdateExtensionSettingsRequest {
+  return msg.type === HostRequestType.UPDATE_EXTENSION_SETTINGS;
+}
+
 export function isExtensionResponse(
   msg: ProtocolAnyMessage,
 ): msg is ExtensionResponse {
@@ -421,6 +489,16 @@ export function isClipboardConfirmationResponse(
   msg: ExtensionResponse,
 ): msg is ClipboardConfirmationResponse {
   return msg.type === ExtensionResponseType.CLIPBOARD_CONFIRMATION;
+}
+
+export function isCreateItemResponse(msg: ExtensionResponse): msg is CreateItemResponse {
+  return msg.type === ExtensionResponseType.CREATE_ITEM_RESPONSE;
+}
+
+export function isExtensionSettingsResponse(
+  msg: ExtensionResponse,
+): msg is ExtensionSettingsResponse {
+  return msg.type === ExtensionResponseType.EXTENSION_SETTINGS_RESPONSE;
 }
 
 export function isErrorResponse(

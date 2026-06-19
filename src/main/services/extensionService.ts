@@ -15,13 +15,15 @@
  * @module services/extensionService
  */
 
-import { clipboard } from 'electron';
 import { ItemRepository } from '../database/repositories/ItemRepository';
-import { isDatabaseOpen } from '../database/connection';
+import { FolderRepository } from '../database/repositories/FolderRepository';
+import { getDatabase, isDatabaseOpen } from '../database/connection';
 import { getMasterKey, lockCurrentVault, getActiveAuthVaultId } from '../ipc/authHandlers';
 import { decryptString, encryptString } from '../crypto/encryption';
 import { generateTOTP, getRemainingSeconds } from './totpService';
 import { secureClear, secureClearString } from '../../shared/secureMemory';
+import { MAX_FIELD_LENGTHS } from '../../shared/constants';
+import { sanitizeField, validateCharacters } from '../../shared/validation';
 import { PROTOCOL_MAX_MATCHING_ITEMS, ErrorCode } from '../../shared/protocols/nativeMessaging';
 import type { Item } from '../../shared/types';
 import type { SessionState } from '../crypto/handshake';
@@ -32,6 +34,8 @@ import type {
   GetMatchingItemsRequest,
   CopyToClipboardRequest,
   LockVaultRequest,
+  CreateItemRequest,
+  UpdateExtensionSettingsRequest,
   EncryptedCredentialItem,
 } from '../../shared/protocols/nativeMessaging';
 import {
@@ -39,6 +43,7 @@ import {
   ExtensionResponseType,
 } from '../../shared/protocols/nativeMessaging';
 import { logger } from '../../shared/logger';
+import { writeToClipboard } from './clipboardService';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -49,6 +54,22 @@ const DEFAULT_CLIPBOARD_CLEAR_SECONDS = 45;
 
 /** Maximum clipboard auto-clear timeout in seconds. */
 const MAX_CLIPBOARD_CLEAR_SECONDS = 300;
+
+/** Minimum extension clipboard auto-clear timeout in seconds. */
+const MIN_EXTENSION_CLIPBOARD_CLEAR_SECONDS = 5;
+
+/** Settings key used for browser extension preferences. */
+const EXTENSION_PREFERENCES_KEY = 'extensionPreferences';
+
+type ExtensionSettings = {
+  offerToSavePasswords: boolean;
+  autoFillFormsAutomatically: boolean;
+  clearClipboardAfterCopy: boolean;
+  clipboardClearAfterSeconds: number;
+  defaultItemClickAction: 'autofill' | 'copy-password' | 'copy-username';
+};
+
+const VALID_EXTENSION_CLICK_ACTIONS = ['autofill', 'copy-password', 'copy-username'] as const;
 
 // ---------------------------------------------------------------------------
 // Security Boundary Validation
@@ -103,6 +124,7 @@ function validateVaultContext(session: SessionState): ExtensionResponse | null {
 // Singleton
 // ---------------------------------------------------------------------------
 
+const folderRepo = new FolderRepository();
 const itemRepo = new ItemRepository();
 
 // ---------------------------------------------------------------------------
@@ -169,6 +191,148 @@ function matchesDomain(itemUrl: string, targetDomain: string): boolean {
   if (normalizedTarget.endsWith(`.${normalizedItem}`)) return true;
 
   return false;
+}
+
+function isValidHttpUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function resolveExtensionItemFolder(): string {
+  const existingRootFolder = folderRepo.getFlatList().find((folder) => folder.parentId === null);
+  if (existingRootFolder) return existingRootFolder.id;
+
+  return folderRepo.create(null, 'All Items', null).id;
+}
+
+function normalizeExtensionSettings(settings: unknown): ExtensionSettings | null {
+  if (!settings || typeof settings !== 'object') {
+    return null;
+  }
+
+  const raw = settings as Partial<ExtensionSettings>;
+  const defaultItemClickAction =
+    typeof raw.defaultItemClickAction === 'string'
+      && VALID_EXTENSION_CLICK_ACTIONS.includes(raw.defaultItemClickAction as typeof VALID_EXTENSION_CLICK_ACTIONS[number])
+      ? raw.defaultItemClickAction as typeof VALID_EXTENSION_CLICK_ACTIONS[number]
+      : 'autofill';
+  const clipboardClearAfterSeconds = typeof raw.clipboardClearAfterSeconds === 'number'
+    && Number.isFinite(raw.clipboardClearAfterSeconds)
+    ? Math.min(
+      300,
+      Math.max(MIN_EXTENSION_CLIPBOARD_CLEAR_SECONDS, Math.floor(raw.clipboardClearAfterSeconds)),
+    )
+    : 45;
+
+  return {
+    offerToSavePasswords: typeof raw.offerToSavePasswords === 'boolean'
+      ? raw.offerToSavePasswords
+      : true,
+    autoFillFormsAutomatically: typeof raw.autoFillFormsAutomatically === 'boolean'
+      ? raw.autoFillFormsAutomatically
+      : true,
+    clearClipboardAfterCopy: typeof raw.clearClipboardAfterCopy === 'boolean'
+      ? raw.clearClipboardAfterCopy
+      : true,
+    clipboardClearAfterSeconds,
+    defaultItemClickAction,
+  };
+}
+
+function validateCreateItemFields(
+  request: CreateItemRequest,
+):
+  | {
+      ok: true;
+      title: string;
+      username: string;
+      password: string;
+      url: string;
+      notes: string | null;
+    }
+  | { ok: false; code: ErrorCode; message: string } {
+  const title = sanitizeField('itemTitle', request.title).trim();
+  if (!title) {
+    return { ok: false, code: ErrorCode.INVALID_MESSAGE, message: 'Item title is required.' };
+  }
+  if (title.length > MAX_FIELD_LENGTHS.ITEM_TITLE) {
+    return {
+      ok: false,
+      code: ErrorCode.INVALID_MESSAGE,
+      message: `Item title must be ${MAX_FIELD_LENGTHS.ITEM_TITLE} characters or less.`,
+    };
+  }
+  const titleCharError = validateCharacters('itemTitle', title);
+  if (titleCharError) {
+    return { ok: false, code: ErrorCode.INVALID_MESSAGE, message: 'Item title contains invalid characters.' };
+  }
+
+  const username =
+    request.username !== undefined ? sanitizeField('username', request.username) : '';
+  if (username.length > MAX_FIELD_LENGTHS.USERNAME) {
+    return {
+      ok: false,
+      code: ErrorCode.INVALID_MESSAGE,
+      message: `Username must be ${MAX_FIELD_LENGTHS.USERNAME} characters or less.`,
+    };
+  }
+  const usernameCharError = validateCharacters('username', username);
+  if (usernameCharError) {
+    return { ok: false, code: ErrorCode.INVALID_MESSAGE, message: 'Username contains invalid characters.' };
+  }
+
+  if (request.password.length > MAX_FIELD_LENGTHS.PASSWORD) {
+    return {
+      ok: false,
+      code: ErrorCode.INVALID_MESSAGE,
+      message: `Password must be ${MAX_FIELD_LENGTHS.PASSWORD} characters or less.`,
+    };
+  }
+  const passwordCharError = validateCharacters('password', request.password);
+  if (passwordCharError) {
+    return { ok: false, code: ErrorCode.INVALID_MESSAGE, message: 'Password contains invalid characters.' };
+  }
+
+  const url = sanitizeField('url', request.url);
+  if (url.length > MAX_FIELD_LENGTHS.URL) {
+    return {
+      ok: false,
+      code: ErrorCode.INVALID_MESSAGE,
+      message: `URL must be ${MAX_FIELD_LENGTHS.URL} characters or less.`,
+    };
+  }
+  if (!isValidHttpUrl(url)) {
+    return {
+      ok: false,
+      code: ErrorCode.INVALID_URL,
+      message: 'URL must use http: or https: protocol.',
+    };
+  }
+  const urlCharError = validateCharacters('url', url);
+  if (urlCharError) {
+    return { ok: false, code: ErrorCode.INVALID_MESSAGE, message: 'URL contains invalid characters.' };
+  }
+
+  const notes = request.notes !== undefined ? sanitizeField('notes', request.notes) : null;
+  if (notes && notes.length > MAX_FIELD_LENGTHS.NOTES) {
+    return {
+      ok: false,
+      code: ErrorCode.INVALID_MESSAGE,
+      message: `Notes must be ${MAX_FIELD_LENGTHS.NOTES} characters or less.`,
+    };
+  }
+  if (notes) {
+    const notesCharError = validateCharacters('notes', notes);
+    if (notesCharError) {
+      return { ok: false, code: ErrorCode.INVALID_MESSAGE, message: 'Notes contain invalid characters.' };
+    }
+  }
+
+  return { ok: true, title, username, password: request.password, url, notes };
 }
 
 // ---------------------------------------------------------------------------
@@ -516,18 +680,37 @@ function handleCopyToClipboard(
       }
     }
 
-    clipboard.writeText(valueToCopy);
+    if (!valueToCopy) {
+      return {
+        requestId: request.requestId,
+        timestamp: Date.now(),
+        protocolVersion: 1,
+        type: ExtensionResponseType.ERROR,
+        code: ErrorCode.CLIPBOARD_FAILED,
+        message: `No ${request.field} value is available to copy.`,
+      };
+    }
 
     const clearSeconds = Math.min(
       request.clearAfterSeconds ?? DEFAULT_CLIPBOARD_CLEAR_SECONDS,
       MAX_CLIPBOARD_CLEAR_SECONDS,
     );
-    scheduleClipboardClear(clearSeconds);
+    const copyResult = (() => {
+      try {
+        return writeToClipboard(valueToCopy, {
+          type: request.field,
+          clearAfterSeconds: clearSeconds,
+          showToast: true,
+        });
+      } finally {
+        valueToCopy = secureClearString(valueToCopy);
+      }
+    })();
 
     logger.info('Copied field to clipboard via extension', {
       itemId: request.itemId,
       field: request.field,
-      clearAfterSeconds: clearSeconds,
+      clearAfterSeconds: copyResult.clearAfterSeconds,
     });
 
     return {
@@ -536,7 +719,7 @@ function handleCopyToClipboard(
       protocolVersion: 1,
       type: ExtensionResponseType.CLIPBOARD_CONFIRMATION,
       field: request.field,
-      clearAfterSeconds: clearSeconds,
+      clearAfterSeconds: copyResult.clearAfterSeconds,
     };
   } catch (cause) {
     logger.error('Failed to copy to clipboard', {
@@ -552,6 +735,161 @@ function handleCopyToClipboard(
       code: ErrorCode.CLIPBOARD_FAILED,
       message: `Failed to copy to clipboard: ${cause instanceof Error ? cause.message : String(cause)}`,
     };
+  }
+}
+
+function handleUpdateExtensionSettings(
+  request: UpdateExtensionSettingsRequest,
+): ExtensionResponse {
+  const normalizedSettings = normalizeExtensionSettings(request.settings);
+  if (!normalizedSettings) {
+    return {
+      requestId: request.requestId,
+      timestamp: Date.now(),
+      protocolVersion: 1,
+      type: ExtensionResponseType.ERROR,
+      code: ErrorCode.INVALID_MESSAGE,
+      message: 'Extension settings payload is invalid.',
+    };
+  }
+
+  if (!isDatabaseOpen()) {
+    return {
+      requestId: request.requestId,
+      timestamp: Date.now(),
+      protocolVersion: 1,
+      type: ExtensionResponseType.ERROR,
+      code: ErrorCode.VAULT_LOCKED,
+      message: 'Desktop app settings sync requires an unlocked vault.',
+    };
+  }
+
+  const db = getDatabase();
+  if (!db) {
+    return {
+      requestId: request.requestId,
+      timestamp: Date.now(),
+      protocolVersion: 1,
+      type: ExtensionResponseType.ERROR,
+      code: ErrorCode.INTERNAL_ERROR,
+      message: 'Database not available.',
+    };
+  }
+
+  try {
+    db.run(
+      'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      [EXTENSION_PREFERENCES_KEY, JSON.stringify(normalizedSettings)],
+    );
+
+    return {
+      requestId: request.requestId,
+      timestamp: Date.now(),
+      protocolVersion: 1,
+      type: ExtensionResponseType.EXTENSION_SETTINGS_RESPONSE,
+      success: true,
+      settings: normalizedSettings,
+      message: 'Extension settings synced with desktop app.',
+    };
+  } catch (cause) {
+    logger.error('Failed to sync extension settings', {
+      cause: cause instanceof Error ? cause.message : String(cause),
+    });
+    return {
+      requestId: request.requestId,
+      timestamp: Date.now(),
+      protocolVersion: 1,
+      type: ExtensionResponseType.ERROR,
+      code: ErrorCode.INTERNAL_ERROR,
+      message: `Failed to sync extension settings: ${cause instanceof Error ? cause.message : String(cause)}`,
+    };
+  }
+}
+
+function handleCreateItem(
+  request: CreateItemRequest,
+  _session: SessionState,
+): ExtensionResponse {
+  if (!isDatabaseOpen()) {
+    return createVaultLockedResponse(request);
+  }
+
+  const masterKey = getMasterKey();
+  if (!masterKey) {
+    return createVaultLockedResponse(request);
+  }
+
+  const validation = validateCreateItemFields(request);
+  if (!validation.ok) {
+    return {
+      requestId: request.requestId,
+      timestamp: Date.now(),
+      protocolVersion: 1,
+      type: ExtensionResponseType.ERROR,
+      code: validation.code,
+      message: validation.message,
+    };
+  }
+
+  let passwordEncrypted: ArrayBuffer | null = null;
+  let notesEncrypted: ArrayBuffer | null = null;
+
+  try {
+    const folderId = resolveExtensionItemFolder();
+
+    if (itemRepo.existsByFolderIdAndTitle(folderId, validation.title)) {
+      return {
+        requestId: request.requestId,
+        timestamp: Date.now(),
+        protocolVersion: 1,
+        type: ExtensionResponseType.ERROR,
+        code: ErrorCode.INVALID_MESSAGE,
+        message: 'An item with this title already exists in this folder.',
+      };
+    }
+
+    passwordEncrypted = encryptString(validation.password, masterKey) as unknown as ArrayBuffer;
+    if (validation.notes) {
+      notesEncrypted = encryptString(validation.notes, masterKey) as unknown as ArrayBuffer;
+    }
+
+    const item = itemRepo.create(folderId, {
+      title: validation.title,
+      username: validation.username,
+      passwordEncrypted,
+      url: validation.url,
+      notesEncrypted,
+      emoji: null,
+      coverImage: null,
+    });
+
+    return {
+      requestId: request.requestId,
+      timestamp: Date.now(),
+      protocolVersion: 1,
+      type: ExtensionResponseType.CREATE_ITEM_RESPONSE,
+      success: true,
+      itemId: item.id,
+      message: 'Item created.',
+    };
+  } catch (cause) {
+    logger.error('Failed to create item from extension prompt', {
+      url: request.url,
+      cause: cause instanceof Error ? cause.message : String(cause),
+    });
+    return {
+      requestId: request.requestId,
+      timestamp: Date.now(),
+      protocolVersion: 1,
+      type: ExtensionResponseType.ERROR,
+      code: ErrorCode.INTERNAL_ERROR,
+      message: `Failed to create item: ${cause instanceof Error ? cause.message : String(cause)}`,
+    };
+  } finally {
+    secureClear(passwordEncrypted as unknown as Buffer);
+    secureClear(notesEncrypted as unknown as Buffer);
+    secureClearString(validation.password);
+    if (validation.notes) secureClearString(validation.notes);
   }
 }
 
@@ -598,25 +936,6 @@ function handleLockVault(
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Active clipboard clear timer handle (only one active at a time). */
-let clipboardClearTimer: ReturnType<typeof setTimeout> | null = null;
-
-/**
- * Schedule the clipboard to be cleared after the specified number of seconds.
- * If a clear is already scheduled, it is replaced.
- */
-function scheduleClipboardClear(seconds: number): void {
-  if (clipboardClearTimer) {
-    clearTimeout(clipboardClearTimer);
-  }
-
-  clipboardClearTimer = setTimeout(() => {
-    clipboard.clear();
-    clipboardClearTimer = null;
-    logger.debug('Clipboard auto-cleared after timeout');
-  }, seconds * 1000);
-}
-
 function createVaultLockedResponse(request: { requestId: string }): ExtensionResponse {
   return {
     requestId: request.requestId,
@@ -657,6 +976,10 @@ export function handleExtensionRequest(
   });
 
   // Security boundary: validate vault context before processing any request
+  if (request.type === HostRequestType.UPDATE_EXTENSION_SETTINGS) {
+    return handleUpdateExtensionSettings(request as UpdateExtensionSettingsRequest);
+  }
+
   const vaultError = validateVaultContext(session);
   if (vaultError) {
     return { ...vaultError, requestId: request.requestId };
@@ -671,6 +994,12 @@ export function handleExtensionRequest(
 
     case HostRequestType.COPY_TO_CLIPBOARD:
       return handleCopyToClipboard(request, session);
+
+    case HostRequestType.UPDATE_EXTENSION_SETTINGS:
+      return handleUpdateExtensionSettings(request as UpdateExtensionSettingsRequest);
+
+    case HostRequestType.CREATE_ITEM:
+      return handleCreateItem(request, session);
 
     case HostRequestType.LOCK_VAULT:
       return handleLockVault(request, session);
@@ -694,8 +1023,5 @@ export function handleExtensionRequest(
  * Call this when the app is shutting down.
  */
 export function cleanupExtensionService(): void {
-  if (clipboardClearTimer) {
-    clearTimeout(clipboardClearTimer);
-    clipboardClearTimer = null;
-  }
+  // Clipboard lifecycle is centralized in clipboardService.
 }
