@@ -40,6 +40,17 @@ interface Toast {
   type: 'success' | 'error' | 'info';
 }
 
+interface QuickPickerActionResponse {
+  success: boolean;
+  data?: {
+    action: QuickPickerAction;
+    clipboard?: {
+      clearAfterSeconds: number;
+      message: string;
+    };
+  } | null;
+}
+
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
@@ -152,12 +163,17 @@ async function invokeQuickPickerSearch(query: string): Promise<QuickPickerItem[]
   }
 }
 
-async function invokeQuickPickerAction(itemId: string, action: QuickPickerAction): Promise<void> {
-  if (!window.electron?.quickPicker?.action) return;
+async function invokeQuickPickerAction(
+  itemId: string,
+  action: QuickPickerAction,
+): Promise<QuickPickerActionResponse> {
+  if (!window.electron?.quickPicker?.action) {
+    return { success: false };
+  }
   try {
-    await window.electron.quickPicker.action(itemId, action);
+    return await window.electron.quickPicker.action(itemId, action) as QuickPickerActionResponse;
   } catch {
-    // Ignore errors from action
+    return { success: false };
   }
 }
 
@@ -337,7 +353,11 @@ export default function QuickPickerPage(): React.ReactElement {
 
   const performAction = useCallback(
     async (itemId: string, action: QuickPickerAction) => {
-      await invokeQuickPickerAction(itemId, action);
+      const result = await invokeQuickPickerAction(itemId, action);
+      if (!result.success) {
+        addToast('Action failed', 'error');
+        return;
+      }
 
       const actionLabels: Record<QuickPickerAction, string> = {
         copy_username: 'Username copied to clipboard',
@@ -346,7 +366,7 @@ export default function QuickPickerPage(): React.ReactElement {
         open_url: 'URL opened in browser',
       };
 
-      addToast(actionLabels[action], 'success');
+      addToast(result.data?.clipboard?.message ?? actionLabels[action], 'success');
 
       // Hide overlay after action unless it's open_url
       if (action !== 'open_url') {

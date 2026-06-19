@@ -11,10 +11,8 @@ import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/ipcChannels';
 import {
   writeToClipboard,
-  clearClipboard,
   getClipboardStatus,
   onClipboardStatusChange,
-  offClipboardStatusChange,
   cleanupClipboardService,
   ClipboardWriteOptions,
 } from '../services/clipboardService';
@@ -52,8 +50,12 @@ export function registerClipboardHandlers(): void {
     IPC_CHANNELS.CLIPBOARD_COPY,
     (_event, { text, options }: { text: string; options: ClipboardWriteOptions }) => {
       try {
-        const duration = writeToClipboard(text, options);
-        return { success: true, clearAfterSeconds: duration };
+        const result = writeToClipboard(text, options);
+        return {
+          success: true,
+          clearAfterSeconds: result.clearAfterSeconds,
+          message: result.message,
+        };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         logger.error('Clipboard copy failed', { error });

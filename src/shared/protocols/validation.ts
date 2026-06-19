@@ -26,11 +26,13 @@ import {
   type GetMatchingItemsRequest,
   type CopyToClipboardRequest,
   type LockVaultRequest,
+  type CreateItemRequest,
   type CredentialsResponse,
   type MatchingItemsResponse,
   type NoMatchFoundResponse,
   type VaultLockedResponse,
   type ClipboardConfirmationResponse,
+  type CreateItemResponse,
   type ErrorResponse,
 } from './nativeMessaging';
 
@@ -294,6 +296,70 @@ function validateLockVaultRequest(
   };
 }
 
+function validateCreateItemRequest(
+  base: ProtocolMessage,
+  raw: Record<string, unknown>,
+): ValidationResult<CreateItemRequest> {
+  if (!isNonEmptyString(raw.title)) {
+    return {
+      ok: false,
+      error: {
+        code: ErrorCode.INVALID_MESSAGE,
+        message: 'Missing or invalid "title" field.',
+        field: 'title',
+      },
+    };
+  }
+
+  if (!isNonEmptyString(raw.password)) {
+    return {
+      ok: false,
+      error: {
+        code: ErrorCode.INVALID_MESSAGE,
+        message: 'Missing or invalid "password" field.',
+        field: 'password',
+      },
+    };
+  }
+
+  if (!isNonEmptyString(raw.url)) {
+    return {
+      ok: false,
+      error: {
+        code: ErrorCode.INVALID_MESSAGE,
+        message: 'Missing or invalid "url" field.',
+        field: 'url',
+      },
+    };
+  }
+
+  if (!isValidUrl(raw.url)) {
+    return {
+      ok: false,
+      error: {
+        code: ErrorCode.INVALID_URL,
+        message: 'URL must use http: or https: protocol.',
+        field: 'url',
+      },
+    };
+  }
+
+  const username = typeof raw.username === 'string' ? raw.username : '';
+
+  return {
+    ok: true,
+    value: {
+      ...base,
+      type: HostRequestType.CREATE_ITEM,
+      title: raw.title,
+      username,
+      password: raw.password,
+      url: raw.url,
+      notes: typeof raw.notes === 'string' ? raw.notes : undefined,
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Public request validator
 // ---------------------------------------------------------------------------
@@ -336,6 +402,9 @@ export function validateIncomingRequest(
 
     case HostRequestType.LOCK_VAULT:
       return validateLockVaultRequest(base);
+
+    case HostRequestType.CREATE_ITEM:
+      return validateCreateItemRequest(base, raw);
 
     default:
       return {
@@ -520,6 +589,44 @@ function validateClipboardConfirmationResponse(
   };
 }
 
+function validateCreateItemResponse(
+  base: ProtocolMessage,
+  raw: Record<string, unknown>,
+): ValidationResult<CreateItemResponse> {
+  if (typeof raw.success !== 'boolean') {
+    return {
+      ok: false,
+      error: {
+        code: ErrorCode.INVALID_MESSAGE,
+        message: 'Missing or invalid "success" field.',
+        field: 'success',
+      },
+    };
+  }
+
+  if (!isNonEmptyString(raw.message)) {
+    return {
+      ok: false,
+      error: {
+        code: ErrorCode.INVALID_MESSAGE,
+        message: 'Missing or invalid "message" field.',
+        field: 'message',
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    value: {
+      ...base,
+      type: ExtensionResponseType.CREATE_ITEM_RESPONSE,
+      success: raw.success,
+      itemId: typeof raw.itemId === 'string' ? raw.itemId : undefined,
+      message: raw.message,
+    },
+  };
+}
+
 function validateErrorResponse(
   base: ProtocolMessage,
   raw: Record<string, unknown>,
@@ -594,6 +701,9 @@ export function validateIncomingResponse(
 
     case ExtensionResponseType.CLIPBOARD_CONFIRMATION:
       return validateClipboardConfirmationResponse(base, raw);
+
+    case ExtensionResponseType.CREATE_ITEM_RESPONSE:
+      return validateCreateItemResponse(base, raw);
 
     case ExtensionResponseType.ERROR:
       return validateErrorResponse(base, raw);

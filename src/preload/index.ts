@@ -252,10 +252,14 @@ const api = {
     copy: (text: string, options: unknown) =>
       ipcRenderer.invoke(IPC_CHANNELS.CLIPBOARD_COPY, { text, options }),
     status: () => ipcRenderer.invoke(IPC_CHANNELS.CLIPBOARD_STATUS),
-    onStatusChange: (callback: (status: unknown) => void) =>
-      ipcRenderer.on(IPC_CHANNELS.CLIPBOARD_STATUS, (_event, status) => callback(status)),
-    clearStatusListener: () =>
-      ipcRenderer.removeAllListeners(IPC_CHANNELS.CLIPBOARD_STATUS),
+    onStatusChange: (callback: (status: unknown) => void) => {
+      ipcRenderer.invoke(IPC_CHANNELS.CLIPBOARD_ON_STATUS_CHANGE);
+      ipcRenderer.on(IPC_CHANNELS.CLIPBOARD_STATUS, (_event, status) => callback(status));
+    },
+    clearStatusListener: () => {
+      ipcRenderer.invoke(IPC_CHANNELS.CLIPBOARD_CLEAR_STATUS_LISTENER);
+      ipcRenderer.removeAllListeners(IPC_CHANNELS.CLIPBOARD_STATUS);
+    },
   },
 
   updates: {

@@ -21,15 +21,17 @@
  * @module quickPicker/quickPickerManager
  */
 
-import { Tray, Menu, BrowserWindow, screen, nativeImage } from 'electron';
+import { Tray, Menu, BrowserWindow, screen, nativeImage, app } from 'electron';
 import { join } from 'node:path';
 import { logger } from '../../shared/logger';
 import { ItemRepository } from '../database/repositories/ItemRepository';
-import { getActiveAuthVaultId, getMasterKey } from '../ipc/authHandlers';
+import { getMasterKey, lockCurrentVault } from '../ipc/authHandlers';
 import { decryptString } from '../crypto/encryption';
 import { isDatabaseOpen } from '../database/connection';
-import { secureClearString } from '../../shared/secureMemory';
+import { secureClear, secureClearString } from '../../shared/secureMemory';
 import { writeToClipboard } from '../services/clipboardService';
+import { setVaultLockState } from '../shortcuts/shortcutManager';
+import type { ClipboardCopyResult } from '../services/clipboardService';
 import type { Item } from '../../shared/types';
 
 // ---------------------------------------------------------------------------
@@ -53,6 +55,11 @@ export type QuickPickerAction =
   | 'copy_otp'
   | 'open_url';
 
+export interface QuickPickerActionResult {
+  action: QuickPickerAction;
+  clipboard?: ClipboardCopyResult;
+}
+
 /** Quick picker state. */
 interface QuickPickerState {
   tray: Tray | null;
@@ -60,6 +67,7 @@ interface QuickPickerState {
   isOpen: boolean;
   vaultLocked: boolean;
   items: QuickPickerItem[];
+  lastUsedItemId: string | null;
 }
 
 const state: QuickPickerState = {
@@ -68,6 +76,7 @@ const state: QuickPickerState = {
   isOpen: false,
   vaultLocked: true,
   items: [],
+  lastUsedItemId: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -86,6 +95,39 @@ const OVERLAY_MAX_HEIGHT = 500;
 // ---------------------------------------------------------------------------
 
 const itemRepo = new ItemRepository();
+
+// ---------------------------------------------------------------------------
+// Window Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Return the main application window rather than the quick picker overlay.
+ */
+function getMainWindow(): BrowserWindow | null {
+  return (
+    BrowserWindow.getAllWindows().find((window) => {
+      if (window.isDestroyed()) return false;
+      return state.overlay ? window.id !== state.overlay.id : true;
+    }) ?? null
+  );
+}
+
+/**
+ * Bring the main app forward. When locked, this shows the lock screen because
+ * the renderer derives that view from auth state.
+ */
+function focusMainWindow(): void {
+  const mainWindow = getMainWindow();
+  if (!mainWindow) {
+    return;
+  }
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  mainWindow.show();
+  mainWindow.focus();
+}
 
 // ---------------------------------------------------------------------------
 // Fuzzy Search
@@ -333,34 +375,112 @@ export function hideQuickPicker(): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Handle an action on a quick picker item.
+ * Find the item used by the tray "Copy Last Used" command. Prefer the item
+ * acted on most recently in this process; fall back to the most recently
+ * updated item with a password so the command remains useful after startup.
  */
-export async function handleQuickPickerAction(
-  itemId: string,
-  action: QuickPickerAction,
-): Promise<void> {
+function getLastUsedPasswordItem(): Item | null {
+  if (!isDatabaseOpen()) {
+    return null;
+  }
+
+  if (state.lastUsedItemId) {
+    const lastUsed = itemRepo.getById(state.lastUsedItemId);
+    if (lastUsed?.passwordEncrypted) {
+      return lastUsed;
+    }
+  }
+
+  return itemRepo.getAll().find((item) => item.passwordEncrypted) ?? null;
+}
+
+/**
+ * Copy the last used credential password from the tray menu.
+ */
+function copyLastUsedPasswordFromTray(): void {
   if (state.vaultLocked || !isDatabaseOpen()) {
-    logger.warn('Quick picker: vault is locked, ignoring action');
+    logger.warn('Tray: copy last used ignored because vault is locked');
     return;
   }
 
   const masterKey = getMasterKey();
   if (!masterKey) {
-    logger.warn('Quick picker: no master key available');
+    logger.warn('Tray: copy last used ignored because no master key is available');
     return;
+  }
+
+  try {
+    const item = getLastUsedPasswordItem();
+    if (!item?.passwordEncrypted) {
+      logger.warn('Tray: no password item available for Copy Last Used');
+      return;
+    }
+
+    const passwordBuf = Buffer.from(item.passwordEncrypted);
+    let plaintext: string | null = null;
+    try {
+      plaintext = decryptString(passwordBuf, masterKey);
+      writeToClipboard(plaintext, {
+        type: 'password',
+        clearAfterSeconds: CLIPBOARD_CLEAR_SECONDS,
+        showToast: true,
+      });
+      state.lastUsedItemId = item.id;
+      logger.info('Tray: last used password copied', { itemId: item.id, title: item.title });
+    } finally {
+      if (plaintext) secureClearString(plaintext);
+      secureClear(passwordBuf);
+    }
+  } catch (err) {
+    logger.error('Tray: failed to copy last used password', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+/**
+ * Handle an action on a quick picker item.
+ */
+export async function handleQuickPickerAction(
+  itemId: string,
+  action: QuickPickerAction,
+): Promise<QuickPickerActionResult | null> {
+  if (state.vaultLocked || !isDatabaseOpen()) {
+    logger.warn('Quick picker: vault is locked, ignoring action');
+    return null;
+  }
+
+  const masterKey = getMasterKey();
+  if (!masterKey) {
+    logger.warn('Quick picker: no master key available');
+    return null;
   }
 
   try {
     const item = itemRepo.getById(itemId);
     if (!item) {
       logger.warn('Quick picker: item not found', { itemId });
-      return;
+      return null;
     }
+    state.lastUsedItemId = item.id;
+
+    let actionResult: QuickPickerActionResult | null = { action };
 
     switch (action) {
       case 'copy_username': {
         const username = item.username ?? '';
-        writeToClipboard(username, { type: 'username', clearAfterSeconds: 45, showToast: true });
+        if (!username) {
+          logger.warn('Quick picker: item has no username', { itemId });
+          return null;
+        }
+        actionResult = {
+          action,
+          clipboard: writeToClipboard(username, {
+            type: 'username',
+            clearAfterSeconds: CLIPBOARD_CLEAR_SECONDS,
+            showToast: true,
+          }),
+        };
         logger.info('Quick picker: username copied', { itemId, title: item.title });
         break;
       }
@@ -368,16 +488,24 @@ export async function handleQuickPickerAction(
       case 'copy_password': {
         if (!item.passwordEncrypted) {
           logger.warn('Quick picker: item has no password', { itemId });
-          return;
+          return null;
         }
         const passwordBuf = Buffer.from(item.passwordEncrypted);
+        let plaintext: string | null = null;
         try {
-          const plaintext = decryptString(passwordBuf, masterKey);
-          writeToClipboard(plaintext, { type: 'password', clearAfterSeconds: 45, showToast: true });
-          secureClearString(plaintext);
+          plaintext = decryptString(passwordBuf, masterKey);
+          actionResult = {
+            action,
+            clipboard: writeToClipboard(plaintext, {
+              type: 'password',
+              clearAfterSeconds: CLIPBOARD_CLEAR_SECONDS,
+              showToast: true,
+            }),
+          };
           logger.info('Quick picker: password copied', { itemId, title: item.title });
         } finally {
-          secureClearString(passwordBuf as unknown as string);
+          if (plaintext) secureClearString(plaintext);
+          secureClear(passwordBuf);
         }
         break;
       }
@@ -385,7 +513,7 @@ export async function handleQuickPickerAction(
       case 'copy_otp': {
         if (!item.otpSecretEncrypted) {
           logger.warn('Quick picker: item has no OTP configured', { itemId });
-          return;
+          return null;
         }
         // OTP generation is handled by the totp service
         // We need to decrypt the OTP secret and generate the code
@@ -402,11 +530,18 @@ export async function handleQuickPickerAction(
           // Import and use totpService
           const { generateTOTP } = await import('../services/totpService');
           const code = generateTOTP(otpSecret, totpConfig);
-          writeToClipboard(code, { type: 'otp', clearAfterSeconds: 45, showToast: true });
+          actionResult = {
+            action,
+            clipboard: writeToClipboard(code, {
+              type: 'otp',
+              clearAfterSeconds: CLIPBOARD_CLEAR_SECONDS,
+              showToast: true,
+            }),
+          };
           secureClearString(otpSecret);
           logger.info('Quick picker: OTP copied', { itemId, title: item.title });
         } finally {
-          secureClearString(otpBuf as unknown as string);
+          secureClear(otpBuf);
         }
         break;
       }
@@ -420,6 +555,10 @@ export async function handleQuickPickerAction(
         break;
       }
     }
+
+    // Hide overlay after action
+    hideQuickPicker();
+    return actionResult;
   } catch (err) {
     logger.error('Quick picker: action failed', {
       itemId,
@@ -428,8 +567,8 @@ export async function handleQuickPickerAction(
     });
   }
 
-  // Hide overlay after action
   hideQuickPicker();
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -482,44 +621,58 @@ export function getQuickPickerAllItems(): QuickPickerItem[] {
 // ---------------------------------------------------------------------------
 
 /**
- * Create the system tray icon (16x16 SVG).
+ * Create the system tray icon image. Red indicates locked, green indicates
+ * an unlocked vault, and gray is used before auth state is known.
+ */
+function createTrayIconImage(locked: boolean | null): Electron.NativeImage {
+  const iconSize = 16;
+  const fill = locked === null ? '#6b7280' : locked ? '#ef4444' : '#10b981';
+  const statusDot = locked === false
+    ? '<circle cx="12.5" cy="3.5" r="2" fill="#dcfce7"/>'
+    : locked === true
+      ? '<circle cx="12.5" cy="3.5" r="2" fill="#fee2e2"/>'
+      : '';
+  const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(
+    `<svg width="${iconSize}" height="${iconSize}" xmlns="http://www.w3.org/2000/svg">
+      <rect width="${iconSize}" height="${iconSize}" rx="3" fill="${fill}"/>
+      <text x="50%" y="58%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">S</text>
+      ${statusDot}
+    </svg>`,
+  ).toString('base64')}`;
+
+  return nativeImage.createFromDataURL(svgDataUrl);
+}
+
+/**
+ * Lock the vault from the tray and immediately refresh tray/shortcut state.
+ */
+function lockVaultFromTray(): void {
+  const lockedVaultId = lockCurrentVault();
+  setVaultLockState(true);
+  setQuickPickerVaultState(true);
+  focusMainWindow();
+  logger.info('Tray: vault locked', { vaultId: lockedVaultId });
+}
+
+/**
+ * Create the system tray icon.
  */
 function createTrayIcon(): Tray {
-  // Create a simple 16x16 icon using nativeImage from data URL
-  const size = 16;
-  const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(
-    `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-      <rect width="${size}" height="${size}" rx="3" fill="#888888"/>
-      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-size="10" font-weight="bold">S</text>
-    </svg>`
-  ).toString('base64')}`;
-  const icon = nativeImage.createFromDataURL(svgDataUrl);
-
-  const tray = new Tray(icon);
-  tray.setToolTip('SecurePass Manager');
+  const tray = new Tray(createTrayIconImage(null));
+  tray.setToolTip('SecurePass Manager - Locked');
 
   updateTrayMenu();
 
   tray.on('click', () => {
     if (state.vaultLocked) {
-      // Focus the main window when vault is locked
-      const mainWindow = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
-      if (mainWindow) {
-        mainWindow.show();
-        mainWindow.focus();
-      }
+      focusMainWindow();
     } else {
-      // Show quick picker when vault is unlocked
       showQuickPicker();
     }
   });
 
   tray.on('double-click', () => {
-    const mainWindow = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
-    if (mainWindow) {
-      mainWindow.show();
-      mainWindow.focus();
-    }
+    focusMainWindow();
   });
 
   state.tray = tray;
@@ -537,36 +690,24 @@ function updateTrayMenu(): void {
   const contextMenu = Menu.buildFromTemplate([
     {
       label: 'Open SecurePass',
-      click: () => {
-        const mainWindow = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
-        if (mainWindow) {
-          mainWindow.show();
-          mainWindow.focus();
-        }
-      },
+      click: () => focusMainWindow(),
     },
     { type: 'separator' },
     {
-      label: 'Quick Search',
+      label: 'Copy Last Used',
       enabled: !state.vaultLocked,
-      click: () => showQuickPicker(),
+      click: () => copyLastUsedPasswordFromTray(),
     },
     { type: 'separator' },
     {
       label: 'Lock Vault',
       enabled: !state.vaultLocked,
-      click: () => {
-        const { lockCurrentVault } = require('../ipc/authHandlers');
-        lockCurrentVault();
-      },
+      click: () => lockVaultFromTray(),
     },
     { type: 'separator' },
     {
       label: 'Quit',
-      click: () => {
-        const { app } = require('electron');
-        app.quit();
-      },
+      click: () => app.quit(),
     },
   ]);
 
@@ -599,16 +740,8 @@ export function setQuickPickerVaultState(locked: boolean): void {
 
   // Update tray icon color based on vault state
   if (state.tray && !state.tray.isDestroyed()) {
-    // Create colored icon based on state using data URL (SVG doesn't work with createFromBuffer)
-    const iconSize = 16;
-    const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(
-      `<svg width="${iconSize}" height="${iconSize}" xmlns="http://www.w3.org/2000/svg">
-        <rect width="${iconSize}" height="${iconSize}" rx="3" fill="${locked ? '#ef4444' : '#10b981'}"/>
-        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-size="10" font-weight="bold">S</text>
-      </svg>`
-    ).toString('base64')}`;
-    const icon = nativeImage.createFromDataURL(svgDataUrl);
-    state.tray.setImage(icon);
+    state.tray.setImage(createTrayIconImage(locked));
+    state.tray.setToolTip(`SecurePass Manager - ${locked ? 'Locked' : 'Unlocked'}`);
   }
 }
 
@@ -639,6 +772,7 @@ export function cleanupQuickPicker(): void {
 
   state.isOpen = false;
   state.items = [];
+  state.lastUsedItemId = null;
 
   logger.info('Quick picker: cleaned up');
 }

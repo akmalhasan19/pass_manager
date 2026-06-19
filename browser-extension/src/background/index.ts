@@ -50,6 +50,7 @@ import {
   type CopyToClipboardRequest,
   type LockVaultRequest,
   type CreateItemRequest,
+  type UpdateExtensionSettingsRequest,
   type DecryptedCredentialsResponse,
   type MatchingItemsResponse,
 } from '../shared/protocol';
@@ -494,16 +495,21 @@ async function sendEncryptedRequest<T extends ExtensionResponse>(
 }
 
 // ---------------------------------------------------------------------------
-// Content script message handling
+// Extension UI / content script message handling
 // ---------------------------------------------------------------------------
+
+interface UiActionMessage {
+  action?: 'openApp' | 'openSettings' | 'openAddItem' | 'autofillSuccess';
+  route?: string;
+}
 
 chrome.runtime.onMessage.addListener(
   (
-    message: HostRequest,
+    message: HostRequest | UiActionMessage,
     sender: chrome.runtime.MessageSender,
     sendResponse: (response: unknown) => void,
   ) => {
-    if (!message?.type) return false;
+    if (!message || (!('type' in message) && !message.action)) return false;
 
     // Handle the message asynchronously
     handleContentMessage(message, sender)
@@ -512,10 +518,13 @@ chrome.runtime.onMessage.addListener(
       })
       .catch((error) => {
         console.error('[SecurePass] Error handling content message:', error);
+        const isConnected = nativePort?.isConnected || wsTransport?.isConnected;
         sendResponse({
           type: ExtensionResponseType.ERROR,
-          code: 'INTERNAL_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error',
+          code: ErrorCode.HANDSHAKE_REQUIRED,
+          message: isConnected
+            ? 'SecurePass Manager could not complete the request. Try again or reopen the app.'
+            : 'SecurePass Manager is not connected. Please open the app and unlock your vault.',
           requestId: generateRequestId(),
           timestamp: currentTimestamp(),
           protocolVersion: PROTOCOL_VERSION,
@@ -528,7 +537,7 @@ chrome.runtime.onMessage.addListener(
 );
 
 async function handleContentMessage(
-  message: HostRequest & { action?: string },
+  message: (HostRequest & UiActionMessage) | UiActionMessage,
   _sender: chrome.runtime.MessageSender,
 ): Promise<ExtensionResponse> {
   // Handle non-protocol messages (e.g., autofill success notification)
@@ -542,6 +551,30 @@ async function handleContentMessage(
       timestamp: currentTimestamp(),
       protocolVersion: PROTOCOL_VERSION,
     } as ExtensionResponse;
+  }
+
+  if (message.action === 'openApp' || message.action === 'openSettings' || message.action === 'openAddItem') {
+    hostShutdown = false;
+    connectToHost();
+    return {
+      type: ExtensionResponseType.CLIPBOARD_CONFIRMATION,
+      field: 'password',
+      clearAfterSeconds: 0,
+      requestId: generateRequestId(),
+      timestamp: currentTimestamp(),
+      protocolVersion: PROTOCOL_VERSION,
+    } as ExtensionResponse;
+  }
+
+  if (!('type' in message)) {
+    return {
+      type: ExtensionResponseType.ERROR,
+      code: ErrorCode.UNKNOWN_MESSAGE_TYPE,
+      message: 'Unknown UI action.',
+      requestId: generateRequestId(),
+      timestamp: currentTimestamp(),
+      protocolVersion: PROTOCOL_VERSION,
+    };
   }
 
   if (hostShutdown) {
@@ -560,8 +593,9 @@ async function handleContentMessage(
       connectToHost();
     }
     return {
-      type: ExtensionResponseType.VAULT_LOCKED,
-      message: 'SecurePass Manager is not connected. Please ensure the desktop app is running and your vault is unlocked.',
+      type: ExtensionResponseType.ERROR,
+      code: ErrorCode.HANDSHAKE_REQUIRED,
+      message: 'SecurePass Manager is not connected. Please open the app and unlock your vault.',
       requestId: generateRequestId(),
       timestamp: currentTimestamp(),
       protocolVersion: PROTOCOL_VERSION,
@@ -613,6 +647,11 @@ async function handleContentMessage(
     case HostRequestType.CREATE_ITEM:
       return sendEncryptedRequest<ExtensionResponse>(
         message as CreateItemRequest,
+      );
+
+    case HostRequestType.UPDATE_EXTENSION_SETTINGS:
+      return sendEncryptedRequest<ExtensionResponse>(
+        message as UpdateExtensionSettingsRequest,
       );
 
     default:

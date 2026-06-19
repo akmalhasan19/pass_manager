@@ -25,6 +25,7 @@ export enum HostRequestType {
   COPY_TO_CLIPBOARD = 'COPY_TO_CLIPBOARD',
   LOCK_VAULT = 'LOCK_VAULT',
   CREATE_ITEM = 'CREATE_ITEM',
+  UPDATE_EXTENSION_SETTINGS = 'UPDATE_EXTENSION_SETTINGS',
 }
 
 export enum ExtensionResponseType {
@@ -34,6 +35,7 @@ export enum ExtensionResponseType {
   VAULT_LOCKED = 'VAULT_LOCKED',
   CLIPBOARD_CONFIRMATION = 'CLIPBOARD_CONFIRMATION',
   CREATE_ITEM_RESPONSE = 'CREATE_ITEM_RESPONSE',
+  EXTENSION_SETTINGS_RESPONSE = 'EXTENSION_SETTINGS_RESPONSE',
   HOST_SHUTDOWN = 'HOST_SHUTDOWN',
   ERROR = 'ERROR',
 }
@@ -106,12 +108,24 @@ export interface CreateItemRequest extends ProtocolMessage {
   notes?: string;
 }
 
+export interface UpdateExtensionSettingsRequest extends ProtocolMessage {
+  type: HostRequestType.UPDATE_EXTENSION_SETTINGS;
+  settings: {
+    offerToSavePasswords: boolean;
+    autoFillFormsAutomatically: boolean;
+    clearClipboardAfterCopy: boolean;
+    clipboardClearAfterSeconds: number;
+    defaultItemClickAction: 'autofill' | 'copy-password' | 'copy-username';
+  };
+}
+
 export type HostRequest =
   | GetCredentialsRequest
   | GetMatchingItemsRequest
   | CopyToClipboardRequest
   | LockVaultRequest
-  | CreateItemRequest;
+  | CreateItemRequest
+  | UpdateExtensionSettingsRequest;
 
 // ---------------------------------------------------------------------------
 // Response payloads (host → extension)
@@ -184,6 +198,19 @@ export interface CreateItemResponse extends ProtocolMessage {
   message: string;
 }
 
+export interface ExtensionSettingsResponse extends ProtocolMessage {
+  type: ExtensionResponseType.EXTENSION_SETTINGS_RESPONSE;
+  success: boolean;
+  settings: {
+    offerToSavePasswords: boolean;
+    autoFillFormsAutomatically: boolean;
+    clearClipboardAfterCopy: boolean;
+    clipboardClearAfterSeconds: number;
+    defaultItemClickAction: 'autofill' | 'copy-password' | 'copy-username';
+  };
+  message: string;
+}
+
 export interface HostShutdownResponse extends ProtocolMessage {
   type: ExtensionResponseType.HOST_SHUTDOWN;
   message: string;
@@ -197,6 +224,7 @@ export type ExtensionResponse =
   | VaultLockedResponse
   | ClipboardConfirmationResponse
   | CreateItemResponse
+  | ExtensionSettingsResponse
   | HostShutdownResponse
   | ErrorResponse;
 

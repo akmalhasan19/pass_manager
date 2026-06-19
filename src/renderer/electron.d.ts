@@ -196,7 +196,16 @@ export interface ElectronOtpAPI {
 
 export interface ElectronQuickPickerAPI {
   search(query: string): Promise<{ success: boolean; data: unknown[] }>;
-  action(itemId: string, action: string): Promise<void>;
+  action(itemId: string, action: string): Promise<{
+    success: boolean;
+    data?: {
+      action: string;
+      clipboard?: {
+        clearAfterSeconds: number;
+        message: string;
+      };
+    } | null;
+  }>;
   show(): Promise<void>;
   hide(): Promise<void>;
   getItems(): Promise<{ success: boolean; data: unknown[] }>;
@@ -245,9 +254,9 @@ export interface ElectronVaultsAPI {
 }
 
 export interface ElectronClipboardAPI {
-  copy(text: string, options: unknown): Promise<{ success: boolean; clearAfterSeconds?: number; error?: string }>;
-  status(): Promise<{ success: boolean; data: { hasAutoClear: boolean; clearInSeconds: number | null } }>;
-  onStatusChange(callback: (status: { hasAutoClear: boolean; clearInSeconds: number | null }) => void): void;
+  copy(text: string, options: unknown): Promise<{ success: boolean; clearAfterSeconds?: number; message?: string; error?: string }>;
+  status(): Promise<{ success: boolean; data: { hasAutoClear: boolean; clearInSeconds: number | null; message: string | null; type: string | null } }>;
+  onStatusChange(callback: (status: { hasAutoClear: boolean; clearInSeconds: number | null; message: string | null; type: string | null }) => void): void;
   clearStatusListener(): void;
 }
 
@@ -270,6 +279,7 @@ export interface ElectronAPI {
   shortcuts: ElectronShortcutsAPI;
   updates: ElectronUpdatesAPI;
   quickPicker: ElectronQuickPickerAPI;
+  clipboard: ElectronClipboardAPI;
 }
 
 declare global {

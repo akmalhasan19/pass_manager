@@ -179,15 +179,15 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ### Sub--Task 4.3: Clipboard Management
 
-- [ ] Setiap copy ke clipboard harus memiliki auto-clear timeout (misalnya 30 atau 45 detik).
-- [ ] Gunakan secure clipboard API jika tersedia di platform.
-- [ ] Tampilkan toast notification: "Password copied — will clear in 45s".
+- [x] Setiap copy ke clipboard harus memiliki auto-clear timeout (misalnya 30 atau 45 detik).
+- [x] Gunakan secure clipboard API jika tersedia di platform.
+- [x] Tampilkan toast notification: "Password copied — will clear in 45s".
 
 ### Sub-Task 4.4: Tray Icon Integration
 
-- [ ] Tray icon menampilkan context menu: Open SecurePass, Copy Last Used, Lock Vault, Quit.
-- [ ] Tray icon berubah warna/indikator ketika vault unlocked.
-- [ ] Single click tray icon bisa membuka quick picker jika vault unlocked, atau lock screen jika locked.
+- [x] Tray icon menampilkan context menu: Open SecurePass, Copy Last Used, Lock Vault, Quit.
+- [x] Tray icon berubah warna/indikator ketika vault unlocked.
+- [x] Single click tray icon bisa membuka quick picker jika vault unlocked, atau lock screen jika locked.
 
 ---
 
@@ -197,25 +197,25 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ### Sub-Task 5.1: Extension Popup Design
 
-- [ ] Layout popup responsive, max-width 380px, max-height 600px.
-- [ ] Header: Logo, Nama vault aktif, tombol Lock/Unlock (status only).
-- [ ] Search bar untuk filter items.
-- [ ] List item: favicon (jika ada), title, username, tombbol copy.
-- [ ] Ketika item diklik: expand detail, tombbol autofill, copy password, copy username, copy OTP.
-- [ ] Footer: Open Full App, Settings (link membuka Electron app).
+- [x] Layout popup responsive, max-width 380px, max-height 600px.
+- [x] Header: Logo, Nama vault aktif, tombol Lock/Unlock (status only).
+- [x] Search bar untuk filter items.
+- [x] List item: favicon (jika ada), title, username, tombbol copy.
+- [x] Ketika item diklik: expand detail, tombbol autofill, copy password, copy username, copy OTP.
+- [x] Footer: Open Full App, Settings (link membuka Electron app).
 
 ### Sub-Task 5.2: Autofill Prompt Bar
 
-- [ ] Prompt bar muncul di atas/bawah halaman web ketika form login baru terdeteksi.
-- [ ] Style yang tidak mengganggu, bisa di-dismiss.
-- [ ] Tombol: "Save to SecurePass", "Never for this site", "Dismiss".
-- [ ] Mengikuti theme dan bahasa yang dipilih di aplikasi utama.
+- [x] Prompt bar muncul di atas/bawah halaman web ketika form login baru terdeteksi.
+- [x] Style yang tidak mengganggu, bisa di-dismiss.
+- [x] Tombol: "Save to SecurePass", "Never for this site", "Dismiss".
+- [x] Mengikuti theme dan bahasa yang dipilih di aplikasi utama.
 
 ### Sub-Task 5.3: Error dan Empty States
 
-- [ ] State: Vault locked — tampilkan pesan "Please unlock your vault in the SecurePass app" dengan tombol "Open App".
-- [ ] State: No matching items — tampilkan "No credentials found for this site" dan tombol "Add New".
-- [ ] State: Extension tidak terhubung ke host — tampilkan troubleshooting steps.
+- [x] State: Vault locked — tampilkan pesan "Please unlock your vault in the SecurePass app" dengan tombol "Open App".
+- [x] State: No matching items — tampilkan "No credentials found for this site" dan tombol "Add New".
+- [x] State: Extension tidak terhubung ke host — tampilkan troubleshooting steps.
 
 ### Sub-Task 5.4: Settings dan Preferences Extension
 
@@ -350,11 +350,11 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 - [x] Sub-Task 3.5: Lifecycle dan Error Handling
 - [x] Sub-Task 4.1: Global Keyboard Shortcut
 - [x] Sub-Task 4.2: Quick Picker Overlay (Lihat daftar lengkap di atas)
-- [ ] Sub-Task 4.3: Clipboard Management
-- [ ] Sub-Task 4.4: Tray Icon Integration
-- [ ] Sub-Task 5.1: Extension Popup Design
-- [ ] Sub-Task 5.2: Autofill Prompt Bar
-- [ ] Sub-Task 5.3: Error dan Empty States
+- [x] Sub-Task 4.3: Clipboard Management
+- [x] Sub-Task 4.4: Tray Icon Integration
+- [x] Sub-Task 5.1: Extension Popup Design
+- [x] Sub-Task 5.2: Autofill Prompt Bar
+- [x] Sub-Task 5.3: Error dan Empty States
 - [ ] Sub-Task 5.4: Settings Extension
 - [ ] Sub-Task 6.1: Isolasi Content Script
 - [ ] Sub-Task 6.2: Validasi Input dan Sanitasi
