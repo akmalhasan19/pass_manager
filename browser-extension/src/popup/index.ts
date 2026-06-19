@@ -37,6 +37,7 @@ const loadingState = document.getElementById('loadingState')!;
 const footer = document.getElementById('footer')!;
 const refreshBtn = document.getElementById('refreshBtn')!;
 const openAppBtn = document.getElementById('openAppBtn')!;
+const settingsBtn = document.getElementById('settingsBtn')!;
 const toast = document.getElementById('toast')!;
 
 // ---------------------------------------------------------------------------
@@ -501,6 +502,15 @@ openAppBtn.addEventListener('click', () => {
 
 refreshBtn.addEventListener('click', () => {
   fetchMatchingItems();
+});
+
+settingsBtn.addEventListener('click', () => {
+  // Open settings page in a new popup
+  chrome.tabs.create({
+    url: chrome.runtime.getURL('src/popup/settings.html'),
+    active: false,
+  });
+  window.close();
 });
 
 searchInput.addEventListener('input', () => {

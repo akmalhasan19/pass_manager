@@ -421,7 +421,8 @@
     /* Footer */
     .footer {
       padding: 10px 16px;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 8px;
       border-top: 1px solid var(--border-color);
       background: var(--bg-secondary);
@@ -468,6 +469,11 @@
 
     .btn-danger:hover {
       background: var(--danger-hover);
+    }
+
+    /* Footer with 3 buttons */
+    .footer.three-buttons {
+      grid-template-columns: 1fr 1.2fr 1fr;
     }
 
     /* Separator */
@@ -519,6 +525,7 @@
   <div class="footer" id="footer">
     <button class="btn btn-secondary" id="refreshBtn">Refresh</button>
     <button class="btn btn-primary" id="openAppBtn">Open App</button>
+    <button class="btn btn-secondary" id="settingsBtn" title="Settings">⚙️ Settings</button>
   </div>
 
   <div class="toast" id="toast"></div>
