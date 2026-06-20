@@ -2,11 +2,11 @@
   "version": 1,
   "vaults": [
     {
-      "id": "e1017e34-bbdc-4597-b616-d10f9b424d45",
+      "id": "b766a188-6f79-4905-81c6-d962afb66ff5",
       "name": "Vault Alpha",
-      "databasePath": "c:\\Users\\user\\pass_manager\\test-data\\vault-isolation\\vaults\\vault-e1017e34-bbdc-4597-b616-d10f9b424d45.db",
-      "createdAt": 1781870880320,
-      "lastOpenedAt": 1781870888442,
+      "databasePath": "C:\\Users\\user\\pass_manager\\test-data\\vault-isolation\\vaults\\vault-b766a188-6f79-4905-81c6-d962afb66ff5.db",
+      "createdAt": 1781927914253,
+      "lastOpenedAt": 1781927917645,
       "lastOpenedVersion": "0.1.0",
       "description": null,
       "color": null,
@@ -16,11 +16,11 @@
       "isCustomLocation": false
     },
     {
-      "id": "650fb396-eab6-4486-a103-9c3e297aa258",
+      "id": "0f42fe74-a333-4fd7-9b61-0d0fa3b2557f",
       "name": "Vault Beta",
-      "databasePath": "c:\\Users\\user\\pass_manager\\test-data\\vault-isolation\\vaults\\vault-650fb396-eab6-4486-a103-9c3e297aa258.db",
-      "createdAt": 1781870883774,
-      "lastOpenedAt": 1781870889734,
+      "databasePath": "C:\\Users\\user\\pass_manager\\test-data\\vault-isolation\\vaults\\vault-0f42fe74-a333-4fd7-9b61-0d0fa3b2557f.db",
+      "createdAt": 1781927915684,
+      "lastOpenedAt": 1781927918476,
       "lastOpenedVersion": "0.1.0",
       "description": null,
       "color": null,

@@ -43,5 +43,12 @@ export default tseslint.config(
       '@typescript-eslint/no-require-imports': 'off',
     },
   },
+  {
+    // Argon2id: require() is used for dynamic native module loading
+    files: ['src/main/crypto/argon2id.ts'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
   prettierConfig,
 );

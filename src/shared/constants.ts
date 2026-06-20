@@ -30,6 +30,13 @@ export const MAX_FIELD_LENGTHS = {
 
 export const VAULT_REGISTRY_VERSION = 1;
 
+/** Current version of the KDF metadata format.
+ *  v1: Flat-format KDF params (kdfIterations, kdfMemory, kdfParallelism).
+ *      Absence of this field implies legacy pre-v1 format (same layout).
+ *  v2: Adds migratedAt timestamp for Argon2id migration audit trail.
+ */
+export const KDF_VERSION = 2;
+
 /** RFC 6238 OTP default values */
 export const OTP_DEFAULTS = {
   PERIOD: 30,

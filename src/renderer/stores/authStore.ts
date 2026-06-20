@@ -319,6 +319,73 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       } catch {
         // Non-fatal: shortcuts are optional
       }
+
+      // Trigger Argon2id migration if the vault is still using PBKDF2.
+      // This runs in the background so the user can immediately start
+      // using the vault while the re-encryption happens asynchronously.
+      if (result.needsMigration) {
+        // Check if Argon2id is unavailable before showing migration toast
+        if (result.argon2idUnavailable) {
+          // Argon2id is not available - show warning but don't block user
+          useToastStore.getState().addToast(
+            t('security.migration.argon2idUnavailable'),
+            'info',
+            8000,
+          );
+        } else {
+          useToastStore.getState().addToast(
+            t('security.migration.inProgress'),
+            'info',
+            6000,
+          );
+
+          // Fire-and-forget: migration runs in the main process without
+          // blocking the renderer. The user sees a non-blocking info toast.
+          window.electron.auth.migrateKdf().then((migrationResult) => {
+            if (migrationResult.success) {
+              useToastStore.getState().addToast(
+                t('security.migration.success'),
+                'success',
+                5000,
+              );
+            } else if (migrationResult.fallbackToPbkdf2) {
+              // Argon2id unavailable - show warning instead of error
+              useToastStore.getState().addToast(
+                t('security.migration.argon2idUnavailable'),
+                'info',
+                8000,
+              );
+            } else {
+              // Surface the underlying error first.
+              useToastStore.getState().addToast(
+                t('security.migration.failed', { error: migrationResult.error || '' }),
+                'error',
+                8000,
+              );
+              // If the pre-migration backup is still on disk, surface a
+              // longer-lived info toast so the user knows how to recover
+              // manually. The full instructions are also stored on the
+              // result for callers that want to render a dedicated UI.
+              if (migrationResult.backupAvailable && migrationResult.manualRecoveryInstructions) {
+                const firstLine = migrationResult.manualRecoveryInstructions
+                  .split('\n')
+                  .find((line) => line.trim().length > 0) ?? '';
+                useToastStore.getState().addToast(
+                  t('security.migration.recoveryAvailable', { summary: firstLine }),
+                  'info',
+                  12000,
+                );
+              }
+            }
+          }).catch(() => {
+            useToastStore.getState().addToast(
+              t('security.migration.failed', { error: 'IPC call failed' }),
+              'error',
+              8000,
+            );
+          });
+        }
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : t('auth.error.failedUnlock');
       set({

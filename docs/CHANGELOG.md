@@ -6,6 +6,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [Unreleased]
+
+### Added
+
+#### Argon2id KDF Migration (PLANNING-ARGON2ID-MIGRATION)
+- Argon2id native module via `argon2@0.44.0` with prebuild binaries
+  for Windows x64, macOS (Intel + Apple Silicon), and Linux (glibc
+  + musl).
+- WASM fallback via `hash-wasm` for environments without a usable
+  native binary, and a final PBKDF2-SHA512 fallback when neither
+  is available.
+- SHA-256 checksum verification of the native binary against
+  `src/main/crypto/argon2-checksums.json` before load to detect
+  tampering or corruption.
+- New `kdfAlgorithm`, `kdfParams`, `kdfVersion`, and `migratedAt`
+  fields in the per-vault auth metadata. See
+  [docs/DEV-KDF-METADATA-FORMAT.md](DEV-KDF-METADATA-FORMAT.md).
+- Automatic, atomic PBKDF2 → Argon2id migration in the background
+  after the first unlock of a legacy vault. Backup file
+  (`.pre-argon2id-backup`) is created before re-encryption and
+  removed only on verified success. On failure the vault is rolled
+  back to PBKDF2 and the user receives manual recovery
+  instructions.
+- 90+ new tests covering unit, integration, security, performance
+  and failure recovery of the migration path.
+
+### Documentation
+
+- [docs/DEV-ARGON2ID-NATIVE-MODULE.md](DEV-ARGON2ID-NATIVE-MODULE.md) —
+  developer notes for the Argon2id native module: library choice,
+  build pipeline, checksum verification, fallback behavior, and
+  troubleshooting recipes per platform.
+- [docs/DEV-KDF-METADATA-FORMAT.md](DEV-KDF-METADATA-FORMAT.md) —
+  specification of the new KDF metadata format, including
+  versioning rules, read/write paths, and end-to-end examples.
+- [docs/QA-ARGON2ID-CHECKLIST.md](QA-ARGON2ID-CHECKLIST.md) — QA
+  runbook with platform-specific test cases for Windows, macOS,
+  and Linux, covering pre-flight checks, unlock, migration,
+  failure recovery, and performance benchmarks.
+- [docs/PLANNING-ARGON2ID-MIGRATION.md](PLANNING-ARGON2ID-MIGRATION.md) —
+  implementation plan that drove the work (Sub-Tasks 1.1–6.3).
+
+---
+
 ## [0.1.0] — 2026-06-14
 
 ### Added

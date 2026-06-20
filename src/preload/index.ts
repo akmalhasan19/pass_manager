@@ -40,6 +40,8 @@ const api = {
     changePassword: (oldPassword: string, newPassword: string, vaultId?: string) =>
       ipcRenderer.invoke(IPC_CHANNELS.AUTH_CHANGE_PASSWORD, { oldPassword, newPassword, vaultId }),
     check: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_CHECK),
+    migrateKdf: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_MIGRATE_KDF),
+    getKdfStatus: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_GET_KDF_STATUS),
     // SECURITY: Clean up all IPC listeners to prevent lingering references
     // after lock or when the renderer no longer needs them.
     cleanupListeners: () => removeAllSensitiveListeners(),

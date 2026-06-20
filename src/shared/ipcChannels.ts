@@ -4,6 +4,8 @@ export const IPC_CHANNELS = {
   AUTH_LOCK: 'auth:lock',
   AUTH_CHANGE_PASSWORD: 'auth:change-password',
   AUTH_CHECK: 'auth:check',
+  AUTH_MIGRATE_KDF: 'auth:migrateKdf',
+  AUTH_GET_KDF_STATUS: 'auth:getKdfStatus',
   AUTH_LOCKED: 'auth:locked',
 
   VAULT_LIST: 'vault:list',

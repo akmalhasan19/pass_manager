@@ -126,21 +126,37 @@
 
 ## Rank 7: Argon2id Migration
 
-**Status**: Perlu migrasi background  
+**Status**: Selesai dimplementasikan (2026-06-20)  
 **Tag**: `Technical Debt`, `Security`, `Future Proof`
 
 **Deskripsi**: Migrasi algoritma Key Derivation Function (KDF) dari PBKDF2 ke Argon2id.
 
-**Apa yang perlu dikerjakan**:
-- Implementasi Argon2id via Node native module.
-- Deteksi format vault lama saat unlock.
-- Auto-re-encrypt vault menggunakan KDF baru setelah pengguna memasukkan password.
-- Code path fallback untuk user yang tidak bisa menginstall native module.
+**Yang sudah selesai**:
+- Implementasi Argon2id via Node native module (`argon2` 0.44.0) dengan
+  fallback ke `hash-wasm` (WASM) dan terakhir ke PBKDF2.
+- Deteksi format vault lama (PBKDF2) saat unlock, dengan backward
+  compatibility untuk vault tanpa field `kdfAlgorithm`.
+- Auto re-encrypt vault di background setelah unlock menggunakan KDF
+  baru. Migration berjalan atomik dengan backup file
+  (`.pre-argon2id-backup`) dan rollback otomatis jika gagal.
+- Checksum verification (SHA-256) untuk native module binary, untuk
+  mencegah tampering atau binary corruption diam-diam.
+- Manual recovery instructions untuk user jika migration gagal.
+- Format metadata baru (`kdfAlgorithm`, `kdfParams`, `kdfVersion`).
+- Set lengkap test: unit, integration, security, performance, dan
+  failure recovery (62+ tests).
 
-**Kenapa penting**: Argon2id adalah standar modern yang lebih tahan terhadap serangan GPU/ASIC.
+**Referensi**:
+- Perencanaan lengkap: [docs/PLANNING-ARGON2ID-MIGRATION.md](PLANNING-ARGON2ID-MIGRATION.md)
+- Developer notes (native module, build, troubleshooting):
+  [docs/DEV-ARGON2ID-NATIVE-MODULE.md](DEV-ARGON2ID-NATIVE-MODULE.md)
+- Metadata format spec:
+  [docs/DEV-KDF-METADATA-FORMAT.md](DEV-KDF-METADATA-FORMAT.md)
+- QA runbook (Windows / macOS / Linux):
+  [docs/QA-ARGON2ID-CHECKLIST.md](QA-ARGON2ID-CHECKLIST.md)
 
 ---
 
 ## Ringkasan Prioritas dalam Satu Kalimat
 
-> Mulai dari **Import/Export** agar aplikasi usable (Rank 1), perbaiki potential bug validation (Rank 2), tutup hole keamanan memory (Rank 3), lalu tambahkan fitur organisasi multi-vault (Rank 4) dan TOTP (Rank 5) agar kompetitif. Integrasi Browser (Rank 6) dan migrasi Argon2 (Rank 7) bisa menunggu maturitas berikutnya.
+> Mulai dari **Import/Export** agar aplikasi usable (Rank 1), perbaiki potential bug validation (Rank 2), tutup hole keamanan memory (Rank 3), lalu tambahkan fitur organisasi multi-vault (Rank 4) dan TOTP (Rank 5) agar kompetitif. Integrasi Browser (Rank 6) sudah punya fondasi protokol native messaging; tinggal integrasi UI. Migrasi Argon2id (Rank 7) sudah selesai dan semua vault di-migrasi secara otomatis setelah unlock berikutnya.

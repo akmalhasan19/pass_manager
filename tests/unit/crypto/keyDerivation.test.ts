@@ -97,9 +97,43 @@ describe('deriveKeyPBKDF2', () => {
 });
 
 describe('deriveKeyArgon2id', () => {
-  it('should return null (stub)', async () => {
+  it('should return a 32-byte Buffer (AES-256 key)', async () => {
     const result = await deriveKeyArgon2id('pw', Buffer.alloc(16));
-    expect(result).toBeNull();
+    expect(result).toBeInstanceOf(Buffer);
+    expect(result).toHaveLength(KEY_BYTES);
+  });
+
+  it('should be deterministic with same salt', async () => {
+    const salt = Buffer.alloc(32, 0xab);
+    const key1 = await deriveKeyArgon2id(TEST_PASSWORD, salt, 65536, 3, 4);
+    const key2 = await deriveKeyArgon2id(TEST_PASSWORD, salt, 65536, 3, 4);
+    expect(key1).toEqual(key2);
+  });
+
+  it('should produce different keys for different passwords', async () => {
+    const salt = Buffer.alloc(32, 0xab);
+    const key1 = await deriveKeyArgon2id(TEST_PASSWORD, salt, 65536, 3, 4);
+    const key2 = await deriveKeyArgon2id('DifferentPassword', salt, 65536, 3, 4);
+    expect(key1).not.toEqual(key2);
+  });
+
+  it('should handle empty password', async () => {
+    const salt = generateSalt();
+    const result = await deriveKeyArgon2id('', salt, 65536, 3, 4);
+    expect(result).toHaveLength(KEY_BYTES);
+  });
+
+  it('should handle very long password (1000 chars)', async () => {
+    const salt = generateSalt();
+    const longPw = 'a'.repeat(1000);
+    const result = await deriveKeyArgon2id(longPw, salt, 65536, 3, 4);
+    expect(result).toHaveLength(KEY_BYTES);
+  });
+
+  it('should handle Unicode password', async () => {
+    const salt = generateSalt();
+    const result = await deriveKeyArgon2id('pässwörd🔥', salt, 65536, 3, 4);
+    expect(result).toHaveLength(KEY_BYTES);
   });
 });
 
@@ -166,8 +200,8 @@ describe('timingSafeEqual', () => {
 });
 
 describe('deriveMasterKey', () => {
-  it('should derive key using PBKDF2 when algorithm is pbkdf2', () => {
-    const key = deriveMasterKey(TEST_PASSWORD, TEST_SALT, {
+  it('should derive key using PBKDF2 when algorithm is pbkdf2', async () => {
+    const key = await deriveMasterKey(TEST_PASSWORD, TEST_SALT, {
       algorithm: 'pbkdf2',
       iterations: 1000,
     });
@@ -176,21 +210,23 @@ describe('deriveMasterKey', () => {
     expect(key).toHaveLength(KEY_BYTES);
   });
 
-  it('should throw when algorithm is argon2id', () => {
-    expect(() =>
-      deriveMasterKey(TEST_PASSWORD, TEST_SALT, {
-        algorithm: 'argon2id',
-        iterations: 3,
-      }),
-    ).toThrow('Argon2id not yet implemented');
+  it('should derive key using Argon2id when algorithm is argon2id', async () => {
+    const key = await deriveMasterKey(TEST_PASSWORD, TEST_SALT, {
+      algorithm: 'argon2id',
+      memoryCost: 65536,
+      timeCost: 3,
+      parallelism: 4,
+    });
+    expect(key).toBeInstanceOf(Buffer);
+    expect(key).toHaveLength(KEY_BYTES);
   });
 
-  it('should throw for unknown algorithm', () => {
-    expect(() =>
+  it('should throw for unknown algorithm', async () => {
+    await expect(
       deriveMasterKey(TEST_PASSWORD, TEST_SALT, {
         algorithm: 'unknown' as never,
         iterations: 1000,
       }),
-    ).toThrow('Unknown KDF algorithm');
+    ).rejects.toThrow('Unknown KDF algorithm');
   });
 });

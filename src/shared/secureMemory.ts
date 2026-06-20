@@ -17,9 +17,9 @@ import { randomBytes } from 'node:crypto';
  * The function reads the first byte after writing to create a data dependency
  * that prevents the JIT compiler from eliding the fill as a dead store.
  *
- * @param buffer  The Buffer or ArrayBuffer to wipe. Null/undefined are no-ops.
+ * @param buffer  The Buffer, ArrayBuffer, or Uint8Array to wipe. Null/undefined are no-ops.
  */
-export function secureClear(buffer: Buffer | ArrayBuffer | null | undefined): void {
+export function secureClear(buffer: Buffer | ArrayBuffer | Uint8Array | null | undefined): void {
   // SECURITY: Wipe sensitive material before leaving scope
   if (!buffer) return;
 
@@ -95,7 +95,7 @@ export function secureWipeObject(obj: Record<string, unknown> | null | undefined
   for (const key of Object.keys(obj)) {
     const val = obj[key];
     if (val instanceof ArrayBuffer || val instanceof Uint8Array || Buffer.isBuffer(val)) {
-      secureClear(val as Buffer | ArrayBuffer);
+      secureClear(val as Buffer | ArrayBuffer | Uint8Array);
     } else if (typeof val === 'string') {
       obj[key] = secureClearString(val);
     }

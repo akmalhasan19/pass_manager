@@ -138,10 +138,16 @@ describe('Security Regression Tests (Sub-Task 7.4)', () => {
 
       // Derive the expected key for vault A and verify it matches the active key.
       const authA = readVaultAuthMetadata(idA);
-      const keyA = deriveMasterKey(passwordA, authA.salt, {
-        algorithm: authA.kdfAlgorithm,
-        iterations: authA.kdfIterations,
-      });
+      let kdfParamsA: import('../../src/main/crypto/kdfEngine').KdfParams;
+      if (authA.kdfVersion && authA.kdfVersion >= 1 && authA.kdfParams) {
+        kdfParamsA = authA.kdfParams as import('../../src/main/crypto/kdfEngine').KdfParams;
+      } else {
+        kdfParamsA = {
+          algorithm: authA.kdfAlgorithm,
+          iterations: authA.kdfIterations,
+        };
+      }
+      const keyA = await deriveMasterKey(passwordA, authA.salt, kdfParamsA);
       expect(getMasterKey()?.toString('hex')).toBe(keyA.toString('hex'));
 
       // Encrypt a secret with vault A's key.

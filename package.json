@@ -5,7 +5,7 @@
   "main": "dist-electron/main/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && node scripts/strip-sourcemaps.js",
+    "build": "node scripts/generate-argon2-checksums.js && tsc && vite build && node scripts/strip-sourcemaps.js",
     "build:renderer": "vite build",
     "build:main": "vite build --config vite.main.config.ts",
     "build:preload": "vite build --config vite.preload.config.ts",
@@ -51,10 +51,12 @@
     "@tiptap/starter-kit": "^2.10.0",
     "@types/dompurify": "^3.0.5",
     "ajv": "^8.20.0",
+    "argon2": "^0.44.0",
     "dompurify": "^3.4.10",
     "emoji-picker-react": "^4.19.1",
     "fast-xml-parser": "^5.9.0",
     "framer-motion": "11.18.2",
+    "hash-wasm": "^4.12.0",
     "immer": "^10.1.1",
     "jsonwebtoken": "^9.0.3",
     "jsqr": "^1.4.0",
@@ -68,6 +70,7 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@eslint/js": "^9.17.0",
     "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.6.0",

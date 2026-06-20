@@ -83,6 +83,10 @@ export interface TrashEntry {
   deletedAt: number;
 }
 
+export type KdfParams =
+  | { algorithm: 'pbkdf2'; iterations: number }
+  | { algorithm: 'argon2id'; memoryCost: number; timeCost: number; parallelism: number };
+
 export interface AuthMetadata {
   salt: Buffer;
   kdfAlgorithm: 'pbkdf2' | 'argon2id';
@@ -91,11 +95,12 @@ export interface AuthMetadata {
   kdfParallelism: number | null;
   verificationHash: string;
   createdAt: number;
-}
-
-export interface KdfParams {
-  algorithm: 'pbkdf2' | 'argon2id';
-  iterations: number;
+  /** Structured KDF parameters (v1+). Persisted to avoid hard-coded defaults. */
+  kdfParams?: KdfParams;
+  /** KDF metadata format version. Absent = legacy flat format (pre-v1 layout). */
+  kdfVersion?: number;
+  /** Timestamp when the vault was migrated from PBKDF2 to Argon2id. Absent if no migration has occurred. */
+  migratedAt?: number;
 }
 
 export interface AppSettings {
@@ -513,6 +518,10 @@ export interface VaultBackupFile {
     kdfParallelism: number | null;
     verificationHash: string;
     createdAt: number;
+    /** Structured KDF parameters (v1+). */
+    kdfParams?: KdfParams;
+    /** KDF metadata format version. Absent = legacy flat format. */
+    kdfVersion?: number;
   };
   backupCreatedAt: number;
 }

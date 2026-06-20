@@ -23,10 +23,26 @@ export type IpcResult<T> = { success: boolean; data: T; error?: string };
 
 export interface ElectronAuthAPI {
   init(masterPassword: string, vaultId?: string): Promise<IpcResult<void> & { vaultId?: string }>;
-  unlock(masterPassword: string, vaultId?: string): Promise<IpcResult<void> & { vaultId?: string }>;
+  unlock(masterPassword: string, vaultId?: string): Promise<IpcResult<void> & { vaultId?: string; needsMigration?: boolean; argon2idUnavailable?: boolean }>;
   lock(): Promise<IpcResult<void>>;
   changePassword(oldPassword: string, newPassword: string, vaultId?: string): Promise<IpcResult<void>>;
   check(): Promise<{ initialized: boolean; vaultId?: string | null; vaultName?: string | null }>;
+  migrateKdf(): Promise<IpcResult<void> & {
+    fallbackOccurred?: boolean;
+    fallbackReason?: string;
+    fallbackToPbkdf2?: boolean;
+    /** True if the pre-migration backup file is still on disk after a failure. */
+    backupAvailable?: boolean;
+    /** Absolute path of the pre-migration backup file (if available). */
+    backupPath?: string;
+    /** Absolute path of the live vault file (if available). */
+    vaultPath?: string;
+    /** Human-readable manual-recovery instructions for the user. */
+    manualRecoveryInstructions?: string;
+    /** Stage of the migration pipeline that failed (for diagnostics). */
+    failureStage?: string;
+  }>;
+  getKdfStatus(): Promise<IpcResult<{ vaultId: string | null; kdfAlgorithm: 'pbkdf2' | 'argon2id' | null; argon2idAvailable: boolean; needsMigration: boolean }>>;
   // SECURITY: Remove all IPC listeners to prevent lingering references on lock
   cleanupListeners(): void;
 }

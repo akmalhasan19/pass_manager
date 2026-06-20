@@ -40,7 +40,7 @@ import {
   getActiveAuthVaultId,
 } from './authHandlers';
 import { recordVaultOpened } from '../file-system/vaultRegistry';
-import { APP_VERSION } from '../../shared/constants';
+import { KDF_VERSION, APP_VERSION } from '../../shared/constants';
 import { logger } from '../../shared/logger';
 
 function requireVaultId(vaultId: unknown): string {
@@ -127,7 +127,7 @@ export function registerVaultHandlers(): void {
           // Set up auth for the new vault by deriving a key from the provided
           // password and writing per-vault auth metadata. Then unlock the vault.
           const salt = generateSalt();
-          const key = deriveMasterKey(masterPassword, salt, {
+          const key = await deriveMasterKey(masterPassword, salt, {
             algorithm: 'pbkdf2',
             iterations: DEFAULT_PBKDF2_ITERATIONS,
           });
@@ -140,6 +140,11 @@ export function registerVaultHandlers(): void {
             kdfParallelism: null as number | null,
             verificationHash: hashKeyForVerification(key),
             createdAt: Date.now(),
+            kdfParams: {
+              algorithm: 'pbkdf2' as const,
+              iterations: DEFAULT_PBKDF2_ITERATIONS,
+            },
+            kdfVersion: KDF_VERSION,
           };
 
           writeVaultAuthMetadata(vault.id, authMetadata);
@@ -678,6 +683,8 @@ export function registerVaultHandlers(): void {
             kdfParallelism: authMetadata.kdfParallelism,
             verificationHash: authMetadata.verificationHash,
             createdAt: authMetadata.createdAt,
+            kdfParams: authMetadata.kdfParams,
+            kdfVersion: authMetadata.kdfVersion,
           },
           backupCreatedAt: Date.now(),
         };
@@ -930,6 +937,8 @@ export function registerVaultHandlers(): void {
             kdfParallelism: authMeta.kdfParallelism ?? null,
             verificationHash: authMeta.verificationHash,
             createdAt: authMeta.createdAt ?? Date.now(),
+            kdfParams: authMeta.kdfParams,
+            kdfVersion: authMeta.kdfVersion,
           };
           writeVaultAuthMetadata(vault.id, authMetadata);
 

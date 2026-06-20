@@ -59,9 +59,78 @@ export function vaultAuthFileExists(vaultId: string): boolean {
 }
 
 /**
+ * Validates that auth metadata has all required fields with correct types.
+ * Returns an error message if validation fails, null if valid.
+ */
+export function validateAuthMetadata(metadata: Record<string, unknown>): string | null {
+  // Validate salt exists and is valid base64
+  if (!metadata.salt || typeof metadata.salt !== 'string') {
+    return 'Auth metadata is corrupt: missing or invalid salt.';
+  }
+
+  // Validate salt is valid base64 and not empty
+  const saltString = metadata.salt as string;
+  const saltBuffer = Buffer.from(saltString, 'base64');
+
+  // Check if the decoded buffer is empty
+  if (saltBuffer.length === 0) {
+    return 'Auth metadata is corrupt: salt is empty.';
+  }
+
+  // Check if the base64 string is valid by re-encoding and comparing
+  const reEncoded = saltBuffer.toString('base64');
+  if (reEncoded !== saltString) {
+    return 'Auth metadata is corrupt: salt is not valid base64.';
+  }
+
+  // Validate verificationHash exists and is valid hex string
+  if (!metadata.verificationHash || typeof metadata.verificationHash !== 'string') {
+    return 'Auth metadata is corrupt: missing or invalid verification hash.';
+  }
+
+  if (!/^[a-f0-9]{64}$/i.test(metadata.verificationHash)) {
+    return 'Auth metadata is corrupt: verification hash is not valid hex.';
+  }
+
+  // Validate kdfAlgorithm if present
+  if (metadata.kdfAlgorithm !== undefined) {
+    if (metadata.kdfAlgorithm !== 'pbkdf2' && metadata.kdfAlgorithm !== 'argon2id') {
+      return `Auth metadata is corrupt: unsupported KDF algorithm "${metadata.kdfAlgorithm}".`;
+    }
+  }
+
+  // Validate kdfIterations for PBKDF2
+  const algorithm = metadata.kdfAlgorithm ?? 'pbkdf2';
+  if (algorithm === 'pbkdf2') {
+    if (metadata.kdfIterations !== undefined) {
+      if (typeof metadata.kdfIterations !== 'number' || metadata.kdfIterations < 1) {
+        return 'Auth metadata is corrupt: invalid PBKDF2 iterations count.';
+      }
+    }
+  }
+
+  // Validate Argon2id parameters if algorithm is argon2id
+  if (algorithm === 'argon2id') {
+    if (metadata.kdfMemory !== undefined && metadata.kdfMemory !== null) {
+      if (typeof metadata.kdfMemory !== 'number' || metadata.kdfMemory < 1) {
+        return 'Auth metadata is corrupt: invalid Argon2id memory cost.';
+      }
+    }
+    if (metadata.kdfParallelism !== undefined && metadata.kdfParallelism !== null) {
+      if (typeof metadata.kdfParallelism !== 'number' || metadata.kdfParallelism < 1) {
+        return 'Auth metadata is corrupt: invalid Argon2id parallelism.';
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Reads and parses the auth metadata for a specific vault.
  *
- * @throws {Error} If the auth file does not exist or contains invalid JSON.
+ * @throws {Error} If the auth file does not exist, contains invalid JSON,
+ *                 or fails validation.
  */
 export function readVaultAuthMetadata(vaultId: string): AuthMetadata {
   const authPath = getVaultAuthPath(vaultId);
@@ -70,11 +139,24 @@ export function readVaultAuthMetadata(vaultId: string): AuthMetadata {
   }
 
   const raw = readFileSync(authPath, 'utf-8');
-  const parsed = JSON.parse(raw);
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(
+      `Auth metadata for vault ${vaultId} is corrupt: invalid JSON format.`,
+    );
+  }
+
+  // Validate the parsed metadata
+  const validationError = validateAuthMetadata(parsed);
+  if (validationError) {
+    throw new Error(`Auth metadata for vault ${vaultId} is corrupt: ${validationError}`);
+  }
 
   return {
     ...parsed,
-    salt: Buffer.from(parsed.salt, 'base64'),
+    salt: Buffer.from(parsed.salt as string, 'base64'),
   };
 }
 
@@ -130,6 +212,87 @@ export function deleteAllVaultAuthMetadata(): void {
   }
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// Legacy Single-Vault KDF Migration Detection
+// ───────────────────────────────────────────────────────────────────────────
+
+/**
+ * Result of scanning a vault's auth metadata to determine if it is a
+ * candidate for KDF migration (PBKDF2 → Argon2id).
+ *
+ * Detecting legacy single-file vaults that lack the `kdfAlgorithm` field
+ * is critical for Sub-Task 6.1: Single-Vault Legacy Migration.
+ */
+export interface KdfMigrationCandidate {
+  /** True if this vault uses PBKDF2 or has no explicit kdfAlgorithm. */
+  isCandidate: boolean;
+  /** The detected algorithm, or 'unknown' if unreadable. */
+  currentAlgorithm: 'pbkdf2' | 'argon2id' | 'unknown';
+  /** True if the auth metadata contains the `kdfAlgorithm` field. */
+  hasKdfAlgorithmField: boolean;
+  /** True if the auth metadata uses the pre-v1 flat format (no kdfParams / no kdfVersion). */
+  hasFlatLegacyFormat: boolean;
+  /** Human-readable reason for the candidate status. */
+  reason: string;
+}
+
+/**
+ * Detects whether a vault is a legacy single-file vault that needs
+ * migration from PBKDF2 to Argon2id.
+ *
+ * Legacy single-file vaults are identified by the absence of the
+ * `kdfAlgorithm` field in their per-vault auth metadata. Newer vaults
+ * explicitly declare `pbkdf2` or `argon2id`.
+ *
+ * This function is the cornerstone of Sub-Task 6.1: it reads the
+ * per-vault auth metadata, detects the legacy condition, and returns
+ * a structured result that callers can use to display UI indicators,
+ * trigger background migration, or log diagnostics.
+ *
+ * SECURITY: This function only reads metadata — it does not change
+ * any files, derive keys, or access the vault database. It is safe to
+ * call on a locked vault.
+ *
+ * @param vaultId - The vault ID to check.
+ * @returns KdfMigrationCandidate with full detection results.
+ */
+export function detectKdfMigrationCandidate(vaultId: string): KdfMigrationCandidate {
+  try {
+    const authMetadata = readVaultAuthMetadata(vaultId);
+    const hasKdfAlgorithmField = authMetadata.kdfAlgorithm !== undefined;
+    const currentAlgorithm = authMetadata.kdfAlgorithm ?? 'pbkdf2';
+    const isCandidate = currentAlgorithm === 'pbkdf2';
+    const hasFlatLegacyFormat = !authMetadata.kdfParams && !authMetadata.kdfVersion;
+
+    let reason: string;
+    if (isCandidate) {
+      if (!hasKdfAlgorithmField) {
+        reason = 'Legacy single-file vault without kdfAlgorithm field detected. PBKDF2 is assumed.';
+      } else {
+        reason = 'Vault is using PBKDF2 and should be migrated to Argon2id for stronger security.';
+      }
+    } else {
+      reason = 'Vault is already using Argon2id. No KDF migration needed.';
+    }
+
+    return {
+      isCandidate,
+      currentAlgorithm,
+      hasKdfAlgorithmField,
+      hasFlatLegacyFormat,
+      reason,
+    };
+  } catch {
+    return {
+      isCandidate: false,
+      currentAlgorithm: 'unknown',
+      hasKdfAlgorithmField: false,
+      hasFlatLegacyFormat: false,
+      reason: 'Unable to read auth metadata for vault.',
+    };
+  }
+}
+
 /**
  * Migrates a legacy global auth.json file to per-vault auth storage.
  *
@@ -165,6 +328,8 @@ export function migrateLegacyAuthToVault(legacyAuthPath: string, vaultId: string
       kdfParallelism: parsed.kdfParallelism ?? null,
       verificationHash: parsed.verificationHash,
       createdAt: parsed.createdAt ?? Date.now(),
+      kdfParams: parsed.kdfParams ?? undefined,
+      kdfVersion: parsed.kdfVersion ?? undefined,
     };
 
     writeVaultAuthMetadata(vaultId, metadata);
