@@ -643,7 +643,16 @@ export async function startNativeMessagingListener(
  * @returns true if stdin is a pipe (native messaging mode).
  */
 export function isNativeMessagingMode(): boolean {
-  return process.stdin.isTTY !== true;
+  const forceGui = process.env.SECURE_PASS_FORCE_GUI === '1';
+  const forceNative = process.env.SECURE_PASS_FORCE_NATIVE_MESSAGING === '1';
+
+  if (forceNative) return true;
+  if (forceGui) return false;
+
+  // In dev (Vite dev server), stdin often appears as a non-TTY pipe,
+  // which incorrectly triggers native messaging mode. Only enter native
+  // messaging when there is no dev server URL.
+  return process.stdin.isTTY !== true && process.env.VITE_DEV_SERVER_URL === undefined;
 }
 
 /**

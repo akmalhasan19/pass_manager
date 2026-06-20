@@ -93,6 +93,10 @@ npm install
 # Start dev server with hot-reload (Vite + Electron)
 npm run dev
 
+# Force native messaging mode for testing browser extension integration
+$env:SECURE_PASS_FORCE_NATIVE_MESSAGING="1"; npm run dev   # PowerShell
+set SECURE_PASS_FORCE_NATIVE_MESSAGING=1 && npm run dev   # cmd / bash
+
 # Type checking
 npm run typecheck
 
