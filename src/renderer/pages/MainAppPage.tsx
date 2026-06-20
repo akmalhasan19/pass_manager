@@ -5,6 +5,7 @@ import MainPanel from '../components/layout/MainPanel';
 import QuickFind from '../components/layout/QuickFind';
 import ToastContainer from '../components/ui/ToastContainer';
 import OtpOnboardingBanner from '../components/otp/OtpOnboardingBanner';
+import ExtensionSetupBanner from '../components/extension/ExtensionSetupBanner';
 import { useAutoLock } from '../hooks/useAutoLock';
 
 export default function MainAppPage(): React.ReactElement {
@@ -25,6 +26,7 @@ export default function MainAppPage(): React.ReactElement {
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-white dark:bg-surface-900">
       <TitleBar />
       <OtpOnboardingBanner />
+      <ExtensionSetupBanner />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <MainPanel />

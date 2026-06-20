@@ -111,6 +111,10 @@ export interface AppSettings {
   passwordHealthOldDays: number;
   otpPrivacyMode: boolean;
   otpOnboardingShown: boolean;
+  /** Enable/disable browser extension integration globally. */
+  extensionIntegrationEnabled: boolean;
+  /** Whether the user has dismissed the extension setup reminder banner. */
+  extensionSetupDismissed: boolean;
 }
 
 export interface SearchResultItem {

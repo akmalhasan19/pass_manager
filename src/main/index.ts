@@ -24,6 +24,7 @@ import {
   registerClipboardHandlers,
   cleanupClipboardHandlers,
 } from './ipc/clipboardHandlers';
+import { registerExtensionHandlers } from './ipc/extensionHandlers';
 import {
   initializeQuickPicker,
   setQuickPickerVaultState,
@@ -157,6 +158,7 @@ function registerAllHandlers(): void {
   registerShortcutHandlers();
   registerQuickPickerHandlers();
   registerClipboardHandlers();
+  registerExtensionHandlers();
 
   // Auto-updater IPC handlers
   ipcMain.handle(IPC_CHANNELS.CHECK_FOR_UPDATES, async () => {

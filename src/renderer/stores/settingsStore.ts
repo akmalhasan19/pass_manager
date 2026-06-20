@@ -14,6 +14,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   passwordHealthOldDays: 90,
   otpPrivacyMode: false,
   otpOnboardingShown: false,
+  extensionIntegrationEnabled: true,
+  extensionSetupDismissed: false,
 };
 
 type SettingKey = keyof AppSettings;

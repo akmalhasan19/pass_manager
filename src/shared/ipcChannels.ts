@@ -123,4 +123,10 @@ export const IPC_CHANNELS = {
   CLIPBOARD_STATUS: 'clipboard:status',
   CLIPBOARD_ON_STATUS_CHANGE: 'clipboard:onStatusChange',
   CLIPBOARD_CLEAR_STATUS_LISTENER: 'clipboard:clearStatusListener',
+
+  // Browser Extension integration
+  EXTENSION_GET_STATUS: 'extension:getStatus',
+  EXTENSION_INSTALL_HOST: 'extension:installHost',
+  EXTENSION_UNINSTALL_HOST: 'extension:uninstallHost',
+  EXTENSION_OPEN_STORE: 'extension:openStore',
 } as const;

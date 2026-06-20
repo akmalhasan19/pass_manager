@@ -30,6 +30,7 @@ import { isDatabaseOpen } from '../database/connection';
 import { writeToClipboard } from '../services/clipboardService';
 import { logger } from '../../shared/logger';
 import { secureClearString } from '../../shared/secureMemory';
+import { showQuickPicker } from '../quickPicker/quickPickerManager';
 
 // ---------------------------------------------------------------------------
 // Singleton repository
@@ -43,7 +44,8 @@ const itemRepo = new ItemRepository();
 
 /**
  * Handle a COPY_PASSWORD shortcut action.
- * Copies the password of the most recently active item to clipboard.
+ * If multiple items with passwords exist, show the quick picker overlay
+ * so the user can choose. If only one exists, copy it directly.
  */
 function handleCopyPasswordShortcut(): void {
   if (getActiveAuthVaultId() && isDatabaseOpen()) {
@@ -51,27 +53,32 @@ function handleCopyPasswordShortcut(): void {
     if (!masterKey) return;
 
     try {
-      // Get the most recently modified item with a password
       const allItems = itemRepo.getAll();
-      // Sort by updatedAt descending, pick first with a password
       const sorted = [...allItems]
         .filter((item) => item.passwordEncrypted)
         .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 
-      if (sorted.length > 0) {
-        const item = sorted[0]!;
-        const passwordBuf = Buffer.from(item.passwordEncrypted!);
-        try {
-          const plaintext = decryptString(passwordBuf, masterKey);
-          writeToClipboard(plaintext, { type: 'password', clearAfterSeconds: 45, showToast: true });
-          secureClearString(plaintext);
-          logger.info('Global shortcut: password copied to clipboard', {
-            itemId: item.id,
-            title: item.title,
-          });
-        } finally {
-          secureClearString(passwordBuf as unknown as string);
-        }
+      if (sorted.length === 0) return;
+
+      // If multiple candidates exist, show quick picker for user to choose
+      if (sorted.length > 1) {
+        showQuickPicker();
+        return;
+      }
+
+      // Single item — copy directly
+      const item = sorted[0]!;
+      const passwordBuf = Buffer.from(item.passwordEncrypted!);
+      try {
+        const plaintext = decryptString(passwordBuf, masterKey);
+        writeToClipboard(plaintext, { type: 'password', clearAfterSeconds: 45, showToast: true });
+        secureClearString(plaintext);
+        logger.info('Global shortcut: password copied to clipboard', {
+          itemId: item.id,
+          title: item.title,
+        });
+      } finally {
+        secureClearString(passwordBuf as unknown as string);
       }
     } catch (err) {
       logger.error('Global shortcut: failed to copy password', {
@@ -83,7 +90,8 @@ function handleCopyPasswordShortcut(): void {
 
 /**
  * Handle a COPY_USERNAME shortcut action.
- * Copies the username of the most recently active item to clipboard.
+ * If multiple items with usernames exist, show the quick picker overlay
+ * so the user can choose. If only one exists, copy it directly.
  */
 function handleCopyUsernameShortcut(): void {
   if (getActiveAuthVaultId() && isDatabaseOpen()) {
@@ -96,14 +104,21 @@ function handleCopyUsernameShortcut(): void {
         .filter((item) => item.username)
         .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 
-      if (sorted.length > 0) {
-        const item = sorted[0]!;
-        writeToClipboard(item.username ?? '', { type: 'username', clearAfterSeconds: 45, showToast: true });
-        logger.info('Global shortcut: username copied to clipboard', {
-          itemId: item.id,
-          title: item.title,
-        });
+      if (sorted.length === 0) return;
+
+      // If multiple candidates exist, show quick picker for user to choose
+      if (sorted.length > 1) {
+        showQuickPicker();
+        return;
       }
+
+      // Single item — copy directly
+      const item = sorted[0]!;
+      writeToClipboard(item.username ?? '', { type: 'username', clearAfterSeconds: 45, showToast: true });
+      logger.info('Global shortcut: username copied to clipboard', {
+        itemId: item.id,
+        title: item.title,
+      });
     } catch (err) {
       logger.error('Global shortcut: failed to copy username', {
         error: err instanceof Error ? err.message : String(err),
@@ -156,8 +171,6 @@ export function handleGlobalShortcutAction(action: ShortcutAction): void {
       handleLockVaultShortcut();
       break;
     case 'QUICK_PICKER':
-      // Quick picker is handled by the quick picker manager
-      const { showQuickPicker } = require('../quickPicker/quickPickerManager');
       showQuickPicker();
       break;
     default:

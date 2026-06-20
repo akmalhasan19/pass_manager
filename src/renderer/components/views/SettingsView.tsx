@@ -3,6 +3,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { useAuthStore } from '../../stores/authStore';
 import { APP_NAME, APP_VERSION } from '../../../shared/constants';
 import { useTranslation } from '../../i18n/useTranslation';
+import { useExtensionStatus } from '../../hooks/useExtensionStatus';
 import ImportDialog from '../import-export/ImportDialog';
 import ExportDialog from '../import-export/ExportDialog';
 
@@ -19,6 +20,7 @@ export default function SettingsView(): React.ReactElement {
   const { settings, loadSettings, updateSetting } = useSettingsStore();
   const { changePassword, activeVaultName } = useAuthStore();
   const { t } = useTranslation();
+  const { status: extStatus, isLoading: extLoading, install, uninstall, openStore } = useExtensionStatus();
 
   const [activeSection, setActiveSection] = useState<string>('general');
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
@@ -30,6 +32,7 @@ export default function SettingsView(): React.ReactElement {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [installingHost, setInstallingHost] = useState(false);
   const passwordErrorId = useId();
 
   useEffect(() => {
@@ -119,6 +122,11 @@ export default function SettingsView(): React.ReactElement {
       id: 'passwordDefaults',
       label: t('settings.section.passwordDefaults'),
       icon: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z',
+    },
+    {
+      id: 'extension',
+      label: 'Extension',
+      icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1',
     },
     {
       id: 'data',
@@ -508,6 +516,112 @@ export default function SettingsView(): React.ReactElement {
                     </label>
                   ))}
                 </div>
+              </div>
+            </section>
+          )}
+
+          {/* Extension */}
+          {activeSection === 'extension' && (
+            <section>
+              <h2 className="mb-6 text-lg font-semibold text-surface-900 dark:text-surface-50">
+                Browser Extension
+              </h2>
+
+              <div className="space-y-5">
+                {/* Enable/Disable integration */}
+                <div className="rounded-lg border border-surface-200 p-4 dark:border-surface-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-medium text-surface-800 dark:text-surface-200">
+                        Enable Extension Integration
+                      </h3>
+                      <p className="mt-0.5 text-xs text-surface-400">
+                        Allow the desktop app to communicate with the SecurePass browser extension for autofill and quick access.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        checked={settings.extensionIntegrationEnabled}
+                        onChange={(e) => updateSetting('extensionIntegrationEnabled', e.target.checked)}
+                        className="peer sr-only"
+                      />
+                      <div className="peer h-6 w-11 rounded-full bg-surface-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-accent-500 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-accent-300 dark:bg-surface-600" />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Native Host Status */}
+                {settings.extensionIntegrationEnabled && (
+                  <div className="rounded-lg border border-surface-200 p-4 dark:border-surface-700">
+                    <h3 className="mb-3 text-sm font-medium text-surface-800 dark:text-surface-200">
+                      Native Messaging Host Status
+                    </h3>
+                    <div className="space-y-2">
+                      {extStatus ? (
+                        Object.entries(extStatus.browsers).map(([browser, info]) => (
+                          <div key={browser} className="flex items-center justify-between">
+                            <span className="text-sm capitalize text-surface-700 dark:text-surface-300">
+                              {browser}
+                            </span>
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                                info.registered
+                                  ? 'bg-success-100 text-success-700 dark:bg-success-900/20'
+                                  : 'bg-surface-100 text-surface-500 dark:bg-surface-800'
+                              }`}
+                            >
+                              {info.registered ? (
+                                <>
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 adresinden 1.414 1.414L9 12.414l4.293-4.293z" clipRule="evenodd" />
+                                  </svg>
+                                  Installed
+                                </>
+                              ) : (
+                                'Not installed'
+                              )}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-surface-400">Checking status...</p>
+                      )}
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        onClick={async () => {
+                          setInstallingHost(true);
+                          await install();
+                          setInstallingHost(false);
+                        }}
+                        disabled={installingHost || extLoading}
+                        className="notion-button-primary h-8 text-xs disabled:opacity-50"
+                      >
+                        {installingHost ? 'Installing...' : 'Install Native Host'}
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          await openStore('chrome');
+                        }}
+                        className="notion-button-ghost h-8 text-xs"
+                      >
+                        Open Chrome Web Store
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          await openStore('firefox');
+                        }}
+                        className="notion-button-ghost h-8 text-xs"
+                      >
+                        Open Firefox Add-ons
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
           )}

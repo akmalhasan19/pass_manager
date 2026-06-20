@@ -288,6 +288,15 @@ const api = {
       ipcRenderer.removeAllListeners(IPC_CHANNELS.UPDATE_ERROR);
     },
   },
+
+  extension: {
+    getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.EXTENSION_GET_STATUS),
+    installHost: (allowedExtensionIds?: string[]) =>
+      ipcRenderer.invoke(IPC_CHANNELS.EXTENSION_INSTALL_HOST, { allowedExtensionIds }),
+    uninstallHost: () => ipcRenderer.invoke(IPC_CHANNELS.EXTENSION_UNINSTALL_HOST),
+    openStore: (browser: 'chrome' | 'firefox' | 'edge') =>
+      ipcRenderer.invoke(IPC_CHANNELS.EXTENSION_OPEN_STORE, { browser }),
+  },
 };
 
 // Forward power monitor events to renderer as DOM events.

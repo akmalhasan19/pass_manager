@@ -260,6 +260,13 @@ export interface ElectronClipboardAPI {
   clearStatusListener(): void;
 }
 
+export interface ElectronExtensionAPI {
+  getStatus(): Promise<{ success: boolean; data: unknown; error?: string }>;
+  installHost(allowedExtensionIds?: string[]): Promise<{ success: boolean; data: unknown; error?: string }>;
+  uninstallHost(): Promise<{ success: boolean; data: unknown; error?: string }>;
+  openStore(browser: 'chrome' | 'firefox' | 'edge'): Promise<{ success: boolean; error?: string }>;
+}
+
 export interface ElectronAPI {
   auth: ElectronAuthAPI;
   import: ElectronImportAPI;
@@ -280,6 +287,7 @@ export interface ElectronAPI {
   updates: ElectronUpdatesAPI;
   quickPicker: ElectronQuickPickerAPI;
   clipboard: ElectronClipboardAPI;
+  extension: ElectronExtensionAPI;
 }
 
 declare global {

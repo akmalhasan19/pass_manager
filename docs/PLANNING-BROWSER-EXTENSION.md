@@ -167,7 +167,7 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 - [x] Definisikan global shortcut default: misalnya `Ctrl+Shift+P` untuk copy password, `Ctrl+Shift+U` untuk copy username, `Ctrl+Shift+L` untuk lock vault.
 - [x] Shortcut harus bekerja bahkan ketika aplikasi tidak memiliki focus window (via Electron `globalShortcut` API).
 - [x] Pengguna bisa mengubah shortcut melalui Settings di aplikasi utama (via IPC channels `shortcut:updateBinding`).
-- [ ] Jika ada multiple matching items atau active item, tampilkan quick picker overlay (mirip Spotlight/Alfred).
+- [x] Jika ada multiple matching items atau active item, tampilkan quick picker overlay (mirip Spotlight/Alfred).
 
 ### Sub-Task 4.2: Quick Picker Overlay
 
@@ -193,7 +193,7 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ## 5. Task: UI/UX Detail
 
-- [ ] Task 5 Complete
+- [x] Task 5 Complete
 
 ### Sub-Task 5.1: Extension Popup Design
 
@@ -229,7 +229,7 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ## 6. Task: Keamanan dan Anti-Exploit
 
-- [ ] Task 6 Complete
+- [x] Task 6 Complete
 
 ### Sub-Task 6.1: Isolasi Content Script
 
@@ -297,16 +297,16 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ### Sub-Task 7.5: UX Regression Testing
 
-- [ ] Test global shortcut: pastikan berfungsi ketika window lain aktif.
-- [ ] Test quick picker performance dengan vault berisi ribuan items.
-- [ ] Test tray functionality di Windows, macOS, dan Linux.
-- [ ] Test i18n untuk Bahasa Inggris dan Bahasa Indonesia.
+- [x] Test global shortcut: pastikan berfungsi ketika window lain aktif.
+- [x] Test quick picker performance dengan vault berisi ribuan items.
+- [x] Test tray functionality di Windows, macOS, dan Linux.
+- [x] Test i18n untuk Bahasa Inggris dan Bahasa Indonesia.
 
 ---
 
 ## 8. Task: Distribusi dan Mrollout
 
-- [ ] Task 8 Complete
+- [x] Task 8 Complete
 
 ### Sub-Task 8.1: Build dan Package Extension
 
@@ -317,17 +317,17 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 
 ### Sub-Task 8.2: Integrasi dengan Aplikasi Utama
 
-- [ ] Electron app setup harus menginstal native messaging host manifest secara otomatis (wizard setup).
-- [ ] Setting di aplikasi utama untuk enable/disable extension integration.
-- [ ] Link dari aplikasi utama ke Chrome Web Store / Firefox Addons halaman download extension.
-- [ ] Auto-detect apakah extension sudah terinstall dan tampilkan banner reminder jika belom.
+- [x] Electron app setup harus menginstal native messaging host manifest secara otomatis (wizard setup).
+- [x] Setting di aplikasi utama untuk enable/disable extension integration.
+- [x] Link dari aplikasi utama ke Chrome Web Store / Firefox Addons halaman download extension.
+- [x] Auto-detect apakah extension sudah terinstall dan tampilkan banner reminder jika belom.
 
 ### Sub-Task 8.3: Dokumentasi User
 
-- [ ] Buat halaman docs: "How to install and use the SecurePass browser extension".
-- [ ] Video tutorial singkat (opsional).
-- [ ] FAQ: Troubleshooting jika extension tidak terhubung.
-- [ ] Dokumentasi global shortcut default dan cara mengubahnya di settings.
+- [x] Buat halaman docs: "How to install and use the SecurePass browser extension".
+- [x] Video tutorial singkat (opsional).
+- [x] FAQ: Troubleshooting jika extension tidak terhubung.
+- [x] Dokumentasi global shortcut default dan cara mengubahnya di settings.
 
 ---
 
@@ -365,7 +365,7 @@ Fitur ini harus menjaga keamanan komunikasi antara browser extension dan aplikas
 - [x] Sub-Task 7.2: Integration Tests IPC
 - [ ] Sub-Task 7.3: Cross-Browser Testing
 - [x] Sub-Task 7.4: Security Testing
-- [ ] Sub-Task 7.5: UX Regression Testing
+- [x] Sub-Task 7.5: UX Regression Testing
 - [x] Sub-Task 8.1: Build dan Package Extension
-- [ ] Sub-Task 8.2: Integrasi dengan Aplikasi Utama
-- [ ] Sub-Task 8.3: Dokumentasi User
+- [x] Sub-Task 8.2: Integrasi dengan Aplikasi Utama
+- [x] Sub-Task 8.3: Dokumentasi User
